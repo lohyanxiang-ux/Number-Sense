@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NumSense - Secondary Math Daily Practice</title>
+  <style>
+    :root {
+      --bg-primary: #f4f6f9;
+      --bg-card: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border-color: #e2e8f0;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    }
+
+    [data-theme="cyberpunk"] {
+      --bg-primary: #0f172a;
+      --bg-card: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #06b6d4;
+      --accent-hover: #0891b2;
+      --success: #10b981;
+      --border-color: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg-primary); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Top Navigation Bar */
+    header { background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; sticky: top; z-index: 10; }
+    .brand { font-weight: 800; font-size: 1.25rem; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+    .stats-bar { display: flex; gap: 16px; align-items: center; font-weight: 600; font-size: 0.95rem; }
+    .stat-badge { background: var(--bg-primary); padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border-color); }
+
+    /* Layout Container */
+    main { max-width: 800px; width: 100%; margin: 0 auto; padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Navigation Tabs */
+    .nav-tabs { display: flex; gap: 10px; background: var(--bg-card); padding: 6px; border-radius: var(--radius); border: 1px solid var(--border-color); }
+    .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-muted); font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s; text-align: center; }
+    .tab-btn.active { background: var(--accent); color: white; }
+
+    /* Card Containers */
+    .card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border-color); padding: 24px; box-shadow: var(--shadow); }
+    .hidden { display: none !important; }
+
+    /* Login Screen */
+    .login-box { text-align: center; max-width: 400px; margin: 40px auto; }
+    .pin-input { font-size: 2rem; letter-spacing: 8px; text-align: center; width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: var(--radius); margin: 20px 0; background: var(--bg-primary); color: var(--text-main); }
+    .btn { background: var(--accent); color: white; border: none; padding: 14px 24px; border-radius: var(--radius); font-weight: 700; font-size: 1rem; cursor: pointer; width: 100%; transition: 0.2s; }
+    .btn:hover { background: var(--accent-hover); }
+
+    /* Question Display */
+    .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; color: var(--text-muted); font-weight: 600; }
+    .q-prompt { font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; text-align: center; }
+
+    /* Number Line Canvas/Slider */
+    .nl-container { position: relative; margin: 40px 20px; padding: 20px 0; }
+    .nl-line { width: 100%; height: 8px; background: #cbd5e1; border-radius: 4px; position: relative; }
+    .nl-ticks { display: flex; justify-content: space-between; position: absolute; width: 100%; top: 16px; font-weight: 600; font-size: 0.9rem; color: var(--text-muted); }
+    .nl-slider { -webkit-appearance: none; width: 100%; height: 8px; background: transparent; position: absolute; top: 0; margin: 0; cursor: pointer; }
+    .nl-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); cursor: pointer; }
+
+    /* Grid Area Shader */
+    .grid-container { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; max-width: 320px; margin: 20px auto; background: var(--border-color); padding: 4px; border-radius: 8px; }
+    .grid-cell { aspect-ratio: 1; background: var(--bg-card); border-radius: 2px; cursor: pointer; transition: background 0.15s; }
+    .grid-cell.active { background: var(--accent); }
+
+    /* Equivalence Cards */
+    .eq-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+    .eq-card { background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 20px 10px; text-align: center; font-weight: 700; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
+    .eq-card.selected { border-color: var(--accent); background: rgba(79, 70, 229, 0.1); }
+    .eq-card.matched { border-color: var(--success); background: rgba(16, 185, 129, 0.15); opacity: 0.6; pointer-events: none; }
+
+    /* Feedback Modal & Visual Hints */
+    .feedback-box { border-radius: var(--radius); padding: 16px; margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .feedback-correct { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); }
+    .feedback-incorrect { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: var(--danger); }
+    .visual-explanation { background: var(--bg-primary); padding: 12px; border-radius: 8px; font-size: 0.95rem; color: var(--text-main); line-height: 1.5; }
+
+    /* Privilege Shop */
+    .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
+    .shop-item { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 16px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; }
+    .shop-item h4 { font-size: 1.05rem; }
+    .shop-price { font-weight: 700; color: var(--warning); display: flex; align-items: center; justify-content: center; gap: 4px; }
+
+    /* Form Controls */
+    .input-field { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-primary); color: var(--text-main); margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar Header -->
+  <header>
+    <div class="brand">📐 NumSense</div>
+    <div class="stats-bar hidden" id="userStatsHeader">
+      <div class="stat-badge">🔥 <span id="hdrStreak">0</span> Days</div>
+      <div class="stat-badge">⭐ <span id="hdrXP">0</span> XP</div>
+      <div class="stat-badge">🎟️ <span id="hdrTokens">0</span> Tokens</div>
+      <button class="tab-btn" onclick="toggleTheme()" style="padding: 4px 8px; font-size: 0.8rem;">🎨 Theme</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- LOGIN CONTAINER -->
+    <div id="loginScreen" class="card login-box">
+      <h2>Welcome Back!</h2>
+      <p style="color: var(--text-muted); margin-top: 6px;">Enter your 4-digit Student Code to begin daily practice.</p>
+      <input type="number" id="studentPin" class="pin-input" placeholder="••••" maxlength="4">
+      <button class="btn" onclick="handleLogin()">Start Daily Practice</button>
+      <p id="loginError" style="color: var(--danger); font-weight: 600; margin-top: 12px;" class="hidden"></p>
+    </div>
+
+    <!-- MAIN APP APPLET CONTAINER -->
+    <div id="appContainer" class="hidden" style="display: flex; flex-direction: column; gap: 16px;">
+      
+      <!-- Top Navigation Tabs -->
+      <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('practice')">Daily Practice</button>
+        <button class="tab-btn" onclick="switchTab('shop')">Privilege Shop</button>
+        <button class="tab-btn" onclick="switchTab('teacher')">Teacher Area</button>
+      </div>
+
+      <!-- TAB 1: DAILY PRACTICE MODULE -->
+      <div id="tabPractice" class="card">
+        <div class="q-header">
+          <span id="qProgress">Question 1 of 5</span>
+          <span id="qSkillBadge" style="background: var(--bg-primary); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-color);">Number Line Sense</span>
+        </div>
+
+        <div id="qPrompt" class="q-prompt">Locate the target on the number line</div>
+
+        <!-- Dynamic Question Workspace -->
+        <div id="workspace">
+          <!-- Rendered dynamically by JavaScript -->
+        </div>
+
+        <!-- Feedback & Explanation Box -->
+        <div id="feedbackBox" class="feedback-box hidden">
+          <div id="feedbackTitle" style="font-weight: 700; font-size: 1.1rem;"></div>
+          <div id="visualExp" class="visual-explanation"></div>
+          <button id="nextBtn" class="btn" onclick="nextQuestion()" style="margin-top: 10px;">Next Question ➔</button>
+        </div>
+
+        <button id="submitBtn" class="btn" onclick="checkAnswer()" style="margin-top: 20px;">Submit Answer</button>
+      </div>
+
+      <!-- TAB 2: PRIVILEGE SHOP -->
+      <div id="tabShop" class="card hidden">
+        <h3>🎟️ Classroom Privilege Shop</h3>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">Redeem your earned privilege tokens for real-world classroom rewards.</p>
+        
+        <div class="shop-grid">
+          <div class="shop-item">
+            <h4>Pick Your Seat for 1 Week</h4>
+            <div class="shop-price">🎟️ 50 Tokens</div>
+            <button class="btn" onclick="redeemPrivilege('Pick Seat', 50)">Redeem</button>
+          </div>
+          <div class="shop-item">
+            <h4>Late Homework Pass (1 Day)</h4>
+            <div class="shop-price">🎟️ 100 Tokens</div>
+            <button class="btn" onclick="redeemPrivilege('Late Pass', 100)">Redeem</button>
+          </div>
+          <div class="shop-item">
+            <h4>Physical Sticker / Mini Eraser</h4>
+            <div class="shop-price">🎟️ 30 Tokens</div>
+            <button class="btn" onclick="redeemPrivilege('Sticker', 30)">Redeem</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: TEACHER AREA & CONFIGURATION -->
+      <div id="tabTeacher" class="card hidden">
+        <h3>⚙️ Teacher Dashboard & Configuration</h3>
+        <p style="color: var(--text-muted); margin-top: 4px;">Link this applet to your Google Sheets Web App for central tracking.</p>
+        
+        <div style="margin: 20px 0;">
+          <label style="font-weight: 600; display: block; margin-bottom: 4px;">Google Sheets Web App Deployment URL:</label>
+          <input type="text" id="sheetUrlInput" class="input-field" placeholder="https://script.google.com/macros/s/.../exec">
+          <button class="btn" onclick="saveSheetUrl()" style="margin-top: 10px;">Save Google Sheet Connection</button>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+        <h4>Current Student Session Status</h4>
+        <div style="margin-top: 10px; line-height: 1.8;">
+          <p><strong>Student Name:</strong> <span id="tStudentName">-</span></p>
+          <p><strong>Student Code:</strong> <span id="tStudentCode">-</span></p>
+          <p><strong>Session Accuracy:</strong> <span id="tAccuracy">0%</span></p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // --- APP STATE ---
+    let currentUser = null;
+    let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
+    let currentTheme = 'default';
+
+    let currentQIndex = 0;
+    let sessionScore = 0;
+    const TOTAL_QUESTIONS = 5;
+
+    // Generated Questions Queue
+    let questions = [];
+
+    // --- MOCK DATABASE FALLBACK (Used if Google Sheet isn't connected yet) ---
+    const localRoster = {
+      '1001': { name: 'Alex Tan', class: 'Sec 2A', xp: 120, streak: 3, tokens: 15 },
+      '1002': { name: 'Sarah Lim', class: 'Sec 2A', xp: 240, streak: 5, tokens: 30 },
+      '1003': { name: 'Ryan Chen', class: 'Sec 2B', xp: 80, streak: 1, tokens: 10 }
+    };
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+      document.getElementById('sheetUrlInput').value = sheetWebAppUrl;
+      const savedUser = localStorage.getItem('NUMSENSE_CURRENT_USER');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        loadUserSession();
+      }
+    };
+
+    // --- LOGIN HANDLER ---
+    async function handleLogin() {
+      const pin = document.getElementById('studentPin').value.trim();
+      const errEl = document.getElementById('loginError');
+      errEl.classList.add('hidden');
+
+      if (!pin || pin.length !== 4) {
+        errEl.innerText = "Please enter a valid 4-digit code.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      // 1. Try Google Sheets Web App Connection
+      if (sheetWebAppUrl) {
+        try {
+          const res = await fetch(sheetWebAppUrl, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'login', studentCode: pin })
+          });
+          const data = await res.json();
+          if (data.success) {
+            currentUser = { code: pin, name: data.studentName, xp: data.xp, streak: data.streak, tokens: Math.floor(data.xp / 10) };
+            saveAndStartSession();
+            return;
+          }
+        } catch (e) {
+          console.warn("Sheet login failed, using local roster fallback.");
+        }
+      }
+
+      // 2. Local Fallback
+      if (localRoster[pin]) {
+        const u = localRoster[pin];
+        currentUser = { code: pin, name: u.name, xp: u.xp, streak: u.streak, tokens: u.tokens };
+        saveAndStartSession();
+      } else {
+        errEl.innerText = "Code not recognized. (Demo codes: 1001, 1002, 1003)";
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function saveAndStartSession() {
+      localStorage.setItem('NUMSENSE_CURRENT_USER', JSON.stringify(currentUser));
+      loadUserSession();
+    }
+
+    function loadUserSession() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('appContainer').classList.remove('hidden');
+      document.getElementById('userStatsHeader').classList.remove('hidden');
+
+      updateHeaderStats();
+      document.getElementById('tStudentName').innerText = currentUser.name;
+      document.getElementById('tStudentCode').innerText = currentUser.code;
+
+      startDailySession();
+    }
+
+    function updateHeaderStats() {
+      document.getElementById('hdrStreak').innerText = currentUser.streak;
+      document.getElementById('hdrXP').innerText = currentUser.xp;
+      document.getElementById('hdrTokens').innerText = currentUser.tokens;
+    }
+
+    // --- GENERATE ADAPTIVE QUESTION QUEUE ---
+    function startDailySession() {
+      currentQIndex = 0;
+      sessionScore = 0;
+      questions = [
+        generateNumberLineQ(),
+        generateGridShaderQ(),
+        generateEquivalenceQ(),
+        generateNumberLineQ(),
+        generateGridShaderQ()
+      ];
+      renderQuestion();
+    }
+
+    // 1. Number Line Generator
+    function generateNumberLineQ() {
+      const targets = [
+        { label: '3/8', val: 0.375, exp: '3/8 is slightly less than 4/8 (which is 0.5). It lies at 0.375.' },
+        { label: '0.65', val: 0.65, exp: '0.65 is halfway between 0.6 and 0.7 (or 65% of the distance from 0 to 1).' },
+        { label: '75%', val: 0.75, exp: '75% is equivalent to 3/4 or 0.75.' },
+        { label: '2/5', val: 0.40, exp: '2/5 is equal to 4/10 or 0.40.' }
+      ];
+      const t = targets[Math.floor(Math.random() * targets.length)];
+      return { type: 'number_line', prompt: `Drag slider to place <strong>${t.label}</strong> on the number line:`, targetVal: t.val, explanation: t.exp };
+    }
+
+    // 2. Grid Shader Generator
+    function generateGridShaderQ() {
+      const targets = [
+        { label: '40%', count: 40, exp: '40% means 40 out of 100 squares shaded (or 4 full rows).' },
+        { label: '0.25', count: 25, exp: '0.25 equals 25% or 25 out of 100 squares shaded.' },
+        { label: '3/10', count: 30, exp: '3/10 is equal to 30/100, which means 30 squares shaded.' }
+      ];
+      const t = targets[Math.floor(Math.random() * targets.length)];
+      return { type: 'grid_shader', prompt: `Shade <strong>${t.label}</strong> of the 10x10 grid below:`, targetCount: t.count, explanation: t.exp };
+    }
+
+    // 3. Equivalence Matching Generator
+    function generateEquivalenceQ() {
+      return {
+        type: 'equivalence',
+        prompt: 'Tap the 3 equivalent representations of the same quantity:',
+        cards: [
+          { label: '1/2', match: true }, { label: '0.5', match: true }, { label: '50%', match: true },
+          { label: '0.25', match: false }, { label: '75%', match: false }, { label: '1/4', match: false }
+        ],
+        explanation: '1/2, 0.5, and 50% all represent exactly half of a whole unit.'
+      };
+    }
+
+    // --- RENDER QUESTION ---
+    function renderQuestion() {
+      const q = questions[currentQIndex];
+      document.getElementById('qProgress').innerText = `Question ${currentQIndex + 1} of ${TOTAL_QUESTIONS}`;
+      document.getElementById('qPrompt').innerHTML = q.prompt;
+
+      const ws = document.getElementById('workspace');
+      ws.innerHTML = '';
+      document.getElementById('feedbackBox').classList.add('hidden');
+      document.getElementById('submitBtn').classList.remove('hidden');
+
+      if (q.type === 'number_line') {
+        ws.innerHTML = `
+          <div class="nl-container">
+            <div class="nl-line"></div>
+            <div class="nl-ticks"><span>0</span><span>0.5</span><span>1.0</span></div>
+            <input type="range" min="0" max="1" step="0.01" value="0.5" class="nl-slider" id="nlSlider" oninput="document.getElementById('nlVal').innerText = parseFloat(this.value).toFixed(2)">
+          </div>
+          <p style="text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--accent);">Your Selection: <span id="nlVal">0.50</span></p>
+        `;
+      } else if (q.type === 'grid_shader') {
+        let gridHtml = '<div class="grid-container">';
+        for (let i = 0; i < 100; i++) {
+          gridHtml += `<div class="grid-cell" onclick="this.classList.toggle('active'); updateGridCount();"></div>`;
+        }
+        gridHtml += `</div><p style="text-align: center; font-weight: 700;">Shaded: <span id="cellCount">0</span> / 100</p>`;
+        ws.innerHTML = gridHtml;
+      } else if (q.type === 'equivalence') {
+        let cardHtml = '<div class="eq-grid">';
+        q.cards.forEach((c, idx) => {
+          cardHtml += `<div class="eq-card" data-idx="${idx}" onclick="this.classList.toggle('selected')">${c.label}</div>`;
+        });
+        cardHtml += '</div>';
+        ws.innerHTML = cardHtml;
+      }
+    }
+
+    function updateGridCount() {
+      const active = document.querySelectorAll('.grid-cell.active').length;
+      document.getElementById('cellCount').innerText = active;
+    }
+
+    // --- CHECK ANSWER ---
+    function checkAnswer() {
+      const q = questions[currentQIndex];
+      let isCorrect = false;
+
+      if (q.type === 'number_line') {
+        const userVal = parseFloat(document.getElementById('nlSlider').value);
+        isCorrect = Math.abs(userVal - q.targetVal) <= 0.06; // Tolerance
+      } else if (q.type === 'grid_shader') {
+        const activeCount = document.querySelectorAll('.grid-cell.active').length;
+        isCorrect = activeCount === q.targetCount;
+      } else if (q.type === 'equivalence') {
+        const selected = document.querySelectorAll('.eq-card.selected');
+        let correctCount = 0;
+        selected.forEach(card => {
+          const idx = card.getAttribute('data-idx');
+          if (q.cards[idx].match) correctCount++;
+        });
+        isCorrect = (selected.length === 3 && correctCount === 3);
+      }
+
+      // Feedback Display
+      const fbBox = document.getElementById('feedbackBox');
+      const fbTitle = document.getElementById('feedbackTitle');
+      const visExp = document.getElementById('visualExp');
+
+      fbBox.classList.remove('hidden', 'feedback-correct', 'feedback-incorrect');
+      if (isCorrect) {
+        sessionScore++;
+        fbBox.classList.add('feedback-correct');
+        fbTitle.innerText = "🎯 Spot On! (+20 XP)";
+        currentUser.xp += 20;
+      } else {
+        fbBox.classList.add('feedback-incorrect');
+        fbTitle.innerText = "💡 Not Quite. Here is the visual connection:";
+      }
+
+      visExp.innerHTML = q.explanation;
+      document.getElementById('submitBtn').classList.add('hidden');
+      updateHeaderStats();
+    }
+
+    // --- NEXT QUESTION / FINISH SESSION ---
+    function nextQuestion() {
+      currentQIndex++;
+      if (currentQIndex < TOTAL_QUESTIONS) {
+        renderQuestion();
+      } else {
+        finishDailySession();
+      }
+    }
+
+    async function finishDailySession() {
+      currentUser.tokens += 10;
+      currentUser.streak += 1;
+      updateHeaderStats();
+
+      const accuracy = Math.round((sessionScore / TOTAL_QUESTIONS) * 100);
+      document.getElementById('tAccuracy').innerText = accuracy + "%";
+
+      const ws = document.getElementById('workspace');
+      ws.innerHTML = `
+        <div style="text-align: center; padding: 20px 0;">
+          <h2 style="color: var(--success); font-size: 2rem;">🎉 Warm-up Complete!</h2>
+          <p style="font-size: 1.2rem; margin: 12px 0;">Score: <strong>${sessionScore} / ${TOTAL_QUESTIONS} (${accuracy}%)</strong></p>
+          <p style="color: var(--text-muted);">You earned <strong>🎟️ 10 Privilege Tokens</strong> and maintained your <strong>🔥 ${currentUser.streak} Day Streak</strong>!</p>
+        </div>
+      `;
+      document.getElementById('feedbackBox').classList.add('hidden');
+      document.getElementById('qPrompt').innerText = "Great effort today!";
+
+      // Sync to Google Sheet Backend
+      if (sheetWebAppUrl) {
+        try {
+          await fetch(sheetWebAppUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'saveProgress',
+              studentCode: currentUser.code,
+              studentName: currentUser.name,
+              totalQuestions: TOTAL_QUESTIONS,
+              accuracy: accuracy,
+              topic: 'Daily Number Sense Mix',
+              tokensEarned: 10,
+              newTotalXP: currentUser.xp,
+              newStreak: currentUser.streak
+            })
+          });
+        } catch(e) { console.warn("Failed to sync session with sheet."); }
+      }
+    }
+
+    // --- PRIVILEGE REDEMPTION ---
+    function redeemPrivilege(item, cost) {
+      if (currentUser.tokens >= cost) {
+        currentUser.tokens -= cost;
+        updateHeaderStats();
+        alert(`Successfully redeemed: ${item}! Show this receipt screen to your teacher.`);
+      } else {
+        alert(`You need ${cost - currentUser.tokens} more tokens to redeem this item.`);
+      }
+    }
+
+    // --- TAB & THEME SWITCHERS ---
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tabPractice').classList.add('hidden');
+      document.getElementById('tabShop').classList.add('hidden');
+      document.getElementById('tabTeacher').classList.add('hidden');
+
+      if (tabName === 'practice') document.getElementById('tabPractice').classList.remove('hidden');
+      if (tabName === 'shop') document.getElementById('tabShop').classList.remove('hidden');
+      if (tabName === 'teacher') document.getElementById('tabTeacher').classList.remove('hidden');
+      
+      event.target.classList.add('active');
+    }
+
+    function toggleTheme() {
+      currentTheme = (currentTheme === 'default') ? 'cyberpunk' : 'default';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+    }
+
+    function saveSheetUrl() {
+      const url = document.getElementById('sheetUrlInput').value.trim();
+      sheetWebAppUrl = url;
+      localStorage.setItem('NUMSENSE_SHEET_URL', url);
+      alert('Google Sheet URL saved successfully!');
+    }
+  </script>
+</body>
+</html>
