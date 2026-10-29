@@ -36,7 +36,14 @@ if (document.readyState === 'loading') {
   initApp();
 }
 
-// KEYPAD CONTROLLER
+// PERSISTENCE HELPER
+function saveState() {
+  if (currentUser) {
+    localStorage.setItem('NUMSENSE_CURRENT_USER', JSON.stringify(currentUser));
+    updateHeader();
+  }
+}
+
 function setupKeypad() {
   const display = document.getElementById('pinDisplay');
   
@@ -74,6 +81,10 @@ function setupEventHandlers() {
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.onclick = (e) => switchTab(e.target.getAttribute('data-tab'), e.target);
   });
+
+  document.querySelectorAll('.shop-buy-btn').forEach(btn => {
+    btn.onclick = () => redeemPrivilege(btn.getAttribute('data-item'), parseInt(btn.getAttribute('data-cost')));
+  });
 }
 
 async function handleLogin() {
@@ -100,7 +111,8 @@ async function handleLogin() {
           class: data.className || 'Sec 2',
           xp: data.xp,
           streak: data.streak,
-          tokens: Math.floor(data.xp / 10)
+          tokens: data.tokens,
+          lastActive: data.lastActive
         };
         saveAndStart();
         return;
@@ -110,7 +122,7 @@ async function handleLogin() {
 
   if (localRoster[enteredPin]) {
     const u = localRoster[enteredPin];
-    currentUser = { code: enteredPin, name: u.name, class: u.class, xp: u.xp, streak: u.streak, tokens: u.tokens };
+    currentUser = { code: enteredPin, name: u.name, class: u.class, xp: u.xp, streak: u.streak, tokens: u.tokens, lastActive: null };
     saveAndStart();
   } else {
     errEl.innerText = "Code not found. (Try: 1001 or 1002)";
@@ -119,7 +131,7 @@ async function handleLogin() {
 }
 
 function saveAndStart() {
-  localStorage.setItem('NUMSENSE_CURRENT_USER', JSON.stringify(currentUser));
+  saveState();
   loadUserSession();
 }
 
@@ -128,7 +140,6 @@ function loadUserSession() {
   document.getElementById('appContainer').classList.remove('hidden');
   document.getElementById('userStatsHeader').classList.remove('hidden');
 
-  // UPDATE HEADER WITH STUDENT NAME & CLASS
   document.getElementById('hdrStudentName').innerText = currentUser.name;
   document.getElementById('hdrStudentClass').innerText = currentUser.class;
 
@@ -173,6 +184,7 @@ function handleAnswerSubmit() {
     fbBox.classList.add('feedback-correct');
     document.getElementById('feedbackTitle').innerText = "🎯 Spot On! (+20 XP)";
     currentUser.xp += 20;
+    saveState(); // Instantly save updated XP
   } else {
     fbBox.classList.add('feedback-incorrect');
     document.getElementById('feedbackTitle').innerText = "💡 Visual Explanation:";
@@ -180,7 +192,6 @@ function handleAnswerSubmit() {
 
   document.getElementById('visualExp').innerHTML = q.explanation;
   document.getElementById('submitBtn').classList.add('hidden');
-  updateHeader();
 }
 
 function handleNextQuestion() {
@@ -192,10 +203,32 @@ function handleNextQuestion() {
   }
 }
 
+// CALENDAR DAY STREAK CALCULATOR
+function updateDailyStreak() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (!currentUser.lastActive) {
+    currentUser.streak = 1;
+  } else {
+    const last = new Date(currentUser.lastActive);
+    last.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((today - last) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      currentUser.streak += 1; // Consecutive day practice
+    } else if (diffDays > 1) {
+      currentUser.streak = 1;  // Missed days, reset streak
+    }
+    // If diffDays === 0, student practiced twice today; streak remains unchanged
+  }
+  currentUser.lastActive = new Date().toISOString();
+}
+
 async function finishSession() {
+  updateDailyStreak();
   currentUser.tokens += 10;
-  currentUser.streak += 1;
-  updateHeader();
+  saveState(); // Save locally first
 
   const accuracy = Math.round((sessionScore / TOTAL_QUESTIONS) * 100);
   document.getElementById('workspace').innerHTML = `
@@ -208,6 +241,7 @@ async function finishSession() {
   document.getElementById('feedbackBox').classList.add('hidden');
   document.getElementById('qPrompt').innerText = "Great job!";
 
+  // Sync to Google Sheet Backend
   if (sheetWebAppUrl) {
     try {
       await fetch(sheetWebAppUrl, {
@@ -221,10 +255,21 @@ async function finishSession() {
           topic: 'Area Representation Practice',
           tokensEarned: 10,
           newTotalXP: currentUser.xp,
-          newStreak: currentUser.streak
+          newStreak: currentUser.streak,
+          newTokens: currentUser.tokens
         })
       });
     } catch(e) {}
+  }
+}
+
+function redeemPrivilege(item, cost) {
+  if (currentUser.tokens >= cost) {
+    currentUser.tokens -= cost;
+    saveState(); // Save deducted tokens
+    alert(`Redeemed: ${item}!`);
+  } else {
+    alert(`Need ${cost - currentUser.tokens} more tokens.`);
   }
 }
 
