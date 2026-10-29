@@ -178,3 +178,25 @@ main { max-width: 800px; width: 100%; margin: 0 auto; padding: 20px; }
   color: var(--accent);
   border-color: var(--accent);
 }
+
+.btn-partition {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.btn-partition:hover {
+  background: var(--border-color);
+}
+
+.btn-partition-active {
+  background: var(--accent) !important;
+  color: white !important;
+  border-color: var(--accent) !important;
+}
