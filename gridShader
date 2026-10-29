@@ -1,0 +1,42 @@
+import { registerQuestionType, formatMath } from './registry.js';
+
+const gridShaderModule = {
+  generate() {
+    const targets = [
+      { label: '40%', count: 40, exp: '40% means 40 out of 100 squares shaded.' },
+      { label: '0.25', count: 25, exp: '0.25 equals 25% or 25 out of 100 squares shaded.' },
+      { label: '3/10', count: 30, exp: '3/10 is equal to 30/100 (30 squares).' }
+    ];
+    const t = targets[Math.floor(Math.random() * targets.length)];
+    return {
+      type: 'grid_shader',
+      prompt: `Shade <strong>${formatMath(t.label)}</strong> of the 10x10 grid below:`,
+      targetCount: t.count,
+      explanation: formatMath(t.exp)
+    };
+  },
+
+  render(q, container) {
+    let gridHtml = '<div class="grid-container">';
+    for (let i = 0; i < 100; i++) {
+      gridHtml += `<div class="grid-cell"></div>`;
+    }
+    gridHtml += `</div><p style="text-align: center; font-weight: 700;">Shaded: <span id="cellCount">0</span> / 100</p>`;
+    container.innerHTML = gridHtml;
+
+    container.querySelectorAll('.grid-cell').forEach(cell => {
+      cell.onclick = () => {
+        cell.classList.toggle('active');
+        const active = container.querySelectorAll('.grid-cell.active').length;
+        document.getElementById('cellCount').innerText = active;
+      };
+    });
+  },
+
+  evaluate(q) {
+    const activeCount = document.querySelectorAll('.grid-cell.active').length;
+    return activeCount === q.targetCount;
+  }
+};
+
+registerQuestionType('grid_shader', gridShaderModule);

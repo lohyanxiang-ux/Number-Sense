@@ -1,0 +1,25 @@
+// Central helper to auto-convert fraction strings like "3/8" to stacked HTML
+export function formatMath(text) {
+  return text.replace(/(\d+)\/(\d+)/g, '<span class="frac"><span class="num">$1</span><span class="den">$2</span></span>');
+}
+
+// Question Type Registry
+const registry = {};
+
+export function registerQuestionType(typeKey, module) {
+  registry[typeKey] = module;
+}
+
+export function getRandomQuestion() {
+  const keys = Object.keys(registry);
+  const randomKey = keys[Math.floor(Math.random() * keys.length)];
+  return registry[randomKey].generate();
+}
+
+export function evaluateQuestion(questionObj) {
+  return registry[questionObj.type].evaluate(questionObj);
+}
+
+export function renderQuestion(questionObj, containerEl) {
+  registry[questionObj.type].render(questionObj, containerEl);
+}
