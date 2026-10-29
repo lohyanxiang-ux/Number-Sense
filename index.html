@@ -11,6 +11,8 @@
   <header>
     <div class="brand">📐 NumSense</div>
     <div class="stats-bar hidden" id="userStatsHeader">
+      <!-- Student Info Badges -->
+      <div class="stat-badge user-info">👤 <span id="hdrStudentName">-</span> (<span id="hdrStudentClass">-</span>)</div>
       <div class="stat-badge">🔥 <span id="hdrStreak">0</span> Days</div>
       <div class="stat-badge">⭐ <span id="hdrXP">0</span> XP</div>
       <div class="stat-badge">🎟️ <span id="hdrTokens">0</span> Tokens</div>
@@ -19,12 +21,31 @@
   </header>
 
   <main>
-    <!-- LOGIN CONTAINER -->
+    <!-- LOGIN CONTAINER WITH KEYPAD -->
     <div id="loginScreen" class="card login-box">
       <h2>Welcome Back!</h2>
-      <p style="color: var(--text-muted); margin-top: 6px;">Enter your 4-digit Student Code to begin.</p>
-      <input type="number" id="studentPin" class="pin-input" placeholder="••••" maxlength="4">
-      <button class="btn" id="loginBtn">Start Daily Practice</button>
+      <p style="color: var(--text-muted); margin-top: 6px;">Tap your 4-digit Student Code below:</p>
+      
+      <!-- PIN Display (readonly to block iPad native keyboard) -->
+      <div id="pinDisplay" class="pin-display">••••</div>
+      
+      <!-- On-Screen Numeric Keypad -->
+      <div class="keypad-grid">
+        <button class="key-btn" data-key="1">1</button>
+        <button class="key-btn" data-key="2">2</button>
+        <button class="key-btn" data-key="3">3</button>
+        <button class="key-btn" data-key="4">4</button>
+        <button class="key-btn" data-key="5">5</button>
+        <button class="key-btn" data-key="6">6</button>
+        <button class="key-btn" data-key="7">7</button>
+        <button class="key-btn" data-key="8">8</button>
+        <button class="key-btn" data-key="9">9</button>
+        <button class="key-btn key-action" id="keyClear">C</button>
+        <button class="key-btn" data-key="0">0</button>
+        <button class="key-btn key-action" id="keyDel">⌫</button>
+      </div>
+
+      <button class="btn" id="loginBtn" style="margin-top: 16px;">Start Practice ➔</button>
       <p id="loginError" style="color: var(--danger); font-weight: 600; margin-top: 12px;" class="hidden"></p>
     </div>
 
@@ -41,7 +62,7 @@
       <div id="tabPractice" class="card">
         <div class="q-header">
           <span id="qProgress">Question 1 of 5</span>
-          <span id="qSkillBadge" class="badge">Number Sense</span>
+          <span id="qSkillBadge" class="badge">Area Representation</span>
         </div>
 
         <div id="qPrompt" class="q-prompt"></div>
