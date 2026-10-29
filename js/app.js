@@ -1,20 +1,17 @@
-import { getRandomQuestion, evaluateQuestion, renderQuestion } from './questions/registry.js';
+import { getAdaptiveQuestion, evaluateQuestion, renderQuestion } from './questions/registry.js';
 import './questions/numberLine.js';
 import './questions/gridShader.js';
 import './questions/equivalence.js';
 
 let currentUser = null;
-let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || 'https://script.google.com/macros/s/AKfycbxs1uvyTFFuFmmmmXQAMm3I57kNeE2VlCqYOd3DOvMwGcHZj6kRP_ZjMpd-Tqg5_OTw/exec';
+let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
 let currentQIndex = 0;
 let sessionScore = 0;
 const TOTAL_QUESTIONS = 5;
 let questions = [];
+let currentQuestion = null;
+let isExtraPractice = false;
 let enteredPin = '';
-
-const localRoster = {
-  '1001': { name: 'Alex Tan', class: 'Sec 2A', xp: 120, streak: 3, tokens: 15 },
-  '1002': { name: 'Sarah Lim', class: 'Sec 2A', xp: 240, streak: 5, tokens: 30 }
-};
 
 function initApp() {
   const sheetInput = document.getElementById('sheetUrlInput');
@@ -26,6 +23,7 @@ function initApp() {
   const savedUser = localStorage.getItem('NUMSENSE_CURRENT_USER');
   if (savedUser) {
     currentUser = JSON.parse(savedUser);
+    if (!currentUser.proficiency) currentUser.proficiency = {};
     loadUserSession();
   }
 }
@@ -36,7 +34,6 @@ if (document.readyState === 'loading') {
   initApp();
 }
 
-// PERSISTENCE HELPER
 function saveState() {
   if (currentUser) {
     localStorage.setItem('NUMSENSE_CURRENT_USER', JSON.stringify(currentUser));
@@ -46,29 +43,24 @@ function saveState() {
 
 function setupKeypad() {
   const display = document.getElementById('pinDisplay');
-  
   document.querySelectorAll('.key-btn[data-key]').forEach(btn => {
     btn.onclick = () => {
       if (enteredPin.length < 4) {
         enteredPin += btn.getAttribute('data-key');
-        updatePinDisplay();
+        display.innerText = enteredPin.padEnd(4, '•');
       }
     };
   });
 
   document.getElementById('keyClear').onclick = () => {
     enteredPin = '';
-    updatePinDisplay();
+    display.innerText = '••••';
   };
 
   document.getElementById('keyDel').onclick = () => {
     enteredPin = enteredPin.slice(0, -1);
-    updatePinDisplay();
-  };
-
-  function updatePinDisplay() {
     display.innerText = enteredPin.padEnd(4, '•');
-  }
+  };
 }
 
 function setupEventHandlers() {
@@ -80,10 +72,6 @@ function setupEventHandlers() {
 
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.onclick = (e) => switchTab(e.target.getAttribute('data-tab'), e.target);
-  });
-
-  document.querySelectorAll('.shop-buy-btn').forEach(btn => {
-    btn.onclick = () => redeemPrivilege(btn.getAttribute('data-item'), parseInt(btn.getAttribute('data-cost')));
   });
 }
 
@@ -112,7 +100,8 @@ async function handleLogin() {
           xp: data.xp,
           streak: data.streak,
           tokens: data.tokens,
-          lastActive: data.lastActive
+          lastActive: data.lastActive,
+          proficiency: data.proficiency || {}
         };
         saveAndStart();
         return;
@@ -120,14 +109,9 @@ async function handleLogin() {
     } catch (e) {}
   }
 
-  if (localRoster[enteredPin]) {
-    const u = localRoster[enteredPin];
-    currentUser = { code: enteredPin, name: u.name, class: u.class, xp: u.xp, streak: u.streak, tokens: u.tokens, lastActive: null };
-    saveAndStart();
-  } else {
-    errEl.innerText = "Code not found. (Try: 1001 or 1002)";
-    errEl.classList.remove('hidden');
-  }
+  // Local Fallback
+  currentUser = { code: enteredPin, name: 'Student ' + enteredPin, class: 'Sec 2A', xp: 0, streak: 1, tokens: 0, proficiency: {} };
+  saveAndStart();
 }
 
 function saveAndStart() {
@@ -144,7 +128,7 @@ function loadUserSession() {
   document.getElementById('hdrStudentClass').innerText = currentUser.class;
 
   updateHeader();
-  startDailySession();
+  startDailySession(false);
 }
 
 function updateHeader() {
@@ -153,28 +137,41 @@ function updateHeader() {
   document.getElementById('hdrTokens').innerText = currentUser.tokens;
 }
 
-function startDailySession() {
+function startDailySession(extraMode = false) {
+  isExtraPractice = extraMode;
   currentQIndex = 0;
   sessionScore = 0;
-  questions = Array.from({ length: TOTAL_QUESTIONS }, () => getRandomQuestion());
+
+  // Adaptively build question set based on student proficiency map
+  questions = Array.from({ length: TOTAL_QUESTIONS }, () => getAdaptiveQuestion(currentUser.proficiency));
   renderCurrentQuestion();
 }
 
 function renderCurrentQuestion() {
-  const q = questions[currentQIndex];
-  document.getElementById('qProgress').innerText = `Question ${currentQIndex + 1} of ${TOTAL_QUESTIONS}`;
-  document.getElementById('qPrompt').innerHTML = q.prompt;
+  currentQuestion = questions[currentQIndex];
+  const modeTag = isExtraPractice ? ' (Extra Practice)' : '';
+  document.getElementById('qProgress').innerText = `Question ${currentQIndex + 1} of ${TOTAL_QUESTIONS}${modeTag}`;
+  document.getElementById('qPrompt').innerHTML = currentQuestion.prompt;
   
   const ws = document.getElementById('workspace');
-  renderQuestion(q, ws);
+  renderQuestion(currentQuestion, ws);
 
   document.getElementById('feedbackBox').classList.add('hidden');
   document.getElementById('submitBtn').classList.remove('hidden');
 }
 
 function handleAnswerSubmit() {
-  const q = questions[currentQIndex];
-  const isCorrect = evaluateQuestion(q);
+  const isCorrect = evaluateQuestion(currentQuestion);
+  const qType = currentQuestion.type;
+
+  // Initialize history array if missing
+  if (!currentUser.proficiency[qType]) {
+    currentUser.proficiency[qType] = [];
+  }
+
+  // Record outcome (1 = correct, 0 = incorrect) and restrict to last 5 attempts
+  currentUser.proficiency[qType].push(isCorrect ? 1 : 0);
+  currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-5);
 
   const fbBox = document.getElementById('feedbackBox');
   fbBox.classList.remove('hidden', 'feedback-correct', 'feedback-incorrect');
@@ -184,13 +181,13 @@ function handleAnswerSubmit() {
     fbBox.classList.add('feedback-correct');
     document.getElementById('feedbackTitle').innerText = "🎯 Spot On! (+20 XP)";
     currentUser.xp += 20;
-    saveState(); // Instantly save updated XP
+    saveState();
   } else {
     fbBox.classList.add('feedback-incorrect');
     document.getElementById('feedbackTitle').innerText = "💡 Visual Explanation:";
   }
 
-  document.getElementById('visualExp').innerHTML = q.explanation;
+  document.getElementById('visualExp').innerHTML = currentQuestion.explanation;
   document.getElementById('submitBtn').classList.add('hidden');
 }
 
@@ -203,7 +200,6 @@ function handleNextQuestion() {
   }
 }
 
-// CALENDAR DAY STREAK CALCULATOR
 function updateDailyStreak() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -215,33 +211,48 @@ function updateDailyStreak() {
     last.setHours(0, 0, 0, 0);
     const diffDays = Math.round((today - last) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 1) {
-      currentUser.streak += 1; // Consecutive day practice
-    } else if (diffDays > 1) {
-      currentUser.streak = 1;  // Missed days, reset streak
-    }
-    // If diffDays === 0, student practiced twice today; streak remains unchanged
+    if (diffDays === 1) currentUser.streak += 1;
+    else if (diffDays > 1) currentUser.streak = 1;
   }
   currentUser.lastActive = new Date().toISOString();
 }
 
 async function finishSession() {
-  updateDailyStreak();
+  if (!isExtraPractice) updateDailyStreak();
   currentUser.tokens += 10;
-  saveState(); // Save locally first
+  saveState();
 
   const accuracy = Math.round((sessionScore / TOTAL_QUESTIONS) * 100);
+  const modeText = isExtraPractice ? 'Extra Practice Complete!' : 'Warm-up Complete!';
+
   document.getElementById('workspace').innerHTML = `
     <div style="text-align: center; padding: 20px 0;">
-      <h2 style="color: var(--success); font-size: 2rem;">🎉 Warm-up Complete!</h2>
+      <h2 style="color: var(--success); font-size: 1.8rem;">🎉 ${modeText}</h2>
       <p style="font-size: 1.2rem; margin: 12px 0;">Score: <strong>${sessionScore} / ${TOTAL_QUESTIONS} (${accuracy}%)</strong></p>
-      <p style="color: var(--text-muted);">Earned 🎟️ 10 Tokens! Day Streak: 🔥 ${currentUser.streak}</p>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Earned 🎟️ 10 Tokens! Day Streak: 🔥 ${currentUser.streak}</p>
+      
+      <!-- CONTINUATION OPTIONS -->
+      <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <button class="btn" id="btnExtraPractice" style="width: auto; background: var(--accent);">
+          ⚡ Keep Practicing (5 More Questions)
+        </button>
+        <button class="btn" id="btnFinish" style="width: auto; background: var(--text-muted);">
+          ✅ Finish Session
+        </button>
+      </div>
     </div>
   `;
-  document.getElementById('feedbackBox').classList.add('hidden');
-  document.getElementById('qPrompt').innerText = "Great job!";
 
-  // Sync to Google Sheet Backend
+  document.getElementById('feedbackBox').classList.add('hidden');
+  document.getElementById('qPrompt').innerText = "Great effort!";
+
+  // Attach post-warmup button handlers
+  document.getElementById('btnExtraPractice').onclick = () => startDailySession(true);
+  document.getElementById('btnFinish').onclick = () => {
+    document.getElementById('workspace').innerHTML = `<p style="text-align: center; font-size: 1.1rem; padding: 30px;">All done for today! See you tomorrow! 👋</p>`;
+  };
+
+  // Sync session and proficiency to Google Sheet
   if (sheetWebAppUrl) {
     try {
       await fetch(sheetWebAppUrl, {
@@ -252,24 +263,15 @@ async function finishSession() {
           studentName: currentUser.name,
           totalQuestions: TOTAL_QUESTIONS,
           accuracy: accuracy,
-          topic: 'Area Representation Practice',
+          topic: isExtraPractice ? 'Extra Practice' : 'Daily Warm-up',
           tokensEarned: 10,
           newTotalXP: currentUser.xp,
           newStreak: currentUser.streak,
-          newTokens: currentUser.tokens
+          newTokens: currentUser.tokens,
+          proficiency: currentUser.proficiency
         })
       });
     } catch(e) {}
-  }
-}
-
-function redeemPrivilege(item, cost) {
-  if (currentUser.tokens >= cost) {
-    currentUser.tokens -= cost;
-    saveState(); // Save deducted tokens
-    alert(`Redeemed: ${item}!`);
-  } else {
-    alert(`Need ${cost - currentUser.tokens} more tokens.`);
   }
 }
 
