@@ -2,34 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NumSense - Secondary Math Practice</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>NumSense - Daily Numeracy</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
+  <!-- HEADER BAR -->
   <header>
     <div class="brand">📐 NumSense</div>
-    <div class="stats-bar hidden" id="userStatsHeader">
-      <!-- Student Info Badges -->
-      <div class="stat-badge user-info">👤 <span id="hdrStudentName">-</span> (<span id="hdrStudentClass">-</span>)</div>
-      <div class="stat-badge">🔥 <span id="hdrStreak">0</span> Days</div>
-      <div class="stat-badge">⭐ <span id="hdrXP">0</span> XP</div>
-      <div class="stat-badge">🎟️ <span id="hdrTokens">0</span> Tokens</div>
-      <button class="tab-btn" id="themeBtn" style="padding: 4px 8px; font-size: 0.8rem;">🎨 Theme</button>
+    
+    <!-- STUDENT HEADER STATS -->
+    <div id="userStatsHeader" class="stats-bar hidden">
+      <span class="stat-badge user-info">👤 <span id="hdrStudentName">Student</span> (<span id="hdrStudentClass">Sec 2</span>)</span>
+      <span class="stat-badge">🔥 <span id="hdrStreak">0</span> Days</span>
+      <span class="stat-badge">⭐ <span id="hdrXP">0</span> XP</span>
+      <span class="stat-badge">🎟️ <span id="hdrTokens">0</span></span>
+      <button class="btn" id="logoutBtn" style="width:auto; padding: 6px 12px; font-size: 0.85rem; background: var(--border-color); color: var(--text-main);">Exit</button>
+    </div>
+
+    <!-- TEACHER HEADER BADGE -->
+    <div id="teacherHeader" class="stats-bar hidden">
+      <span class="stat-badge user-info" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success);">
+        👨‍🏫 Teacher Dashboard
+      </span>
+      <button class="btn" id="teacherLogoutBtn" style="width:auto; padding: 6px 12px; font-size: 0.85rem; background: var(--border-color); color: var(--text-main);">Exit</button>
     </div>
   </header>
 
   <main>
-    <!-- LOGIN CONTAINER WITH KEYPAD -->
+    <!-- 1. LOGIN SCREEN -->
     <div id="loginScreen" class="card login-box">
       <h2>Welcome Back!</h2>
-      <p style="color: var(--text-muted); margin-top: 6px;">Tap your 4-digit Student Code below:</p>
+      <p style="color: var(--text-muted); margin-top: 6px;">Enter your 4-digit PIN to start</p>
       
-      <!-- PIN Display (readonly to block iPad native keyboard) -->
-      <div id="pinDisplay" class="pin-display">••••</div>
-      
-      <!-- On-Screen Numeric Keypad -->
+      <div class="pin-display" id="pinDisplay">••••</div>
+      <p id="loginError" class="hidden" style="color: var(--danger); font-weight: 600; margin-bottom: 12px;"></p>
+
       <div class="keypad-grid">
         <button class="key-btn" data-key="1">1</button>
         <button class="key-btn" data-key="2">2</button>
@@ -45,65 +54,119 @@
         <button class="key-btn key-action" id="keyDel">⌫</button>
       </div>
 
-      <button class="btn" id="loginBtn" style="margin-top: 16px;">Start Practice ➔</button>
-      <p id="loginError" style="color: var(--danger); font-weight: 600; margin-top: 12px;" class="hidden"></p>
+      <button class="btn" id="loginBtn" style="margin-top: 20px;">Start Practice</button>
     </div>
 
-    <!-- MAIN APP CONTAINER -->
-    <div id="appContainer" class="hidden" style="display: flex; flex-direction: column; gap: 16px;">
-      
+    <!-- 2. STUDENT APP CONTAINER -->
+    <div id="appContainer" class="hidden">
       <div class="nav-tabs">
         <button class="tab-btn active" data-tab="practice">Daily Practice</button>
         <button class="tab-btn" data-tab="shop">Privilege Shop</button>
-        <button class="tab-btn" data-tab="teacher">Teacher Area</button>
       </div>
 
-      <!-- PRACTICE TAB -->
-      <div id="tabPractice" class="card">
-        <div class="q-header">
-          <span id="qProgress">Question 1 of 5</span>
-        </div>
-
-        <div id="qPrompt" class="q-prompt"></div>
-        <div id="workspace"></div>
-
-        <div id="feedbackBox" class="feedback-box hidden">
-          <div id="feedbackTitle" style="font-weight: 700; font-size: 1.1rem;"></div>
-          <div id="visualExp" class="visual-explanation"></div>
-          <button id="nextBtn" class="btn" style="margin-top: 10px;">Next Question ➔</button>
-        </div>
-
-        <button id="submitBtn" class="btn" style="margin-top: 20px;">Submit Answer</button>
-      </div>
-
-      <!-- PRIVILEGE SHOP TAB -->
-      <div id="tabShop" class="card hidden">
-        <h3>🎟️ Classroom Privilege Shop</h3>
-        <p style="color: var(--text-muted); margin-bottom: 16px;">Redeem your privilege tokens for real-world rewards.</p>
-        <div class="shop-grid">
-          <div class="shop-item">
-            <h4>Pick Your Seat for 1 Week</h4>
-            <div class="shop-price">🎟️ 50 Tokens</div>
-            <button class="btn shop-buy-btn" data-item="Pick Seat" data-cost="50">Redeem</button>
+      <!-- Practice Tab -->
+      <div id="tabPractice" style="margin-top: 16px;">
+        <div class="card">
+          <div class="q-header">
+            <span id="qProgress" style="font-weight: 700;">Question 1 of 5</span>
           </div>
-          <div class="shop-item">
-            <h4>Late Homework Pass (1 Day)</h4>
-            <div class="shop-price">🎟️ 100 Tokens</div>
-            <button class="btn shop-buy-btn" data-item="Late Pass" data-cost="100">Redeem</button>
+
+          <div id="qPrompt" class="q-prompt">Loading question...</div>
+          <div id="workspace"></div>
+
+          <div id="feedbackBox" class="feedback-box hidden">
+            <h3 id="feedbackTitle" style="margin-bottom: 6px;">Explanation</h3>
+            <div id="visualExp" class="visual-explanation"></div>
+            <button class="btn" id="nextBtn" style="margin-top: 16px;">Next Question ➔</button>
+          </div>
+
+          <button class="btn" id="submitBtn" style="margin-top: 20px;">Check Answer</button>
+        </div>
+      </div>
+
+      <!-- Shop Tab -->
+      <div id="tabShop" class="hidden" style="margin-top: 16px;">
+        <div class="card">
+          <h2>Privilege Shop</h2>
+          <p style="color: var(--text-muted); margin-bottom: 16px;">Exchange your hard-earned tokens for rewards!</p>
+          <div class="shop-grid">
+            <div class="shop-item">
+              <h3>Pick Your Seat (1 Wk)</h3>
+              <p class="shop-price">🎟️ 50 Tokens</p>
+              <button class="btn">Redeem</button>
+            </div>
+            <div class="shop-item">
+              <h3>Late Homework Pass</h3>
+              <p class="shop-price">🎟️ 100 Tokens</p>
+              <button class="btn">Redeem</button>
+            </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- TEACHER AREA TAB -->
-      <div id="tabTeacher" class="card hidden">
-        <h3>⚙️ Teacher Dashboard</h3>
-        <div style="margin: 20px 0;">
-          <label style="font-weight: 600; display: block; margin-bottom: 4px;">Google Sheets Web App URL:</label>
-          <input type="text" id="sheetUrlInput" class="input-field">
-          <button class="btn" id="saveSheetBtn" style="margin-top: 10px;">Save Connection</button>
+    <!-- 3. TEACHER DASHBOARD VIEW -->
+    <div id="teacherDashboard" class="hidden">
+      <!-- KPI Analytics Grid -->
+      <div class="teacher-analytics-grid">
+        <div class="kpi-card">
+          <span class="kpi-label">Total Roster</span>
+          <span class="kpi-value" id="kpiTotalStudents">0</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Active Today</span>
+          <span class="kpi-value" id="kpiActiveToday">0</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Class Avg XP</span>
+          <span class="kpi-value" id="kpiAvgXP">0</span>
+        </div>
+        <div class="kpi-card kpi-warning">
+          <span class="kpi-label">Needs Attention</span>
+          <span class="kpi-value" id="kpiStruggling">0</span>
         </div>
       </div>
 
+      <!-- Roster Proficiency Table -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <h2>Student Proficiency Heatmap</h2>
+          <input type="text" id="rosterSearchInput" class="input-field" placeholder="🔍 Search student name or class..." style="max-width: 260px;">
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="teacher-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Streak</th>
+                <th>XP</th>
+                <th>Grid Shader</th>
+                <th>Number Line</th>
+                <th>Equivalence</th>
+                <th>Place Value</th>
+              </tr>
+            </thead>
+            <tbody id="rosterTableBody">
+              <tr><td colspan="9" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- System Connection Settings -->
+      <div class="card">
+        <h3>System Settings & Google Sheet Connection</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 6px 0 16px 0;">Configure backend URL and sync live database.</p>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <input type="text" id="sheetUrlInput" class="input-field" placeholder="https://script.google.com/macros/s/.../exec" style="flex: 1;">
+          <button class="btn" id="saveSheetBtn" style="width: auto;">Save Link</button>
+          <button class="btn" id="refreshTeacherDataBtn" style="width: auto; background: var(--success);">🔄 Refresh Data</button>
+        </div>
+      </div>
     </div>
   </main>
 
