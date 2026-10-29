@@ -88,3 +88,93 @@ main { max-width: 800px; width: 100%; margin: 0 auto; padding: 20px; }
 .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
 .shop-item { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 16px; text-align: center; display: flex; flex-direction: column; gap: 12px; }
 .shop-price { font-weight: 700; color: #f59e0b; }
+
+/* KEYPAD STYLING */
+.pin-display {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: 12px;
+  text-align: center;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius);
+  margin: 16px 0;
+  color: var(--accent);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.key-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.key-btn:active {
+  background: var(--accent);
+  color: white;
+}
+.key-action {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+/* FLEXIBLE AREA GRID & DRAG-TO-SHADE */
+.grid-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  background: var(--bg-primary);
+  padding: 10px;
+  border-radius: var(--radius);
+}
+
+.grid-container {
+  display: grid;
+  gap: 4px;
+  max-width: 360px;
+  margin: 16px auto;
+  background: var(--border-color);
+  padding: 6px;
+  border-radius: 8px;
+  touch-action: none; /* Disables iPad page scroll while dragging over grid */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.grid-cell {
+  aspect-ratio: 1;
+  background: var(--bg-card);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.grid-cell.active {
+  background: var(--accent);
+}
+
+.user-info {
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--accent);
+  border-color: var(--accent);
+}
