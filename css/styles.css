@@ -194,3 +194,73 @@ svg .grid-cell.active {
 .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
 .shop-item { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 16px; text-align: center; display: flex; flex-direction: column; gap: 12px; }
 .shop-price { font-weight: 700; color: #f59e0b; }
+
+/* TEACHER DASHBOARD STYLES */
+.teacher-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.kpi-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.kpi-warning .kpi-value {
+  color: var(--danger) !important;
+}
+
+/* TEACHER HEATMAP TABLE */
+.teacher-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.teacher-table th, .teacher-table td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.teacher-table th {
+  background: var(--bg-primary);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* PROFICIENCY BADGES */
+.prof-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  min-width: 65px;
+}
+
+.prof-mastered { background: rgba(16, 185, 129, 0.15); color: #059669; }
+.prof-developing { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+.prof-struggling { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+.prof-untried { background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); }
