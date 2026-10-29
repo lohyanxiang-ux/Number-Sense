@@ -2,6 +2,7 @@ import { getAdaptiveQuestion, evaluateQuestion, renderQuestion } from './questio
 import './questions/numberLine.js';
 import './questions/gridShader.js';
 import './questions/equivalence.js';
+import './questions/placeValue.js';
 
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || 'https://script.google.com/macros/s/AKfycbxs1uvyTFFuFmmmmXQAMm3I57kNeE2VlCqYOd3DOvMwGcHZj6kRP_ZjMpd-Tqg5_OTw/exec';
