@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NumSense - Secondary Math Practice</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <header>
+    <div class="brand">📐 NumSense</div>
+    <div class="stats-bar hidden" id="userStatsHeader">
+      <div class="stat-badge">🔥 <span id="hdrStreak">0</span> Days</div>
+      <div class="stat-badge">⭐ <span id="hdrXP">0</span> XP</div>
+      <div class="stat-badge">🎟️ <span id="hdrTokens">0</span> Tokens</div>
+      <button class="tab-btn" id="themeBtn" style="padding: 4px 8px; font-size: 0.8rem;">🎨 Theme</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- LOGIN CONTAINER -->
+    <div id="loginScreen" class="card login-box">
+      <h2>Welcome Back!</h2>
+      <p style="color: var(--text-muted); margin-top: 6px;">Enter your 4-digit Student Code to begin.</p>
+      <input type="number" id="studentPin" class="pin-input" placeholder="••••" maxlength="4">
+      <button class="btn" id="loginBtn">Start Daily Practice</button>
+      <p id="loginError" style="color: var(--danger); font-weight: 600; margin-top: 12px;" class="hidden"></p>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="appContainer" class="hidden" style="display: flex; flex-direction: column; gap: 16px;">
+      
+      <div class="nav-tabs">
+        <button class="tab-btn active" data-tab="practice">Daily Practice</button>
+        <button class="tab-btn" data-tab="shop">Privilege Shop</button>
+        <button class="tab-btn" data-tab="teacher">Teacher Area</button>
+      </div>
+
+      <!-- PRACTICE TAB -->
+      <div id="tabPractice" class="card">
+        <div class="q-header">
+          <span id="qProgress">Question 1 of 5</span>
+          <span id="qSkillBadge" class="badge">Number Sense</span>
+        </div>
+
+        <div id="qPrompt" class="q-prompt"></div>
+        <div id="workspace"></div>
+
+        <div id="feedbackBox" class="feedback-box hidden">
+          <div id="feedbackTitle" style="font-weight: 700; font-size: 1.1rem;"></div>
+          <div id="visualExp" class="visual-explanation"></div>
+          <button id="nextBtn" class="btn" style="margin-top: 10px;">Next Question ➔</button>
+        </div>
+
+        <button id="submitBtn" class="btn" style="margin-top: 20px;">Submit Answer</button>
+      </div>
+
+      <!-- PRIVILEGE SHOP TAB -->
+      <div id="tabShop" class="card hidden">
+        <h3>🎟️ Classroom Privilege Shop</h3>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">Redeem your privilege tokens for real-world rewards.</p>
+        <div class="shop-grid">
+          <div class="shop-item">
+            <h4>Pick Your Seat for 1 Week</h4>
+            <div class="shop-price">🎟️ 50 Tokens</div>
+            <button class="btn shop-buy-btn" data-item="Pick Seat" data-cost="50">Redeem</button>
+          </div>
+          <div class="shop-item">
+            <h4>Late Homework Pass (1 Day)</h4>
+            <div class="shop-price">🎟️ 100 Tokens</div>
+            <button class="btn shop-buy-btn" data-item="Late Pass" data-cost="100">Redeem</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEACHER AREA TAB -->
+      <div id="tabTeacher" class="card hidden">
+        <h3>⚙️ Teacher Dashboard</h3>
+        <div style="margin: 20px 0;">
+          <label style="font-weight: 600; display: block; margin-bottom: 4px;">Google Sheets Web App URL:</label>
+          <input type="text" id="sheetUrlInput" class="input-field">
+          <button class="btn" id="saveSheetBtn" style="margin-top: 10px;">Save Connection</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
