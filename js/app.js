@@ -5,7 +5,7 @@ import './questions/equivalence.js';
 import './questions/placeValue.js';
 
 let currentUser = null;
-let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || 'https://script.google.com/macros/s/AKfycbxs1uvyTFFuFmmmmXQAMm3I57kNeE2VlCqYOd3DOvMwGcHZj6kRP_ZjMpd-Tqg5_OTw/exec';
+let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
 let currentQIndex = 0;
 let sessionScore = 0;
 const TOTAL_QUESTIONS = 5;
@@ -13,33 +13,20 @@ let questions = [];
 let currentQuestion = null;
 let isExtraPractice = false;
 let enteredPin = '';
+let teacherRosterData = [];
 
 function initApp() {
   const sheetInput = document.getElementById('sheetUrlInput');
   if (sheetInput) sheetInput.value = sheetWebAppUrl;
-  
+
   setupEventHandlers();
   setupKeypad();
-
-  const savedUser = localStorage.getItem('NUMSENSE_CURRENT_USER');
-  if (savedUser) {
-    currentUser = JSON.parse(savedUser);
-    if (!currentUser.proficiency) currentUser.proficiency = {};
-    loadUserSession();
-  }
 }
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
 } else {
   initApp();
-}
-
-function saveState() {
-  if (currentUser) {
-    localStorage.setItem('NUMSENSE_CURRENT_USER', JSON.stringify(currentUser));
-    updateHeader();
-  }
 }
 
 function setupKeypad() {
@@ -69,11 +56,24 @@ function setupEventHandlers() {
   document.getElementById('submitBtn').onclick = handleAnswerSubmit;
   document.getElementById('nextBtn').onclick = handleNextQuestion;
   document.getElementById('saveSheetBtn').onclick = saveSheetUrl;
-  document.getElementById('themeBtn').onclick = toggleTheme;
+  
+  if (document.getElementById('refreshTeacherDataBtn')) {
+    document.getElementById('refreshTeacherDataBtn').onclick = fetchTeacherDashboardData;
+  }
+
+  const logoutBtn = document.getElementById('logoutBtn');
+  const teacherLogoutBtn = document.getElementById('teacherLogoutBtn');
+  if (logoutBtn) logoutBtn.onclick = logout;
+  if (teacherLogoutBtn) teacherLogoutBtn.onclick = logout;
 
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.onclick = (e) => switchTab(e.target.getAttribute('data-tab'), e.target);
   });
+
+  const searchInput = document.getElementById('rosterSearchInput');
+  if (searchInput) {
+    searchInput.oninput = (e) => filterRosterTable(e.target.value);
+  }
 }
 
 async function handleLogin() {
@@ -86,6 +86,15 @@ async function handleLogin() {
     return;
   }
 
+  // 1. TEACHER LOGIN CHECK (CODE 3005)
+  if (enteredPin === '3005') {
+    enteredPin = '';
+    document.getElementById('pinDisplay').innerText = '••••';
+    loadTeacherDashboard();
+    return;
+  }
+
+  // 2. STUDENT LOGIN
   if (sheetWebAppUrl) {
     try {
       const res = await fetch(sheetWebAppUrl, {
@@ -93,7 +102,7 @@ async function handleLogin() {
         body: JSON.stringify({ action: 'login', studentCode: enteredPin })
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && !data.isTeacher) {
         currentUser = {
           code: enteredPin,
           name: data.studentName,
@@ -104,24 +113,22 @@ async function handleLogin() {
           lastActive: data.lastActive,
           proficiency: data.proficiency || {}
         };
-        saveAndStart();
+        enteredPin = '';
+        startStudentSession();
         return;
       }
     } catch (e) {}
   }
 
-  // Local Fallback
+  // Local Student Fallback
   currentUser = { code: enteredPin, name: 'Student ' + enteredPin, class: 'Sec 2A', xp: 0, streak: 1, tokens: 0, proficiency: {} };
-  saveAndStart();
+  enteredPin = '';
+  startStudentSession();
 }
 
-function saveAndStart() {
-  saveState();
-  loadUserSession();
-}
-
-function loadUserSession() {
+function startStudentSession() {
   document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('teacherDashboard').classList.add('hidden');
   document.getElementById('appContainer').classList.remove('hidden');
   document.getElementById('userStatsHeader').classList.remove('hidden');
 
@@ -130,6 +137,145 @@ function loadUserSession() {
 
   updateHeader();
   startDailySession(false);
+}
+
+// TEACHER DASHBOARD LOGIC
+async function loadTeacherDashboard() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appContainer').classList.add('hidden');
+  document.getElementById('userStatsHeader').classList.add('hidden');
+  document.getElementById('teacherHeader').classList.remove('hidden');
+  document.getElementById('teacherDashboard').classList.remove('hidden');
+
+  await fetchTeacherDashboardData();
+}
+
+async function fetchTeacherDashboardData() {
+  if (!sheetWebAppUrl) {
+    renderRosterTable([]);
+    return;
+  }
+
+  try {
+    const res = await fetch(sheetWebAppUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'login', studentCode: '3005' })
+    });
+    const data = await res.json();
+
+    if (data.success && data.isTeacher) {
+      teacherRosterData = data.students || [];
+      renderTeacherKPIs(teacherRosterData);
+      renderRosterTable(teacherRosterData);
+    }
+  } catch (e) {
+    alert("Could not fetch roster data. Check your Web App URL connection.");
+  }
+}
+
+function renderTeacherKPIs(students) {
+  const total = students.length;
+  let totalXP = 0;
+  let strugglingCount = 0;
+  let activeTodayCount = 0;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  students.forEach(s => {
+    totalXP += s.xp || 0;
+    if (s.lastActive && s.lastActive.split('T')[0] === todayStr) {
+      activeTodayCount++;
+    }
+
+    // Evaluate overall proficiency across topics
+    const profs = s.proficiency || {};
+    let scores = [];
+    Object.keys(profs).forEach(k => {
+      if (profs[k].length > 0) {
+        const sum = profs[k].reduce((a, b) => a + b, 0);
+        scores.push(sum / profs[k].length);
+      }
+    });
+
+    if (scores.length > 0) {
+      const avgAcc = scores.reduce((a, b) => a + b, 0) / scores.length;
+      if (avgAcc < 0.6) strugglingCount++;
+    }
+  });
+
+  document.getElementById('kpiTotalStudents').innerText = total;
+  document.getElementById('kpiActiveToday').innerText = activeTodayCount;
+  document.getElementById('kpiAvgXP').innerText = total > 0 ? Math.round(totalXP / total) : 0;
+  document.getElementById('kpiStruggling').innerText = strugglingCount;
+}
+
+function renderRosterTable(students) {
+  const tbody = document.getElementById('rosterTableBody');
+  if (students.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px;">No student records found or URL not configured.</td></tr>`;
+    return;
+  }
+
+  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'place_value'];
+
+  let html = '';
+  students.forEach(s => {
+    html += `
+      <tr>
+        <td><strong>${s.code}</strong></td>
+        <td>${s.name}</td>
+        <td>${s.className}</td>
+        <td>🔥 ${s.streak}</td>
+        <td>⭐ ${s.xp}</td>
+    `;
+
+    topicKeys.forEach(tKey => {
+      const history = (s.proficiency && s.proficiency[tKey]) || [];
+      html += `<td>${getProfBadgeHtml(history)}</td>`;
+    });
+
+    html += `</tr>`;
+  });
+
+  tbody.innerHTML = html;
+}
+
+function getProfBadgeHtml(history) {
+  if (!history || history.length === 0) {
+    return `<span class="prof-badge prof-untried">Untried</span>`;
+  }
+
+  const score = history.reduce((a, b) => a + b, 0);
+  const acc = score / history.length;
+  const pct = Math.round(acc * 100);
+
+  if (acc >= 0.8) {
+    return `<span class="prof-badge prof-mastered">🟢 ${pct}%</span>`;
+  } else if (acc >= 0.5) {
+    return `<span class="prof-badge prof-developing">🟡 ${pct}%</span>`;
+  } else {
+    return `<span class="prof-badge prof-struggling">🔴 ${pct}%</span>`;
+  }
+}
+
+function filterRosterTable(query) {
+  const q = query.toLowerCase();
+  const filtered = teacherRosterData.filter(s => 
+    s.name.toLowerCase().includes(q) || 
+    s.className.toLowerCase().includes(q) ||
+    String(s.code).includes(q)
+  );
+  renderRosterTable(filtered);
+}
+
+function logout() {
+  currentUser = null;
+  document.getElementById('appContainer').classList.add('hidden');
+  document.getElementById('teacherDashboard').classList.add('hidden');
+  document.getElementById('userStatsHeader').classList.add('hidden');
+  document.getElementById('teacherHeader').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('pinDisplay').innerText = '••••';
 }
 
 function updateHeader() {
@@ -142,8 +288,6 @@ function startDailySession(extraMode = false) {
   isExtraPractice = extraMode;
   currentQIndex = 0;
   sessionScore = 0;
-
-  // Adaptively build question set based on student proficiency map
   questions = Array.from({ length: TOTAL_QUESTIONS }, () => getAdaptiveQuestion(currentUser.proficiency));
   renderCurrentQuestion();
 }
@@ -165,12 +309,10 @@ function handleAnswerSubmit() {
   const isCorrect = evaluateQuestion(currentQuestion);
   const qType = currentQuestion.type;
 
-  // Initialize history array if missing
   if (!currentUser.proficiency[qType]) {
     currentUser.proficiency[qType] = [];
   }
 
-  // Record outcome (1 = correct, 0 = incorrect) and restrict to last 5 attempts
   currentUser.proficiency[qType].push(isCorrect ? 1 : 0);
   currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-5);
 
@@ -182,7 +324,7 @@ function handleAnswerSubmit() {
     fbBox.classList.add('feedback-correct');
     document.getElementById('feedbackTitle').innerText = "🎯 Spot On! (+20 XP)";
     currentUser.xp += 20;
-    saveState();
+    updateHeader();
   } else {
     fbBox.classList.add('feedback-incorrect');
     document.getElementById('feedbackTitle').innerText = "💡 Visual Explanation:";
@@ -221,7 +363,7 @@ function updateDailyStreak() {
 async function finishSession() {
   if (!isExtraPractice) updateDailyStreak();
   currentUser.tokens += 10;
-  saveState();
+  updateHeader();
 
   const accuracy = Math.round((sessionScore / TOTAL_QUESTIONS) * 100);
   const modeText = isExtraPractice ? 'Extra Practice Complete!' : 'Warm-up Complete!';
@@ -232,7 +374,6 @@ async function finishSession() {
       <p style="font-size: 1.2rem; margin: 12px 0;">Score: <strong>${sessionScore} / ${TOTAL_QUESTIONS} (${accuracy}%)</strong></p>
       <p style="color: var(--text-muted); margin-bottom: 20px;">Earned 🎟️ 10 Tokens! Day Streak: 🔥 ${currentUser.streak}</p>
       
-      <!-- CONTINUATION OPTIONS -->
       <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
         <button class="btn" id="btnExtraPractice" style="width: auto; background: var(--accent);">
           ⚡ Keep Practicing (5 More Questions)
@@ -247,13 +388,11 @@ async function finishSession() {
   document.getElementById('feedbackBox').classList.add('hidden');
   document.getElementById('qPrompt').innerText = "Great effort!";
 
-  // Attach post-warmup button handlers
   document.getElementById('btnExtraPractice').onclick = () => startDailySession(true);
   document.getElementById('btnFinish').onclick = () => {
     document.getElementById('workspace').innerHTML = `<p style="text-align: center; font-size: 1.1rem; padding: 30px;">All done for today! See you tomorrow! 👋</p>`;
   };
 
-  // Sync session and proficiency to Google Sheet
   if (sheetWebAppUrl) {
     try {
       await fetch(sheetWebAppUrl, {
@@ -280,18 +419,11 @@ function switchTab(tabName, targetBtn) {
   document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
   document.getElementById('tabPractice').classList.add('hidden');
   document.getElementById('tabShop').classList.add('hidden');
-  document.getElementById('tabTeacher').classList.add('hidden');
 
   if (tabName === 'practice') document.getElementById('tabPractice').classList.remove('hidden');
   if (tabName === 'shop') document.getElementById('tabShop').classList.remove('hidden');
-  if (tabName === 'teacher') document.getElementById('tabTeacher').classList.remove('hidden');
 
   targetBtn.classList.add('active');
-}
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme');
-  document.documentElement.setAttribute('data-theme', current === 'cyberpunk' ? 'default' : 'cyberpunk');
 }
 
 function saveSheetUrl() {
