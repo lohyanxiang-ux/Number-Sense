@@ -3,30 +3,66 @@ import './questions/numberLine.js';
 import './questions/gridShader.js';
 import './questions/equivalence.js';
 
-// --- STATE ---
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || 'https://script.google.com/macros/s/AKfycbxs1uvyTFFuFmmmmXQAMm3I57kNeE2VlCqYOd3DOvMwGcHZj6kRP_ZjMpd-Tqg5_OTw/exec';
 let currentQIndex = 0;
 let sessionScore = 0;
 const TOTAL_QUESTIONS = 5;
 let questions = [];
+let enteredPin = '';
 
 const localRoster = {
   '1001': { name: 'Alex Tan', class: 'Sec 2A', xp: 120, streak: 3, tokens: 15 },
   '1002': { name: 'Sarah Lim', class: 'Sec 2A', xp: 240, streak: 5, tokens: 30 }
 };
 
-// --- INIT ---
-window.onload = () => {
-  document.getElementById('sheetUrlInput').value = sheetWebAppUrl;
-  setupEventHandlers();
+function initApp() {
+  const sheetInput = document.getElementById('sheetUrlInput');
+  if (sheetInput) sheetInput.value = sheetWebAppUrl;
   
+  setupEventHandlers();
+  setupKeypad();
+
   const savedUser = localStorage.getItem('NUMSENSE_CURRENT_USER');
   if (savedUser) {
     currentUser = JSON.parse(savedUser);
     loadUserSession();
   }
-};
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
+
+// KEYPAD CONTROLLER
+function setupKeypad() {
+  const display = document.getElementById('pinDisplay');
+  
+  document.querySelectorAll('.key-btn[data-key]').forEach(btn => {
+    btn.onclick = () => {
+      if (enteredPin.length < 4) {
+        enteredPin += btn.getAttribute('data-key');
+        updatePinDisplay();
+      }
+    };
+  });
+
+  document.getElementById('keyClear').onclick = () => {
+    enteredPin = '';
+    updatePinDisplay();
+  };
+
+  document.getElementById('keyDel').onclick = () => {
+    enteredPin = enteredPin.slice(0, -1);
+    updatePinDisplay();
+  };
+
+  function updatePinDisplay() {
+    display.innerText = enteredPin.padEnd(4, '•');
+  }
+}
 
 function setupEventHandlers() {
   document.getElementById('loginBtn').onclick = handleLogin;
@@ -38,35 +74,43 @@ function setupEventHandlers() {
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.onclick = (e) => switchTab(e.target.getAttribute('data-tab'), e.target);
   });
-
-  document.querySelectorAll('.shop-buy-btn').forEach(btn => {
-    btn.onclick = () => redeemPrivilege(btn.getAttribute('data-item'), parseInt(btn.getAttribute('data-cost')));
-  });
 }
 
 async function handleLogin() {
-  const pin = document.getElementById('studentPin').value.trim();
   const errEl = document.getElementById('loginError');
   errEl.classList.add('hidden');
+
+  if (enteredPin.length !== 4) {
+    errEl.innerText = "Please enter a 4-digit PIN.";
+    errEl.classList.remove('hidden');
+    return;
+  }
 
   if (sheetWebAppUrl) {
     try {
       const res = await fetch(sheetWebAppUrl, {
         method: 'POST',
-        body: JSON.stringify({ action: 'login', studentCode: pin })
+        body: JSON.stringify({ action: 'login', studentCode: enteredPin })
       });
       const data = await res.json();
       if (data.success) {
-        currentUser = { code: pin, name: data.studentName, xp: data.xp, streak: data.streak, tokens: Math.floor(data.xp / 10) };
+        currentUser = {
+          code: enteredPin,
+          name: data.studentName,
+          class: data.className || 'Sec 2',
+          xp: data.xp,
+          streak: data.streak,
+          tokens: Math.floor(data.xp / 10)
+        };
         saveAndStart();
         return;
       }
-    } catch (e) { console.warn("Sheet login fallback."); }
+    } catch (e) {}
   }
 
-  if (localRoster[pin]) {
-    const u = localRoster[pin];
-    currentUser = { code: pin, name: u.name, xp: u.xp, streak: u.streak, tokens: u.tokens };
+  if (localRoster[enteredPin]) {
+    const u = localRoster[enteredPin];
+    currentUser = { code: enteredPin, name: u.name, class: u.class, xp: u.xp, streak: u.streak, tokens: u.tokens };
     saveAndStart();
   } else {
     errEl.innerText = "Code not found. (Try: 1001 or 1002)";
@@ -83,6 +127,11 @@ function loadUserSession() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appContainer').classList.remove('hidden');
   document.getElementById('userStatsHeader').classList.remove('hidden');
+
+  // UPDATE HEADER WITH STUDENT NAME & CLASS
+  document.getElementById('hdrStudentName').innerText = currentUser.name;
+  document.getElementById('hdrStudentClass').innerText = currentUser.class;
+
   updateHeader();
   startDailySession();
 }
@@ -169,7 +218,7 @@ async function finishSession() {
           studentName: currentUser.name,
           totalQuestions: TOTAL_QUESTIONS,
           accuracy: accuracy,
-          topic: 'Daily Modular Practice',
+          topic: 'Area Representation Practice',
           tokensEarned: 10,
           newTotalXP: currentUser.xp,
           newStreak: currentUser.streak
@@ -202,14 +251,4 @@ function saveSheetUrl() {
   sheetWebAppUrl = url;
   localStorage.setItem('NUMSENSE_SHEET_URL', url);
   alert('Saved connection URL!');
-}
-
-function redeemPrivilege(item, cost) {
-  if (currentUser.tokens >= cost) {
-    currentUser.tokens -= cost;
-    updateHeader();
-    alert(`Redeemed: ${item}!`);
-  } else {
-    alert(`Need ${cost - currentUser.tokens} more tokens.`);
-  }
 }
