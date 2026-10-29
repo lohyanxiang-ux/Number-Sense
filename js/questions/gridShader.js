@@ -4,77 +4,113 @@ const gridShaderModule = {
   generate() {
     const templates = [
       // Fractions
-      { type: 'frac', targetStr: '3/5', num: 3, den: 5, initialRows: 1, initialCols: 5, exp: '3/5 means 3 shaded out of 5 equal parts (or 6 out of 10).' },
-      { type: 'frac', targetStr: '3/4', num: 3, den: 4, initialRows: 1, initialCols: 4, exp: '3/4 means 3 shaded out of 4 equal parts.' },
-      { type: 'frac', targetStr: '7/10', num: 7, den: 10, initialRows: 2, initialCols: 5, exp: '7/10 means 7 shaded out of 10 equal parts.' },
-      
+      { type: 'frac', targetStr: '1/2', ratio: 0.5, exp: '1/2 means half of the shape. On 2 parts shade 1, on 4 shade 2, on 10 shade 5, or on 100 shade 50.' },
+      { type: 'frac', targetStr: '3/4', ratio: 0.75, exp: '3/4 means 3 out of 4 parts (or 75 out of 100 parts).' },
+      { type: 'frac', targetStr: '2/5', ratio: 0.4, exp: '2/5 means 2 out of 5 parts (or 4 out of 10 parts, or 40 out of 100).' },
+      { type: 'frac', targetStr: '1/3', ratio: 1/3, exp: '1/3 means 1 out of 3 equal parts.' },
+
       // Decimals
-      { type: 'dec', targetStr: '0.4', decimalVal: 0.4, initialRows: 1, initialCols: 5, exp: '0.4 is equivalent to 4/10 or 2/5 of the shape.' },
-      { type: 'dec', targetStr: '0.75', decimalVal: 0.75, initialRows: 2, initialCols: 4, exp: '0.75 is equal to 75% or 3/4 of the whole.' },
-      { type: 'dec', targetStr: '0.3', decimalVal: 0.3, initialRows: 1, initialCols: 10, exp: '0.3 is equal to 3/10 (3 out of 10 equal parts).' },
-      
+      { type: 'dec', targetStr: '0.3', ratio: 0.3, exp: '0.3 is equal to 3/10 or 30/100 of the total area.' },
+      { type: 'dec', targetStr: '0.6', ratio: 0.6, exp: '0.6 is equivalent to 3/5, 6/10, or 60/100.' },
+      { type: 'dec', targetStr: '0.8', ratio: 0.8, exp: '0.8 is equivalent to 4/5, 8/10, or 80/100.' },
+
       // Percentages
-      { type: 'pct', targetStr: '60%', pctVal: 60, initialRows: 2, initialCols: 5, exp: '60% means 60 out of 100, which simplifies to 3 out of 5 parts.' },
-      { type: 'pct', targetStr: '25%', pctVal: 25, initialRows: 2, initialCols: 2, exp: '25% represents 1 out of 4 equal parts (1/4).' },
-      { type: 'pct', targetStr: '80%', pctVal: 80, initialRows: 1, initialCols: 5, exp: '80% is equivalent to 4/5 of the total area.' }
+      { type: 'pct', targetStr: '50%', ratio: 0.5, exp: '50% represents exactly half of the total area.' },
+      { type: 'pct', targetStr: '20%', ratio: 0.2, exp: '20% means 1 out of 5 parts (or 2 out of 10 parts, or 20 out of 100).' },
+      { type: 'pct', targetStr: '70%', ratio: 0.7, exp: '70% means 7 out of 10 parts (or 70 out of 100).' }
     ];
 
     const t = templates[Math.floor(Math.random() * templates.length)];
     return {
       type: 'grid_shader',
       prompt: `Shade <strong>${formatMath(t.targetStr)}</strong> of the shape below:`,
-      template: t,
+      targetRatio: t.ratio,
       explanation: formatMath(t.exp)
     };
   },
 
   render(q, container) {
-    let currentRows = q.template.initialRows;
-    let currentCols = q.template.initialCols;
+    const allowedPartitions = [2, 3, 4, 5, 10, 100];
+    let currentPartition = 10; // Default partition
 
-    const renderGrid = () => {
-      const totalCells = currentRows * currentCols;
+    const renderLayout = () => {
+      // Determine Grid Dimensions (Rows x Cols)
+      let rows = 1, cols = currentPartition;
+      if (currentPartition === 4) { rows = 2; cols = 2; }
+      else if (currentPartition === 10) { rows = 2; cols = 5; }
+      else if (currentPartition === 100) { rows = 10; cols = 10; }
+
       let html = `
-        <div class="grid-controls">
-          <span>Partitions: <strong>${totalCells} parts</strong> (${currentRows}x${currentCols})</span>
-          <button class="btn" id="btnLessParts" style="width: auto; padding: 4px 12px;">- Cut Less</button>
-          <button class="btn" id="btnMoreParts" style="width: auto; padding: 4px 12px;">+ Cut More</button>
-        </div>
-        <div class="grid-container" id="touchGrid" style="grid-template-columns: repeat(${currentCols}, 1fr);">
+        <div style="text-align: center; margin-bottom: 12px;">
+          <p style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+            Choose how many parts to cut the shape into:
+          </p>
+          <div class="partition-btn-group" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
       `;
 
-      for (let i = 0; i < totalCells; i++) {
-        html += `<div class="grid-cell" data-idx="${i}"></div>`;
+      allowedPartitions.forEach(p => {
+        const activeClass = p === currentPartition ? 'btn-partition-active' : '';
+        html += `<button class="btn-partition ${activeClass}" data-parts="${p}">${p} parts</button>`;
+      });
+
+      html += `
+          </div>
+        </div>
+
+        <!-- FIXED AREA CONTAINER (300px x 300px) -->
+        <div class="fixed-area-box" id="touchGrid" style="
+          width: 300px;
+          height: 300px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: repeat(${cols}, 1fr);
+          grid-template-rows: repeat(${rows}, 1fr);
+          gap: ${currentPartition === 100 ? '1px' : '3px'};
+          background: var(--border-color);
+          padding: 4px;
+          border-radius: 8px;
+          touch-action: none;
+          user-select: none;
+          -webkit-user-select: none;
+        ">
+      `;
+
+      for (let i = 0; i < currentPartition; i++) {
+        html += `<div class="grid-cell" style="aspect-ratio: auto; width: 100%; height: 100%;" data-idx="${i}"></div>`;
       }
-      html += `</div><p style="text-align: center; font-weight: 700;">Shaded: <span id="cellCount">0</span> / ${totalCells}</p>`;
+
+      html += `
+        </div>
+        <p style="text-align: center; font-weight: 700; margin-top: 12px;">
+          Shaded: <span id="cellCount">0</span> / ${currentPartition} parts 
+          (<span id="percentCount">0</span>%)
+        </p>
+      `;
+
       container.innerHTML = html;
 
-      // Add Partition Controls
-      document.getElementById('btnLessParts').onclick = () => {
-        if (currentCols > 2) { currentCols /= 2; renderGrid(); }
-      };
-      document.getElementById('btnMoreParts').onclick = () => {
-        if (currentCols * 2 <= 20) { currentCols *= 2; renderGrid(); }
-      };
+      // Partition Switch Event Handlers
+      container.querySelectorAll('.btn-partition').forEach(btn => {
+        btn.onclick = () => {
+          currentPartition = parseInt(btn.getAttribute('data-parts'));
+          renderLayout();
+        };
+      });
 
-      // Touch & Drag-to-Shade Engine
-      setupDragToShade(container, totalCells);
+      // iPad Drag & Tap Engine
+      setupDragToShade(container, currentPartition);
     };
 
-    renderGrid();
+    renderLayout();
   },
 
   evaluate(q) {
     const activeCount = document.querySelectorAll('.grid-cell.active').length;
     const totalCells = document.querySelectorAll('.grid-cell').length;
+    if (totalCells === 0) return false;
+
     const userRatio = activeCount / totalCells;
-
-    let targetRatio = 0;
-    if (q.template.type === 'frac') targetRatio = q.template.num / q.template.den;
-    if (q.template.type === 'dec') targetRatio = q.template.decimalVal;
-    if (q.template.type === 'pct') targetRatio = q.template.pctVal / 100;
-
-    return Math.abs(userRatio - targetRatio) < 0.01;
+    return Math.abs(userRatio - q.targetRatio) < 0.001;
   }
 };
 
@@ -82,11 +118,14 @@ const gridShaderModule = {
 function setupDragToShade(container, totalCells) {
   const grid = container.querySelector('#touchGrid');
   let isDragging = false;
-  let targetState = true; // true = shading, false = erasing
+  let targetState = true;
 
   const updateCount = () => {
     const active = grid.querySelectorAll('.grid-cell.active').length;
-    document.getElementById('cellCount').innerText = active;
+    const countEl = document.getElementById('cellCount');
+    const pctEl = document.getElementById('percentCount');
+    if (countEl) countEl.innerText = active;
+    if (pctEl) pctEl.innerText = Math.round((active / totalCells) * 100);
   };
 
   const processCell = (cell) => {
@@ -96,7 +135,6 @@ function setupDragToShade(container, totalCells) {
     }
   };
 
-  // Pointer Events (Mouse / Touch)
   grid.onpointerdown = (e) => {
     if (!e.target.classList.contains('grid-cell')) return;
     isDragging = true;
@@ -104,10 +142,9 @@ function setupDragToShade(container, totalCells) {
     processCell(e.target);
   };
 
-  // Dragging across cells on iPad touch screens
   grid.ontouchmove = (e) => {
     if (!isDragging) return;
-    e.preventDefault(); // Stop iPad scroll during drag
+    e.preventDefault();
     const touch = e.touches[0];
     const elem = document.elementFromPoint(touch.clientX, touch.clientY);
     processCell(elem);
