@@ -200,3 +200,17 @@ main { max-width: 800px; width: 100%; margin: 0 auto; padding: 20px; }
   color: white !important;
   border-color: var(--accent) !important;
 }
+
+/* SVG Circle Cell Styling */
+svg .grid-cell {
+  fill: var(--bg-card);
+  stroke: var(--border-color);
+  stroke-width: 1.5px;
+  cursor: pointer;
+  transition: fill 0.1s ease;
+}
+
+svg .grid-cell.active {
+  fill: var(--accent) !important;
+  stroke: var(--accent-hover, #4338ca) !important;
+}
