@@ -21,7 +21,6 @@ const gridShaderModule = {
     ];
 
     const t = templates[Math.floor(Math.random() * templates.length)];
-    // Randomize shape between 'square' and 'circle'
     const randomShape = Math.random() < 0.5 ? 'square' : 'circle';
 
     return {
@@ -66,7 +65,6 @@ const gridShaderModule = {
         ">
       `;
 
-      // Render Square Grid vs SVG Circle
       if (q.shape === 'square') {
         let rows = 1, cols = currentPartition;
         if (currentPartition === 4) { rows = 2; cols = 2; }
@@ -75,21 +73,21 @@ const gridShaderModule = {
 
         html += `<div style="
           display: grid;
-          width: 100%;
-          height: 100%;
+          width: 300px;
+          height: 300px;
           grid-template-columns: repeat(${cols}, 1fr);
           grid-template-rows: repeat(${rows}, 1fr);
           gap: ${currentPartition === 100 ? '1px' : '3px'};
           background: var(--border-color);
           padding: 4px;
           border-radius: 8px;
+          box-sizing: border-box;
         ">`;
         for (let i = 0; i < currentPartition; i++) {
           html += `<div class="grid-cell" data-idx="${i}"></div>`;
         }
         html += `</div>`;
       } else {
-        // Circle SVG Slices
         html += generateCircleSVG(currentPartition);
       }
 
@@ -102,7 +100,6 @@ const gridShaderModule = {
 
       container.innerHTML = html;
 
-      // Partition Buttons Handler
       container.querySelectorAll('.btn-partition').forEach(btn => {
         btn.onclick = () => {
           currentPartition = parseInt(btn.getAttribute('data-parts'));
@@ -110,7 +107,7 @@ const gridShaderModule = {
         };
       });
 
-      setupDragToShade(container, currentPartition);
+      setupDragToShade(container);
     };
 
     renderLayout();
@@ -126,7 +123,6 @@ const gridShaderModule = {
   }
 };
 
-// SVG Pie Circle Generator
 function generateCircleSVG(n) {
   const cx = 150, cy = 150, r = 140;
   let svg = `<svg viewBox="0 0 300 300" width="300" height="300" style="display:block; margin:0 auto; width:100%; height:100%;">`;
@@ -148,7 +144,6 @@ function generateCircleSVG(n) {
   return svg;
 }
 
-// iPad Touch & Drag Engine
 function setupDragToShade(container) {
   const grid = container.querySelector('#touchGrid');
   let isDragging = false;
