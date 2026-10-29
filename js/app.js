@@ -4,7 +4,7 @@ import './questions/gridShader.js';
 import './questions/equivalence.js';
 
 let currentUser = null;
-let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
+let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || 'https://script.google.com/macros/s/AKfycbxs1uvyTFFuFmmmmXQAMm3I57kNeE2VlCqYOd3DOvMwGcHZj6kRP_ZjMpd-Tqg5_OTw/exec';
 let currentQIndex = 0;
 let sessionScore = 0;
 const TOTAL_QUESTIONS = 5;
