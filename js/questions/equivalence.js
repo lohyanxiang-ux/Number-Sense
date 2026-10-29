@@ -149,14 +149,9 @@ const equivalenceModule = {
     ];
 
     const data = dataset[Math.floor(Math.random() * dataset.length)];
-
-    // Pick 1 format randomly to be the TARGET PROMPT
     const promptItem = data.correct[Math.floor(Math.random() * data.correct.length)];
 
-    // Remaining correct options to mix into cards
     const remainingCorrect = data.correct.filter(item => item !== promptItem);
-
-    // Pick 3 correct cards + 3 distractor cards = 6 cards total
     const selectedCorrect = remainingCorrect.sort(() => 0.5 - Math.random()).slice(0, 3);
     const selectedDistractors = data.distractors.sort(() => 0.5 - Math.random()).slice(0, 3);
 
@@ -167,6 +162,7 @@ const equivalenceModule = {
 
     return {
       type: 'equivalence',
+      prompt: '', // Fixed: Prevents 'undefined' header in app.js
       promptItem: promptItem,
       cards: allCards,
       explanation: formatMath(data.exp)
@@ -174,7 +170,6 @@ const equivalenceModule = {
   },
 
   render(q, container) {
-    // Render Target Value Box
     let promptHtml = '';
     if (q.promptItem.type === 'svg') {
       promptHtml = `<div style="display:inline-block; vertical-align:middle; margin-left:10px;">${q.promptItem.val}</div>`;
@@ -192,7 +187,6 @@ const equivalenceModule = {
         </div>
       </div>
 
-      <!-- 6-CARD SELECTION GRID -->
       <div class="eq-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 20px 0;">
     `;
 
@@ -223,7 +217,6 @@ const equivalenceModule = {
     html += `</div>`;
     container.innerHTML = html;
 
-    // Card Selection Toggle Handler
     container.querySelectorAll('.eq-card').forEach(cardEl => {
       cardEl.onclick = () => {
         cardEl.classList.toggle('selected');
@@ -254,7 +247,6 @@ const equivalenceModule = {
       }
     });
 
-    // Must tap ALL correct cards and ZERO incorrect cards
     return (correctSelectedCount === totalCorrectInSet && incorrectSelectedCount === 0);
   }
 };
