@@ -115,6 +115,7 @@ function setupEventHandlers() {
   bindClick('startExtraBtn', startExtraPracticeSession);
   bindClick('extraSubmitBtn', handleExtraAnswerSubmit);
   bindClick('extraNextBtn', handleExtraNextQuestion);
+  bindClick('exitExtraBtn', exitExtraPractice);
   bindClick('saveSheetBtn', saveSheetUrl);
   bindClick('refreshTeacherDataBtn', fetchTeacherDashboardData);
   bindClick('logoutBtn', logout);
@@ -207,6 +208,33 @@ function setupEventHandlers() {
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.onclick = (e) => switchTab(e.target.getAttribute('data-tab'), e.target);
   });
+}
+
+// REAL-TIME QUESTION PROGRESS SYNC TO GOOGLE SHEETS
+async function syncQuestionProgressToSheet(topicLabel, xpEarned, tokensEarned, isDaily) {
+  if (!sheetWebAppUrl || !currentUser) return;
+  try {
+    await fetch(sheetWebAppUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'saveProgress',
+        studentCode: currentUser.code,
+        studentName: currentUser.name,
+        totalQuestions: 1,
+        accuracy: 100,
+        topic: topicLabel,
+        tokensEarned: tokensEarned,
+        xpEarned: xpEarned,
+        newTotalXP: currentUser.xp,
+        newStreak: currentUser.streak,
+        newTokens: currentUser.tokens,
+        isDailyWarmup: isDaily,
+        proficiency: currentUser.proficiency
+      })
+    });
+  } catch (e) {
+    console.error("Error syncing question progress to Google Sheet:", e);
+  }
 }
 
 async function handleLogin() {
@@ -381,8 +409,10 @@ function handleAnswerSubmit() {
   const fbBox = document.getElementById('feedbackBox');
   fbBox.classList.remove('hidden', 'feedback-correct', 'feedback-incorrect');
 
+  let xpEarned = 0;
   if (isCorrect) {
     sessionScore++;
+    xpEarned = 20;
     fbBox.classList.add('feedback-correct');
     document.getElementById('feedbackTitle').innerText = "🎯 Spot On! (+20 XP)";
     currentUser.xp += 20;
@@ -394,6 +424,11 @@ function handleAnswerSubmit() {
 
   document.getElementById('visualExp').innerHTML = currentQuestion.explanation;
   document.getElementById('submitBtn').classList.add('hidden');
+
+  // WRITE IMMEDIATELY TO GOOGLE SHEETS
+  const topicObj = ALL_TOPICS.find(t => t.key === qType);
+  const topicName = topicObj ? topicObj.name : qType;
+  syncQuestionProgressToSheet(topicName, xpEarned, 0, true);
 }
 
 function handleNextQuestion() {
@@ -460,9 +495,9 @@ async function finishDailySession() {
           studentName: currentUser.name,
           totalQuestions: TOTAL_QUESTIONS,
           accuracy: accuracy,
-          topic: 'Daily Warm-up',
+          topic: 'Daily Warm-up (Completed)',
           tokensEarned: 10,
-          xpEarned: sessionScore * 20,
+          xpEarned: 0,
           newTotalXP: currentUser.xp,
           newStreak: currentUser.streak,
           newTokens: currentUser.tokens,
@@ -476,11 +511,16 @@ async function finishDailySession() {
 
 function resetExtraPracticeUI() {
   document.getElementById('extraActiveCard').innerHTML = `
-    <div class="q-header">
+    <div class="q-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
       <span id="extraQProgress" style="font-weight: 700;">Question 1 of 5 (Extra)</span>
-      <span class="stat-badge" style="background: rgba(79, 70, 229, 0.1); color: var(--accent); font-size: 0.8rem;">
-        ⚡ +2 XP per correct
-      </span>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <span class="stat-badge" style="background: rgba(79, 70, 229, 0.1); color: var(--accent); font-size: 0.8rem;">
+          ⚡ +2 XP per correct
+        </span>
+        <button class="btn" id="exitExtraBtn" style="width: auto; padding: 4px 10px; font-size: 0.8rem; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);">
+          🚪 Exit
+        </button>
+      </div>
     </div>
 
     <div id="extraQPrompt" class="q-prompt">Loading extra question...</div>
@@ -497,6 +537,13 @@ function resetExtraPracticeUI() {
 
   document.getElementById('extraSubmitBtn').onclick = handleExtraAnswerSubmit;
   document.getElementById('extraNextBtn').onclick = handleExtraNextQuestion;
+  document.getElementById('exitExtraBtn').onclick = exitExtraPractice;
+}
+
+function exitExtraPractice() {
+  resetExtraPracticeUI();
+  document.getElementById('extraActiveCard').classList.add('hidden');
+  document.getElementById('extraSetupCard').classList.remove('hidden');
 }
 
 function startExtraPracticeSession() {
@@ -546,8 +593,10 @@ function handleExtraAnswerSubmit() {
   const fbBox = document.getElementById('extraFeedbackBox');
   fbBox.classList.remove('hidden', 'feedback-correct', 'feedback-incorrect');
 
+  let xpEarned = 0;
   if (isCorrect) {
     extraSessionScore++;
+    xpEarned = 2;
     fbBox.classList.add('feedback-correct');
     document.getElementById('extraFeedbackTitle').innerText = "🎯 Correct! (+2 XP)";
     currentUser.xp += 2;
@@ -559,6 +608,10 @@ function handleExtraAnswerSubmit() {
 
   document.getElementById('extraVisualExp').innerHTML = currentExtraQuestion.explanation;
   document.getElementById('extraSubmitBtn').classList.add('hidden');
+
+  // WRITE IMMEDIATELY TO GOOGLE SHEETS
+  const topicLabel = activeExtraTopicKey === 'random' ? 'Random Mix' : activeExtraTopicKey;
+  syncQuestionProgressToSheet(`Extra Practice (${topicLabel})`, xpEarned, 0, false);
 }
 
 function handleExtraNextQuestion() {
@@ -604,9 +657,9 @@ async function finishExtraPracticeSession() {
           studentName: currentUser.name,
           totalQuestions: extraTotalQuestions,
           accuracy: accuracy,
-          topic: `Extra Practice (${topicLabel})`,
+          topic: `Extra Practice (${topicLabel}) (Completed)`,
           tokensEarned: 0,
-          xpEarned: totalXPEarned,
+          xpEarned: 0,
           newTotalXP: currentUser.xp,
           newStreak: currentUser.streak,
           newTokens: currentUser.tokens,
@@ -694,6 +747,10 @@ function renderStudentProgressTab() {
       const topicKey = btn.getAttribute('data-key');
       const extraSelect = document.getElementById('extraTopicSelect');
       if (extraSelect) extraSelect.value = topicKey;
+
+      // DEFAULT QUESTION COUNT TO 3
+      const extraCount = document.getElementById('extraCountSelect');
+      if (extraCount) extraCount.value = '3';
 
       resetExtraPracticeUI();
       const extraTabBtn = document.querySelector('.tab-btn[data-tab="extra"]');
