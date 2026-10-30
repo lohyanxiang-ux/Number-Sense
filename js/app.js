@@ -529,7 +529,7 @@ function renderCurrentExtraQuestion() {
   renderQuestion(currentExtraQuestion, ws);
 
   document.getElementById('extraFeedbackBox').classList.add('hidden');
-  document.getElementById('submitBtn').classList.remove('hidden');
+  document.getElementById('extraSubmitBtn').classList.remove('hidden');
 }
 
 function handleExtraAnswerSubmit() {
