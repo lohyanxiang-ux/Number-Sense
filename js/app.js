@@ -6,7 +6,6 @@ import './questions/placeValue.js';
 import './questions/negativeNumbers.js';
 import './questions/addSubtractNegatives.js';
 import './questions/multiplication.js';
-import './questions/division.js';
 
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
@@ -31,11 +30,11 @@ let activeExtraTopicKey = 'random';
 let teacherRosterData = [];
 let activeSampleTopicKey = '';
 let activeManageStudentCode = null;
-let activeRosterFilter = 'all';
-let activeClassFilter = 'all';
+let activeRosterFilter = 'all'; // 'all', 'active_today', 'needs_attention', 'uncompleted_daily'
+let activeClassFilter = 'all'; // 'all' or specific class string like 'Sec 2A'
 
 // Manage Student Modal State
-let manageTargetMode = 'xp';
+let manageTargetMode = 'xp'; // 'xp' or 'tokens'
 let xpChangeVal = 0;
 let tokenChangeVal = 0;
 let isNegativeSign = false;
@@ -47,9 +46,8 @@ const ALL_TOPICS = [
   { key: 'equivalence', name: '🃏 Equivalence Matching' },
   { key: 'place_value', name: '🔢 Place Value' },
   { key: 'negative_numbers', name: '➖ Negative Numbers' },
-  { key: 'add_subtract_negatives', name: '➕➖ Adding & Subtracting Integers' },
-  { key: 'multiplication', name: '✖️ Multiplication' },
-  { key: 'division', name: '➗ Division' }
+  { key: 'add_subtract_negatives', name: '➕➖ Adding & Subtracting Integers' }
+  { key: 'multiplication', name: '✖️ Multiplication' }
 ];
 
 function getTodayDateString() {
@@ -61,12 +59,11 @@ function getTodayDateString() {
 }
 
 function initApp() {
-  setupKeypad();
-  
   const sheetInput = document.getElementById('sheetUrlInput');
   if (sheetInput) sheetInput.value = sheetWebAppUrl;
 
   setupEventHandlers();
+  setupKeypad();
 }
 
 if (document.readyState === 'loading') {
@@ -81,49 +78,46 @@ function setupKeypad() {
     btn.onclick = () => {
       if (enteredPin.length < 4) {
         enteredPin += btn.getAttribute('data-key');
-        if (display) display.innerText = enteredPin.padEnd(4, '•');
+        display.innerText = enteredPin.padEnd(4, '•');
       }
     };
   });
 
-  const clearBtn = document.getElementById('keyClear');
-  if (clearBtn) {
-    clearBtn.onclick = () => {
-      enteredPin = '';
-      if (display) display.innerText = '••••';
-    };
-  }
+  document.getElementById('keyClear').onclick = () => {
+    enteredPin = '';
+    display.innerText = '••••';
+  };
 
-  const delBtn = document.getElementById('keyDel');
-  if (delBtn) {
-    delBtn.onclick = () => {
-      enteredPin = enteredPin.slice(0, -1);
-      if (display) display.innerText = enteredPin.padEnd(4, '•');
-    };
-  }
+  document.getElementById('keyDel').onclick = () => {
+    enteredPin = enteredPin.slice(0, -1);
+    display.innerText = enteredPin.padEnd(4, '•');
+  };
 }
 
 function setupEventHandlers() {
-  const bindClick = (id, handler) => {
-    const el = document.getElementById(id);
-    if (el) el.onclick = handler;
-  };
+  document.getElementById('loginBtn').onclick = handleLogin;
+  document.getElementById('submitBtn').onclick = handleAnswerSubmit;
+  document.getElementById('nextBtn').onclick = handleNextQuestion;
 
-  bindClick('loginBtn', handleLogin);
-  bindClick('submitBtn', handleAnswerSubmit);
-  bindClick('nextBtn', handleNextQuestion);
-  bindClick('startExtraBtn', startExtraPracticeSession);
-  bindClick('extraSubmitBtn', handleExtraAnswerSubmit);
-  bindClick('extraNextBtn', handleExtraNextQuestion);
-  bindClick('saveSheetBtn', saveSheetUrl);
-  bindClick('refreshTeacherDataBtn', fetchTeacherDashboardData);
-  bindClick('logoutBtn', logout);
-  bindClick('teacherLogoutBtn', logout);
-
-  bindClick('goToExtraBtn', () => {
+  // Extra Practice Handlers
+  document.getElementById('startExtraBtn').onclick = startExtraPracticeSession;
+  document.getElementById('extraSubmitBtn').onclick = handleExtraAnswerSubmit;
+  document.getElementById('extraNextBtn').onclick = handleExtraNextQuestion;
+  document.getElementById('goToExtraBtn').onclick = () => {
     const extraTabBtn = document.querySelector('.tab-btn[data-tab="extra"]');
     if (extraTabBtn) switchTab('extra', extraTabBtn);
-  });
+  };
+
+  // System Settings Handlers
+  document.getElementById('saveSheetBtn').onclick = saveSheetUrl;
+  if (document.getElementById('refreshTeacherDataBtn')) {
+    document.getElementById('refreshTeacherDataBtn').onclick = fetchTeacherDashboardData;
+  }
+
+  const logoutBtn = document.getElementById('logoutBtn');
+  const teacherLogoutBtn = document.getElementById('teacherLogoutBtn');
+  if (logoutBtn) logoutBtn.onclick = logout;
+  if (teacherLogoutBtn) teacherLogoutBtn.onclick = logout;
 
   // Class Filter Handler
   const classSelect = document.getElementById('classFilterSelect');
@@ -135,9 +129,9 @@ function setupEventHandlers() {
   }
 
   // KPI Card Click Handlers
-  bindClick('kpiCardTotal', () => setRosterFilter('all'));
-  bindClick('kpiCardActiveToday', () => setRosterFilter('active_today'));
-  bindClick('kpiCardStruggling', () => setRosterFilter('needs_attention'));
+  document.getElementById('kpiCardTotal').onclick = () => setRosterFilter('all');
+  document.getElementById('kpiCardActiveToday').onclick = () => setRosterFilter('active_today');
+  document.getElementById('kpiCardStruggling').onclick = () => setRosterFilter('needs_attention');
 
   // Filter Chips Handler
   document.querySelectorAll('.filter-chip').forEach(btn => {
@@ -156,23 +150,21 @@ function setupEventHandlers() {
   });
 
   // Modal Close Handlers
-  bindClick('closeSampleModalBtn', () => {
-    const m = document.getElementById('sampleQuestionModal');
-    if (m) m.classList.add('hidden');
-  });
+  document.getElementById('closeSampleModalBtn').onclick = () => {
+    document.getElementById('sampleQuestionModal').classList.add('hidden');
+  };
 
-  bindClick('closeManageModalBtn', () => {
-    const m = document.getElementById('studentManageModal');
-    if (m) m.classList.add('hidden');
-  });
+  document.getElementById('closeManageModalBtn').onclick = () => {
+    document.getElementById('studentManageModal').classList.add('hidden');
+  };
 
-  bindClick('newSampleQBtn', () => {
+  document.getElementById('newSampleQBtn').onclick = () => {
     generateSampleQuestion(activeSampleTopicKey);
-  });
+  };
 
-  // Manage Modal Mode Tabs
-  bindClick('tabModeXP', () => switchManageMode('xp'));
-  bindClick('tabModeTokens', () => switchManageMode('tokens'));
+  // Manage Modal Mode Tabs (XP vs TOKENS)
+  document.getElementById('tabModeXP').onclick = () => switchManageMode('xp');
+  document.getElementById('tabModeTokens').onclick = () => switchManageMode('tokens');
 
   // Manage Modal Keypad Handlers
   document.querySelectorAll('.m-num-key').forEach(btn => {
@@ -184,16 +176,16 @@ function setupEventHandlers() {
     };
   });
 
-  bindClick('mKeyToggleSign', () => {
+  document.getElementById('mKeyToggleSign').onclick = () => {
     isNegativeSign = !isNegativeSign;
     updateManageKeypadDisplay();
-  });
+  };
 
-  bindClick('mKeyDel', () => {
+  document.getElementById('mKeyDel').onclick = () => {
     currentDigits = currentDigits.slice(0, -1);
     if (!currentDigits || currentDigits === '-') currentDigits = '0';
     updateManageKeypadDisplay();
-  });
+  };
 
   document.querySelectorAll('.m-preset-btn').forEach(btn => {
     btn.onclick = () => {
@@ -209,7 +201,7 @@ function setupEventHandlers() {
     };
   });
 
-  bindClick('saveStudentManageBtn', processStudentManagement);
+  document.getElementById('saveStudentManageBtn').onclick = processStudentManagement;
 
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.onclick = (e) => switchTab(e.target.getAttribute('data-tab'), e.target);
@@ -218,21 +210,18 @@ function setupEventHandlers() {
 
 async function handleLogin() {
   const errEl = document.getElementById('loginError');
-  if (errEl) errEl.classList.add('hidden');
+  errEl.classList.add('hidden');
 
   if (enteredPin.length !== 4) {
-    if (errEl) {
-      errEl.innerText = "Please enter a 4-digit PIN.";
-      errEl.classList.remove('hidden');
-    }
+    errEl.innerText = "Please enter a 4-digit PIN.";
+    errEl.classList.remove('hidden');
     return;
   }
 
   // 1. TEACHER DASHBOARD LOGIN (PIN 3005)
   if (enteredPin === '3005') {
     enteredPin = '';
-    const display = document.getElementById('pinDisplay');
-    if (display) display.innerText = '••••';
+    document.getElementById('pinDisplay').innerText = '••••';
     loadTeacherDashboard();
     return;
   }
@@ -297,6 +286,7 @@ function startStudentSession() {
 
   updateHeader();
 
+  // Check if student completed daily questions today
   if (currentUser.dailyDoneToday) {
     document.getElementById('dailyActiveCard').classList.add('hidden');
     document.getElementById('dailyLockedCard').classList.remove('hidden');
@@ -304,57 +294,6 @@ function startStudentSession() {
     document.getElementById('dailyLockedCard').classList.add('hidden');
     document.getElementById('dailyActiveCard').classList.remove('hidden');
     startDailySession();
-  }
-}
-
-function updateHeader() {
-  if (!currentUser) return;
-  const streakEl = document.getElementById('hdrStreak');
-  const xpEl = document.getElementById('hdrXP');
-  const tokensEl = document.getElementById('hdrTokens');
-
-  if (streakEl) streakEl.innerText = currentUser.streak || 0;
-  if (xpEl) xpEl.innerText = currentUser.xp || 0;
-  if (tokensEl) tokensEl.innerText = currentUser.tokens || 0;
-}
-
-function switchTab(tabKey, targetBtn) {
-  document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
-  if (targetBtn) targetBtn.classList.add('active');
-
-  const tabs = ['Practice', 'Extra', 'Progress', 'Shop'];
-  tabs.forEach(t => {
-    const el = document.getElementById(`tab${t}`);
-    if (el) el.classList.add('hidden');
-  });
-
-  const activeTabEl = document.getElementById(`tab${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`);
-  if (activeTabEl) activeTabEl.classList.remove('hidden');
-
-  if (tabKey === 'progress') {
-    renderStudentProgressTab();
-  }
-}
-
-function logout() {
-  currentUser = null;
-  enteredPin = '';
-  const display = document.getElementById('pinDisplay');
-  if (display) display.innerText = '••••';
-
-  document.getElementById('appContainer').classList.add('hidden');
-  document.getElementById('teacherDashboard').classList.add('hidden');
-  document.getElementById('userStatsHeader').classList.add('hidden');
-  document.getElementById('teacherHeader').classList.add('hidden');
-  document.getElementById('loginScreen').classList.remove('hidden');
-}
-
-function saveSheetUrl() {
-  const sheetInput = document.getElementById('sheetUrlInput');
-  if (sheetInput) {
-    sheetWebAppUrl = sheetInput.value.trim();
-    localStorage.setItem('NUMSENSE_SHEET_URL', sheetWebAppUrl);
-    alert('Google Sheet Web App URL saved successfully!');
   }
 }
 
@@ -662,6 +601,7 @@ function renderStudentProgressTab() {
       }
     }
 
+    // Render 10 visual dots for attempt history
     let dotsHtml = '';
     for (let i = 0; i < 10; i++) {
       if (i < attemptsCount) {
@@ -702,6 +642,7 @@ function renderStudentProgressTab() {
 
   container.innerHTML = html;
 
+  // Direct Practice Launch Button Handler
   container.querySelectorAll('.btn-practice-topic').forEach(btn => {
     btn.onclick = () => {
       const topicKey = btn.getAttribute('data-key');
@@ -766,56 +707,6 @@ function populateClassDropdown(students) {
   classSelect.innerHTML = html;
 }
 
-function setRosterFilter(filterType) {
-  activeRosterFilter = filterType;
-
-  document.querySelectorAll('.filter-chip').forEach(btn => {
-    if (btn.getAttribute('data-filter') === filterType) {
-      btn.classList.add('active');
-      btn.style.background = 'var(--accent)';
-      btn.style.color = 'white';
-    } else {
-      btn.classList.remove('active');
-      btn.style.background = 'var(--bg-primary)';
-      btn.style.color = 'var(--text-main)';
-    }
-  });
-
-  applyRosterFilters();
-}
-
-function applyRosterFilters() {
-  let filtered = [...teacherRosterData];
-  const todayStr = getTodayDateString();
-
-  if (activeClassFilter !== 'all') {
-    filtered = filtered.filter(s => String(s.className || '').trim() === activeClassFilter);
-  }
-
-  renderTeacherKPIs(filtered);
-  updateHeaderTopicAverages(filtered);
-
-  if (activeRosterFilter === 'active_today') {
-    filtered = filtered.filter(s => s.lastActive && s.lastActive.split('T')[0] === todayStr);
-  } else if (activeRosterFilter === 'needs_attention') {
-    filtered = filtered.filter(s => {
-      const profs = s.proficiency || {};
-      let scores = [];
-      Object.keys(profs).forEach(k => {
-        if (profs[k].length > 0) {
-          const numArr = profs[k].map(Number);
-          scores.push(numArr.reduce((a, b) => a + b, 0) / numArr.length);
-        }
-      });
-      return scores.length > 0 && (scores.reduce((a, b) => a + b, 0) / scores.length) < 0.50;
-    });
-  } else if (activeRosterFilter === 'uncompleted_daily') {
-    filtered = filtered.filter(s => s.lastDailyCompleted !== todayStr);
-  }
-
-  renderRosterTable(filtered);
-}
-
 function renderTeacherKPIs(studentsInSelectedClass) {
   const total = studentsInSelectedClass.length;
   let totalXP = 0;
@@ -852,6 +743,7 @@ function renderTeacherKPIs(studentsInSelectedClass) {
   document.getElementById('kpiStruggling').innerText = strugglingCount;
 }
 
+// UPDATE TOPIC AVERAGES DIRECTLY INSIDE COLUMN HEADERS
 function updateHeaderTopicAverages(students) {
   ALL_TOPICS.forEach(topic => {
     const el = document.getElementById(`hdrAvg_${topic.key}`);
@@ -898,10 +790,8 @@ function updateHeaderTopicAverages(students) {
 
 function renderRosterTable(students) {
   const tbody = document.getElementById('rosterTableBody');
-  if (!tbody) return;
-
   if (!students || students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="15" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="13" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
@@ -939,6 +829,7 @@ function renderRosterTable(students) {
 
   tbody.innerHTML = html;
 
+  // Student Name Click Handler to Open Management Modal
   tbody.querySelectorAll('.student-name-link').forEach(el => {
     el.onclick = () => {
       const code = el.getAttribute('data-code');
@@ -946,6 +837,7 @@ function renderRosterTable(students) {
     };
   });
 
+  // Toggle Masked Student Code Handler
   tbody.querySelectorAll('.code-toggle').forEach(el => {
     el.onclick = () => {
       const realCode = el.getAttribute('data-code');
@@ -970,6 +862,7 @@ function getProfBadgeHtml(history) {
   const acc = score / numHistory.length;
   const pct = Math.round(acc * 100);
 
+  // Updated Threshold Rules: >80% Green, 50-80% Yellow, <50% Red
   if (acc > 0.80) {
     return `<span class="prof-badge prof-mastered" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 8px; border-radius: 6px; font-weight: 700;">🟢 ${pct}%</span>`;
   } else if (acc >= 0.50) {
@@ -979,32 +872,80 @@ function getProfBadgeHtml(history) {
   }
 }
 
-// SAMPLE QUESTION PREVIEW MODAL LOGIC
-function openSampleQuestionModal(typeKey, topicTitle) {
-  activeSampleTopicKey = typeKey;
-  document.getElementById('sampleModalTitle').innerText = `Sample Question: ${topicTitle}`;
-  generateSampleQuestion(typeKey);
-  document.getElementById('sampleQuestionModal').classList.remove('hidden');
+// UNIFIED CLASS & STATUS FILTER LOGIC
+function setRosterFilter(filterType) {
+  activeRosterFilter = filterType;
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    if (btn.getAttribute('data-filter') === filterType) {
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--accent)';
+    } else {
+      btn.style.background = 'var(--bg-primary)';
+      btn.style.color = 'var(--text-main)';
+      btn.style.borderColor = 'var(--border-color)';
+    }
+  });
+  applyRosterFilters();
 }
 
-function generateSampleQuestion(typeKey) {
-  const q = getQuestionByType(typeKey);
-  document.getElementById('sampleQPrompt').innerHTML = q.prompt;
-  const ws = document.getElementById('sampleQWorkspace');
-  renderQuestion(q, ws);
+function applyRosterFilters() {
+  const todayStr = getTodayDateString();
+
+  // 1. First filter by Class Selection (Strict String Normalization)
+  let classFilteredStudents = teacherRosterData;
+  if (activeClassFilter !== 'all') {
+    const targetClass = activeClassFilter.trim().toLowerCase();
+    classFilteredStudents = teacherRosterData.filter(s => String(s.className || '').trim().toLowerCase() === targetClass);
+  }
+
+  // 2. Compute KPI analytics ONLY for students in the selected class
+  renderTeacherKPIs(classFilteredStudents);
+
+  // 3. Update Topic Averages directly inside column headers for the selected class
+  updateHeaderTopicAverages(classFilteredStudents);
+
+  // 4. Filter by Status Chip (All, Active Today, Needs Attention, Pending)
+  let statusFiltered = classFilteredStudents.filter(s => {
+    if (activeRosterFilter === 'active_today') {
+      const isToday = s.lastActive && s.lastActive.split('T')[0] === todayStr;
+      if (!isToday) return false;
+    } else if (activeRosterFilter === 'needs_attention') {
+      const profs = s.proficiency || {};
+      let scores = [];
+      Object.keys(profs).forEach(k => {
+        if (profs[k].length > 0) {
+          const numArr = profs[k].map(Number);
+          scores.push(numArr.reduce((a, b) => a + b, 0) / numArr.length);
+        }
+      });
+      const avgAcc = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length) : 1;
+      if (avgAcc >= 0.50) return false;
+    } else if (activeRosterFilter === 'uncompleted_daily') {
+      if (s.lastDailyCompleted === todayStr) return false;
+    }
+    return true;
+  });
+
+  renderRosterTable(statusFiltered);
 }
 
-// STUDENT MANAGEMENT MODAL LOGIC
+// STUDENT MANAGEMENT MODAL LOGIC WITH KEYPAD
 function openStudentManageModal(studentCode) {
-  const student = teacherRosterData.find(s => s.code === studentCode);
+  const student = teacherRosterData.find(s => String(s.code) === String(studentCode));
   if (!student) return;
 
   activeManageStudentCode = studentCode;
   document.getElementById('mStudentName').innerText = student.name;
   document.getElementById('mStudentClass').innerText = student.className;
   document.getElementById('mStudentCode').innerText = student.code;
-  document.getElementById('mCurrentXP').innerText = student.xp || 0;
-  document.getElementById('mCurrentTokens').innerText = student.tokens || 0;
+  document.getElementById('mCurrentXP').innerText = student.xp;
+  document.getElementById('mCurrentTokens').innerText = student.tokens;
+
+  xpChangeVal = 0;
+  tokenChangeVal = 0;
+  currentDigits = '0';
+  isNegativeSign = false;
 
   switchManageMode('xp');
   document.getElementById('studentManageModal').classList.remove('hidden');
@@ -1012,76 +953,138 @@ function openStudentManageModal(studentCode) {
 
 function switchManageMode(mode) {
   manageTargetMode = mode;
-  currentDigits = '0';
-  isNegativeSign = false;
-
-  const btnXP = document.getElementById('tabModeXP');
-  const btnTokens = document.getElementById('tabModeTokens');
-  const lbl = document.getElementById('mActiveModeLabel');
+  const tabXP = document.getElementById('tabModeXP');
+  const tabTokens = document.getElementById('tabModeTokens');
+  const label = document.getElementById('mActiveModeLabel');
 
   if (mode === 'xp') {
-    btnXP.style.background = 'var(--accent)';
-    btnXP.style.color = 'white';
-    btnTokens.style.background = 'var(--bg-primary)';
-    btnTokens.style.color = 'var(--text-main)';
-    lbl.innerText = 'XP Adjustment:';
+    tabXP.style.background = 'var(--accent)';
+    tabXP.style.color = 'white';
+    tabTokens.style.background = 'var(--bg-primary)';
+    tabTokens.style.color = 'var(--text-main)';
+    label.innerText = 'XP Adjustment:';
   } else {
-    btnTokens.style.background = '#d97706';
-    btnTokens.style.color = 'white';
-    btnXP.style.background = 'var(--bg-primary)';
-    btnXP.style.color = 'var(--text-main)';
-    lbl.innerText = 'Tokens Adjustment:';
+    tabTokens.style.background = '#d97706';
+    tabTokens.style.color = 'white';
+    tabXP.style.background = 'var(--bg-primary)';
+    tabXP.style.color = 'var(--text-main)';
+    label.innerText = 'Token Adjustment:';
   }
 
+  currentDigits = '0';
+  isNegativeSign = false;
   updateManageKeypadDisplay();
 }
 
 function updateManageKeypadDisplay() {
   const display = document.getElementById('mKeypadDisplay');
-  const val = parseInt(currentDigits, 10) || 0;
-  const signedVal = isNegativeSign ? -val : val;
+  const num = parseInt(currentDigits, 10) || 0;
+  const finalVal = isNegativeSign ? -num : num;
 
   if (manageTargetMode === 'xp') {
-    xpChangeVal = signedVal;
+    xpChangeVal = finalVal;
   } else {
-    tokenChangeVal = signedVal;
+    tokenChangeVal = finalVal;
   }
 
-  const prefix = signedVal > 0 ? '+' : '';
-  display.innerText = `${prefix}${signedVal}`;
-  display.style.color = signedVal < 0 ? 'var(--danger)' : (manageTargetMode === 'xp' ? 'var(--accent)' : '#d97706');
+  const signStr = finalVal > 0 ? '+' : '';
+  display.innerText = `${signStr}${finalVal}`;
+  display.style.color = manageTargetMode === 'xp' ? 'var(--accent)' : '#d97706';
 }
 
 async function processStudentManagement() {
-  if (!activeManageStudentCode || !sheetWebAppUrl) return;
-
-  const student = teacherRosterData.find(s => s.code === activeManageStudentCode);
+  const student = teacherRosterData.find(s => String(s.code) === String(activeManageStudentCode));
   if (!student) return;
 
-  const newXP = Math.max(0, (student.xp || 0) + xpChangeVal);
-  const newTokens = Math.max(0, (student.tokens || 0) + tokenChangeVal);
-
-  try {
-    const res = await fetch(sheetWebAppUrl, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'adminUpdateStudent',
-        studentCode: activeManageStudentCode,
-        xpAdjustment: xpChangeVal,
-        tokenAdjustment: tokenChangeVal
-      })
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      student.xp = newXP;
-      student.tokens = newTokens;
-      applyRosterFilters();
-      document.getElementById('studentManageModal').classList.add('hidden');
-    } else {
-      alert("Failed to update student: " + (data.error || "Unknown error"));
-    }
-  } catch (e) {
-    alert("Network error updating student details.");
+  if (xpChangeVal === 0 && tokenChangeVal === 0) {
+    alert('Please enter an amount for XP or Tokens using the keypad.');
+    return;
   }
+
+  student.xp = Math.max(0, student.xp + xpChangeVal);
+  student.tokens = Math.max(0, student.tokens + tokenChangeVal);
+
+  if (sheetWebAppUrl) {
+    try {
+      await fetch(sheetWebAppUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'saveProgress',
+          studentCode: student.code,
+          studentName: student.name,
+          totalQuestions: 0,
+          accuracy: 100,
+          topic: 'Teacher Adjustment',
+          tokensEarned: tokenChangeVal,
+          xpEarned: xpChangeVal,
+          newTotalXP: student.xp,
+          newStreak: student.streak,
+          newTokens: student.tokens,
+          isDailyWarmup: false,
+          proficiency: student.proficiency
+        })
+      });
+    } catch(e) {}
+  }
+
+  document.getElementById('studentManageModal').classList.add('hidden');
+  applyRosterFilters();
+  alert(`Updated ${student.name}! New XP: ${student.xp}, New Tokens: ${student.tokens}`);
+}
+
+function openSampleQuestionModal(typeKey, titleText) {
+  activeSampleTopicKey = typeKey;
+  document.getElementById('sampleModalTitle').innerText = titleText.replace('👁️', '') + ' - Teaching Sample';
+  document.getElementById('sampleQuestionModal').classList.remove('hidden');
+  generateSampleQuestion(typeKey);
+}
+
+function generateSampleQuestion(typeKey) {
+  const sampleQ = getQuestionByType(typeKey);
+  if (!sampleQ) return;
+
+  document.getElementById('sampleQPrompt').innerHTML = sampleQ.prompt;
+  const ws = document.getElementById('sampleQWorkspace');
+  renderQuestion(sampleQ, ws);
+}
+
+function logout() {
+  currentUser = null;
+  document.getElementById('appContainer').classList.add('hidden');
+  document.getElementById('teacherDashboard').classList.add('hidden');
+  document.getElementById('userStatsHeader').classList.add('hidden');
+  document.getElementById('teacherHeader').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('pinDisplay').innerText = '••••';
+}
+
+function updateHeader() {
+  document.getElementById('hdrStreak').innerText = currentUser.streak;
+  document.getElementById('hdrXP').innerText = currentUser.xp;
+  document.getElementById('hdrTokens').innerText = currentUser.tokens;
+}
+
+function switchTab(tabName, targetBtn) {
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+  document.getElementById('tabPractice').classList.add('hidden');
+  document.getElementById('tabExtra').classList.add('hidden');
+  document.getElementById('tabProgress').classList.add('hidden');
+  document.getElementById('tabShop').classList.add('hidden');
+
+  if (tabName === 'practice') document.getElementById('tabPractice').classList.remove('hidden');
+  if (tabName === 'extra') document.getElementById('tabExtra').classList.remove('hidden');
+  if (tabName === 'progress') {
+    document.getElementById('tabProgress').classList.remove('hidden');
+    renderStudentProgressTab();
+  }
+  if (tabName === 'shop') document.getElementById('tabShop').classList.remove('hidden');
+
+  targetBtn.classList.add('active');
+}
+
+function saveSheetUrl() {
+  const url = document.getElementById('sheetUrlInput').value.trim();
+  sheetWebAppUrl = url;
+  localStorage.setItem('NUMSENSE_SHEET_URL', url);
+  alert('Saved connection URL!');
 }
