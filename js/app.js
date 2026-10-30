@@ -7,18 +7,36 @@ import './questions/negativeNumbers.js';
 
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
+let enteredPin = '';
+
+// Daily Practice State
+const TOTAL_QUESTIONS = 5;
 let currentQIndex = 0;
 let sessionScore = 0;
-const TOTAL_QUESTIONS = 5;
 let questions = [];
 let currentQuestion = null;
-let isExtraPractice = false;
-let enteredPin = '';
+
+// Extra Practice State
+let isExtraMode = false;
+let extraQuestions = [];
+let extraQIndex = 0;
+let extraSessionScore = 0;
+let extraTotalQuestions = 5;
+let currentExtraQuestion = null;
+let activeExtraTopicKey = 'random';
 
 // Teacher Dashboard State
 let teacherRosterData = [];
 let activeSampleTopicKey = '';
 let activeRedeemStudentCode = null;
+
+function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 function initApp() {
   const sheetInput = document.getElementById('sheetUrlInput');
@@ -60,8 +78,18 @@ function setupEventHandlers() {
   document.getElementById('loginBtn').onclick = handleLogin;
   document.getElementById('submitBtn').onclick = handleAnswerSubmit;
   document.getElementById('nextBtn').onclick = handleNextQuestion;
+
+  // Extra Practice Handlers
+  document.getElementById('startExtraBtn').onclick = startExtraPracticeSession;
+  document.getElementById('extraSubmitBtn').onclick = handleExtraAnswerSubmit;
+  document.getElementById('extraNextBtn').onclick = handleExtraNextQuestion;
+  document.getElementById('goToExtraBtn').onclick = () => {
+    const extraTabBtn = document.querySelector('.tab-btn[data-tab="extra"]');
+    if (extraTabBtn) switchTab('extra', extraTabBtn);
+  };
+
+  // System Settings Handlers
   document.getElementById('saveSheetBtn').onclick = saveSheetUrl;
-  
   if (document.getElementById('refreshTeacherDataBtn')) {
     document.getElementById('refreshTeacherDataBtn').onclick = fetchTeacherDashboardData;
   }
@@ -134,6 +162,8 @@ async function handleLogin() {
   }
 
   // 2. STUDENT LOGIN
+  const todayStr = getTodayDateString();
+
   if (sheetWebAppUrl) {
     try {
       const res = await fetch(sheetWebAppUrl, {
@@ -142,6 +172,9 @@ async function handleLogin() {
       });
       const data = await res.json();
       if (data.success && !data.isTeacher) {
+        const isDoneToday = (data.lastDailyCompleted === todayStr) || 
+                            (localStorage.getItem(`NUMSENSE_DAILY_DONE_${enteredPin}`) === todayStr);
+
         currentUser = {
           code: enteredPin,
           name: data.studentName,
@@ -150,6 +183,8 @@ async function handleLogin() {
           streak: data.streak,
           tokens: data.tokens,
           lastActive: data.lastActive,
+          lastDailyCompleted: data.lastDailyCompleted,
+          dailyDoneToday: isDoneToday,
           proficiency: data.proficiency || {}
         };
         enteredPin = '';
@@ -160,7 +195,17 @@ async function handleLogin() {
   }
 
   // Local Student Fallback
-  currentUser = { code: enteredPin, name: 'Student ' + enteredPin, class: 'Sec 2A', xp: 0, streak: 1, tokens: 0, proficiency: {} };
+  const localDoneToday = localStorage.getItem(`NUMSENSE_DAILY_DONE_${enteredPin}`) === todayStr;
+  currentUser = { 
+    code: enteredPin, 
+    name: 'Student ' + enteredPin, 
+    class: 'Sec 2A', 
+    xp: 0, 
+    streak: 1, 
+    tokens: 0, 
+    dailyDoneToday: localDoneToday,
+    proficiency: {} 
+  };
   enteredPin = '';
   startStudentSession();
 }
@@ -175,7 +220,264 @@ function startStudentSession() {
   document.getElementById('hdrStudentClass').innerText = currentUser.class;
 
   updateHeader();
-  startDailySession(false);
+
+  // Check if student completed daily questions today
+  if (currentUser.dailyDoneToday) {
+    document.getElementById('dailyActiveCard').classList.add('hidden');
+    document.getElementById('dailyLockedCard').classList.remove('hidden');
+  } else {
+    document.getElementById('dailyLockedCard').classList.add('hidden');
+    document.getElementById('dailyActiveCard').classList.remove('hidden');
+    startDailySession();
+  }
+}
+
+// DAILY PRACTICE LOGIC
+function startDailySession() {
+  currentQIndex = 0;
+  sessionScore = 0;
+  questions = Array.from({ length: TOTAL_QUESTIONS }, () => getAdaptiveQuestion(currentUser.proficiency));
+  renderCurrentQuestion();
+}
+
+function renderCurrentQuestion() {
+  currentQuestion = questions[currentQIndex];
+  document.getElementById('qProgress').innerText = `Question ${currentQIndex + 1} of ${TOTAL_QUESTIONS}`;
+  document.getElementById('qPrompt').innerHTML = currentQuestion.prompt;
+  
+  const ws = document.getElementById('workspace');
+  renderQuestion(currentQuestion, ws);
+
+  document.getElementById('feedbackBox').classList.add('hidden');
+  document.getElementById('submitBtn').classList.remove('hidden');
+}
+
+function handleAnswerSubmit() {
+  const isCorrect = evaluateQuestion(currentQuestion);
+  const qType = currentQuestion.type;
+
+  if (!currentUser.proficiency[qType]) {
+    currentUser.proficiency[qType] = [];
+  }
+
+  currentUser.proficiency[qType].push(isCorrect ? 1 : 0);
+  currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-5);
+
+  const fbBox = document.getElementById('feedbackBox');
+  fbBox.classList.remove('hidden', 'feedback-correct', 'feedback-incorrect');
+
+  if (isCorrect) {
+    sessionScore++;
+    fbBox.classList.add('feedback-correct');
+    document.getElementById('feedbackTitle').innerText = "🎯 Spot On! (+20 XP)";
+    currentUser.xp += 20;
+    updateHeader();
+  } else {
+    fbBox.classList.add('feedback-incorrect');
+    document.getElementById('feedbackTitle').innerText = "💡 Visual Explanation:";
+  }
+
+  document.getElementById('visualExp').innerHTML = currentQuestion.explanation;
+  document.getElementById('submitBtn').classList.add('hidden');
+}
+
+function handleNextQuestion() {
+  currentQIndex++;
+  if (currentQIndex < TOTAL_QUESTIONS) {
+    renderCurrentQuestion();
+  } else {
+    finishDailySession();
+  }
+}
+
+function updateDailyStreak() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (!currentUser.lastActive) {
+    currentUser.streak = 1;
+  } else {
+    const last = new Date(currentUser.lastActive);
+    last.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((today - last) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) currentUser.streak += 1;
+    else if (diffDays > 1) currentUser.streak = 1;
+  }
+  currentUser.lastActive = new Date().toISOString();
+}
+
+async function finishDailySession() {
+  updateDailyStreak();
+  currentUser.tokens += 10;
+  currentUser.dailyDoneToday = true;
+  
+  const todayStr = getTodayDateString();
+  localStorage.setItem(`NUMSENSE_DAILY_DONE_${currentUser.code}`, todayStr);
+  updateHeader();
+
+  const accuracy = Math.round((sessionScore / TOTAL_QUESTIONS) * 100);
+
+  document.getElementById('dailyActiveCard').innerHTML = `
+    <div style="text-align: center; padding: 20px 0;">
+      <h2 style="color: var(--success); font-size: 1.8rem;">🎉 Daily Warm-up Complete!</h2>
+      <p style="font-size: 1.2rem; margin: 12px 0;">Score: <strong>${sessionScore} / ${TOTAL_QUESTIONS} (${accuracy}%)</strong></p>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Earned 🎟️ 10 Tokens! Day Streak: 🔥 ${currentUser.streak}</p>
+      
+      <button class="btn" id="btnFinishDaily" style="width: auto; background: var(--accent);">
+        ⚡ Continue to Extra Practice
+      </button>
+    </div>
+  `;
+
+  document.getElementById('btnFinishDaily').onclick = () => {
+    const extraTabBtn = document.querySelector('.tab-btn[data-tab="extra"]');
+    if (extraTabBtn) switchTab('extra', extraTabBtn);
+  };
+
+  // Sync Daily Warm-up to Backend
+  if (sheetWebAppUrl) {
+    try {
+      await fetch(sheetWebAppUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'saveProgress',
+          studentCode: currentUser.code,
+          studentName: currentUser.name,
+          totalQuestions: TOTAL_QUESTIONS,
+          accuracy: accuracy,
+          topic: 'Daily Warm-up',
+          tokensEarned: 10,
+          xpEarned: sessionScore * 20,
+          newTotalXP: currentUser.xp,
+          newStreak: currentUser.streak,
+          newTokens: currentUser.tokens,
+          isDailyWarmup: true,
+          proficiency: currentUser.proficiency
+        })
+      });
+    } catch(e) {}
+  }
+}
+
+// EXTRA PRACTICE LOGIC
+function startExtraPracticeSession() {
+  activeExtraTopicKey = document.getElementById('extraTopicSelect').value;
+  extraTotalQuestions = parseInt(document.getElementById('extraCountSelect').value, 10);
+  extraQIndex = 0;
+  extraSessionScore = 0;
+
+  extraQuestions = [];
+  for (let i = 0; i < extraTotalQuestions; i++) {
+    if (activeExtraTopicKey === 'random') {
+      extraQuestions.push(getAdaptiveQuestion(currentUser.proficiency));
+    } else {
+      extraQuestions.push(getQuestionByType(activeExtraTopicKey));
+    }
+  }
+
+  document.getElementById('extraSetupCard').classList.add('hidden');
+  document.getElementById('extraActiveCard').classList.remove('hidden');
+
+  renderCurrentExtraQuestion();
+}
+
+function renderCurrentExtraQuestion() {
+  currentExtraQuestion = extraQuestions[extraQIndex];
+  document.getElementById('extraQProgress').innerText = `Question ${extraQIndex + 1} of ${extraTotalQuestions} (Extra)`;
+  document.getElementById('extraQPrompt').innerHTML = currentExtraQuestion.prompt;
+
+  const ws = document.getElementById('extraWorkspace');
+  renderQuestion(currentExtraQuestion, ws);
+
+  document.getElementById('extraFeedbackBox').classList.add('hidden');
+  document.getElementById('extraSubmitBtn').classList.remove('hidden');
+}
+
+function handleExtraAnswerSubmit() {
+  const isCorrect = evaluateQuestion(currentExtraQuestion);
+  const qType = currentExtraQuestion.type;
+
+  if (!currentUser.proficiency[qType]) {
+    currentUser.proficiency[qType] = [];
+  }
+
+  currentUser.proficiency[qType].push(isCorrect ? 1 : 0);
+  currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-5);
+
+  const fbBox = document.getElementById('extraFeedbackBox');
+  fbBox.classList.remove('hidden', 'feedback-correct', 'feedback-incorrect');
+
+  if (isCorrect) {
+    extraSessionScore++;
+    fbBox.classList.add('feedback-correct');
+    document.getElementById('extraFeedbackTitle').innerText = "🎯 Correct! (+2 XP)";
+    currentUser.xp += 2; // +2 XP per correct question in Extra Practice
+    updateHeader();
+  } else {
+    fbBox.classList.add('feedback-incorrect');
+    document.getElementById('extraFeedbackTitle').innerText = "💡 Visual Explanation:";
+  }
+
+  document.getElementById('extraVisualExp').innerHTML = currentExtraQuestion.explanation;
+  document.getElementById('extraSubmitBtn').classList.add('hidden');
+}
+
+function handleExtraNextQuestion() {
+  extraQIndex++;
+  if (extraQIndex < extraTotalQuestions) {
+    renderCurrentExtraQuestion();
+  } else {
+    finishExtraPracticeSession();
+  }
+}
+
+async function finishExtraPracticeSession() {
+  const accuracy = Math.round((extraSessionScore / extraTotalQuestions) * 100);
+  const totalXPEarned = extraSessionScore * 2;
+
+  const topicLabel = activeExtraTopicKey === 'random' ? 'Random Mix' : activeExtraTopicKey;
+
+  document.getElementById('extraActiveCard').innerHTML = `
+    <div style="text-align: center; padding: 20px 0;">
+      <h2 style="color: var(--success); font-size: 1.8rem;">🎉 Extra Practice Complete!</h2>
+      <p style="font-size: 1.2rem; margin: 12px 0;">Score: <strong>${extraSessionScore} / ${extraTotalQuestions} (${accuracy}%)</strong></p>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Earned <strong>+${totalXPEarned} XP</strong>!</p>
+      
+      <button class="btn" id="btnRestartExtra" style="width: auto; background: var(--accent);">
+        ⚡ Start Another Extra Practice
+      </button>
+    </div>
+  `;
+
+  document.getElementById('btnRestartExtra').onclick = () => {
+    // Reset Extra Practice Card view to setup
+    window.location.reload(); 
+  };
+
+  // Sync Extra Practice Session to Backend (isDailyWarmup = false)
+  if (sheetWebAppUrl) {
+    try {
+      await fetch(sheetWebAppUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'saveProgress',
+          studentCode: currentUser.code,
+          studentName: currentUser.name,
+          totalQuestions: extraTotalQuestions,
+          accuracy: accuracy,
+          topic: `Extra Practice (${topicLabel})`,
+          tokensEarned: 0,
+          xpEarned: totalXPEarned,
+          newTotalXP: currentUser.xp,
+          newStreak: currentUser.streak,
+          newTokens: currentUser.tokens,
+          isDailyWarmup: false,
+          proficiency: currentUser.proficiency
+        })
+      });
+    } catch(e) {}
+  }
 }
 
 // TEACHER DASHBOARD LOGIC
@@ -218,7 +520,7 @@ function renderTeacherKPIs(students) {
   let strugglingCount = 0;
   let activeTodayCount = 0;
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getTodayDateString();
 
   students.forEach(s => {
     totalXP += s.xp || 0;
@@ -250,11 +552,11 @@ function renderTeacherKPIs(students) {
 function renderRosterTable(students) {
   const tbody = document.getElementById('rosterTableBody');
   if (students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
-  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'place_value'];
+  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'placeValue', 'negative_numbers'];
 
   let html = '';
   students.forEach(s => {
@@ -324,7 +626,6 @@ function getProfBadgeHtml(history) {
   }
 }
 
-// Search Filter Logic
 function filterRosterTable(query) {
   const q = query.trim().toLowerCase();
   if (!q) {
@@ -341,7 +642,6 @@ function filterRosterTable(query) {
   renderRosterTable(filtered);
 }
 
-// Sample Question Teaching Demo
 function openSampleQuestionModal(typeKey, titleText) {
   activeSampleTopicKey = typeKey;
   document.getElementById('sampleModalTitle').innerText = titleText.replace('👁️', '') + ' - Teaching Sample';
@@ -358,7 +658,6 @@ function generateSampleQuestion(typeKey) {
   renderQuestion(sampleQ, ws);
 }
 
-// Token Redemption Logic
 function openRedeemModal(studentCode) {
   const student = teacherRosterData.find(s => String(s.code) === String(studentCode));
   if (!student) return;
@@ -409,9 +708,11 @@ async function processTokenRedemption() {
           accuracy: 100,
           topic: 'Reward Redemption',
           tokensEarned: -cost,
+          xpEarned: 0,
           newTotalXP: student.xp,
           newStreak: student.streak,
           newTokens: student.tokens,
+          isDailyWarmup: false,
           proficiency: student.proficiency
         })
       });
@@ -439,143 +740,14 @@ function updateHeader() {
   document.getElementById('hdrTokens').innerText = currentUser.tokens;
 }
 
-function startDailySession(extraMode = false) {
-  isExtraPractice = extraMode;
-  currentQIndex = 0;
-  sessionScore = 0;
-  questions = Array.from({ length: TOTAL_QUESTIONS }, () => getAdaptiveQuestion(currentUser.proficiency));
-  renderCurrentQuestion();
-}
-
-function renderCurrentQuestion() {
-  currentQuestion = questions[currentQIndex];
-  const modeTag = isExtraPractice ? ' (Extra Practice)' : '';
-  document.getElementById('qProgress').innerText = `Question ${currentQIndex + 1} of ${TOTAL_QUESTIONS}${modeTag}`;
-  document.getElementById('qPrompt').innerHTML = currentQuestion.prompt;
-  
-  const ws = document.getElementById('workspace');
-  renderQuestion(currentQuestion, ws);
-
-  document.getElementById('feedbackBox').classList.add('hidden');
-  document.getElementById('submitBtn').classList.remove('hidden');
-}
-
-function handleAnswerSubmit() {
-  const isCorrect = evaluateQuestion(currentQuestion);
-  const qType = currentQuestion.type;
-
-  if (!currentUser.proficiency[qType]) {
-    currentUser.proficiency[qType] = [];
-  }
-
-  currentUser.proficiency[qType].push(isCorrect ? 1 : 0);
-  currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-5);
-
-  const fbBox = document.getElementById('feedbackBox');
-  fbBox.classList.remove('hidden', 'feedback-correct', 'feedback-incorrect');
-
-  if (isCorrect) {
-    sessionScore++;
-    fbBox.classList.add('feedback-correct');
-    document.getElementById('feedbackTitle').innerText = "🎯 Spot On! (+20 XP)";
-    currentUser.xp += 20;
-    updateHeader();
-  } else {
-    fbBox.classList.add('feedback-incorrect');
-    document.getElementById('feedbackTitle').innerText = "💡 Visual Explanation:";
-  }
-
-  document.getElementById('visualExp').innerHTML = currentQuestion.explanation;
-  document.getElementById('submitBtn').classList.add('hidden');
-}
-
-function handleNextQuestion() {
-  currentQIndex++;
-  if (currentQIndex < TOTAL_QUESTIONS) {
-    renderCurrentQuestion();
-  } else {
-    finishSession();
-  }
-}
-
-function updateDailyStreak() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  if (!currentUser.lastActive) {
-    currentUser.streak = 1;
-  } else {
-    const last = new Date(currentUser.lastActive);
-    last.setHours(0, 0, 0, 0);
-    const diffDays = Math.round((today - last) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) currentUser.streak += 1;
-    else if (diffDays > 1) currentUser.streak = 1;
-  }
-  currentUser.lastActive = new Date().toISOString();
-}
-
-async function finishSession() {
-  if (!isExtraPractice) updateDailyStreak();
-  currentUser.tokens += 10;
-  updateHeader();
-
-  const accuracy = Math.round((sessionScore / TOTAL_QUESTIONS) * 100);
-  const modeText = isExtraPractice ? 'Extra Practice Complete!' : 'Warm-up Complete!';
-
-  document.getElementById('workspace').innerHTML = `
-    <div style="text-align: center; padding: 20px 0;">
-      <h2 style="color: var(--success); font-size: 1.8rem;">🎉 ${modeText}</h2>
-      <p style="font-size: 1.2rem; margin: 12px 0;">Score: <strong>${sessionScore} / ${TOTAL_QUESTIONS} (${accuracy}%)</strong></p>
-      <p style="color: var(--text-muted); margin-bottom: 20px;">Earned 🎟️ 10 Tokens! Day Streak: 🔥 ${currentUser.streak}</p>
-      
-      <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-        <button class="btn" id="btnExtraPractice" style="width: auto; background: var(--accent);">
-          ⚡ Keep Practicing (5 More Questions)
-        </button>
-        <button class="btn" id="btnFinish" style="width: auto; background: var(--text-muted);">
-          ✅ Finish Session
-        </button>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('feedbackBox').classList.add('hidden');
-  document.getElementById('qPrompt').innerText = "Great effort!";
-
-  document.getElementById('btnExtraPractice').onclick = () => startDailySession(true);
-  document.getElementById('btnFinish').onclick = () => {
-    document.getElementById('workspace').innerHTML = `<p style="text-align: center; font-size: 1.1rem; padding: 30px;">All done for today! See you tomorrow! 👋</p>`;
-  };
-
-  if (sheetWebAppUrl) {
-    try {
-      await fetch(sheetWebAppUrl, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'saveProgress',
-          studentCode: currentUser.code,
-          studentName: currentUser.name,
-          totalQuestions: TOTAL_QUESTIONS,
-          accuracy: accuracy,
-          topic: isExtraPractice ? 'Extra Practice' : 'Daily Warm-up',
-          tokensEarned: 10,
-          newTotalXP: currentUser.xp,
-          newStreak: currentUser.streak,
-          newTokens: currentUser.tokens,
-          proficiency: currentUser.proficiency
-        })
-      });
-    } catch(e) {}
-  }
-}
-
 function switchTab(tabName, targetBtn) {
   document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
   document.getElementById('tabPractice').classList.add('hidden');
+  document.getElementById('tabExtra').classList.add('hidden');
   document.getElementById('tabShop').classList.add('hidden');
 
   if (tabName === 'practice') document.getElementById('tabPractice').classList.remove('hidden');
+  if (tabName === 'extra') document.getElementById('tabExtra').classList.remove('hidden');
   if (tabName === 'shop') document.getElementById('tabShop').classList.remove('hidden');
 
   targetBtn.classList.add('active');
