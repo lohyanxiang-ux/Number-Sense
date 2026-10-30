@@ -185,22 +185,22 @@
 
     <!-- 3. TEACHER DASHBOARD VIEW -->
     <div id="teacherDashboard" class="hidden">
-      <!-- KPI Analytics Grid -->
+      <!-- KPI Analytics Grid (Clickable Filters) -->
       <div class="teacher-analytics-grid">
-        <div class="kpi-card">
+        <div class="kpi-card" id="kpiCardTotal" style="cursor: pointer;" title="Show all students">
           <span class="kpi-label">Total Roster</span>
           <span class="kpi-value" id="kpiTotalStudents">0</span>
         </div>
-        <div class="kpi-card">
-          <span class="kpi-label">Active Today</span>
+        <div class="kpi-card" id="kpiCardActiveToday" style="cursor: pointer;" title="Click to filter students active today">
+          <span class="kpi-label">Active Today ⚡</span>
           <span class="kpi-value" id="kpiActiveToday">0</span>
         </div>
         <div class="kpi-card">
           <span class="kpi-label">Class Avg XP</span>
           <span class="kpi-value" id="kpiAvgXP">0</span>
         </div>
-        <div class="kpi-card kpi-warning">
-          <span class="kpi-label">Needs Attention</span>
+        <div class="kpi-card kpi-warning" id="kpiCardStruggling" style="cursor: pointer;" title="Click to filter students needing attention">
+          <span class="kpi-label">Needs Attention ⚠️</span>
           <span class="kpi-value" id="kpiStruggling">0</span>
         </div>
       </div>
@@ -211,10 +211,18 @@
           <div>
             <h2>Student Proficiency Heatmap</h2>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
-              💡 Tap any topic header (e.g. <em>Grid Shader 👁️</em>) to view a live sample question.
+              💡 Tap a student's <strong>Name</strong> to award/deduct XP or Tokens. Tap a topic header to view a sample question.
             </p>
           </div>
-          <input type="text" id="rosterSearchInput" class="input-field" placeholder="🔍 Search name or class..." style="max-width: 240px;">
+          <input type="text" id="rosterSearchInput" class="input-field" placeholder="🔍 Search name, class, PIN..." style="max-width: 260px;">
+        </div>
+
+        <!-- Filter Quick Bar -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+          <button class="btn filter-chip active" data-filter="all" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);">All Students</button>
+          <button class="btn filter-chip" data-filter="active_today" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);">⚡ Active Today</button>
+          <button class="btn filter-chip" data-filter="needs_attention" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);">⚠️ Needs Attention</button>
+          <button class="btn filter-chip" data-filter="uncompleted_daily" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger);">⏳ Daily Practice Pending</button>
         </div>
 
         <div class="teacher-table-wrapper">
@@ -224,6 +232,7 @@
                 <th class="sticky-col col-code">Code</th>
                 <th class="sticky-col col-name">Name</th>
                 <th>Class</th>
+                <th>Last Completion Date</th>
                 <th>Streak</th>
                 <th>XP</th>
                 <th>Tokens</th>
@@ -236,7 +245,7 @@
               </tr>
             </thead>
             <tbody id="rosterTableBody">
-              <tr><td colspan="11" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
+              <tr><td colspan="13" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
             </tbody>
           </table>
         </div>
@@ -269,28 +278,40 @@
     </div>
   </div>
 
-  <!-- MODAL: TOKEN REDEMPTION -->
-  <div id="redeemTokenModal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width: 400px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3>Redeem Reward</h3>
-        <button class="modal-close" id="closeRedeemModalBtn">×</button>
-      </div>
-      <p style="margin-bottom: 12px;">Student: <strong id="redeemStudentName">--</strong> (Tokens: <span id="redeemCurrentTokens">0</span>)</p>
-      
-      <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">Select Reward to Deduct:</label>
-      <select id="redeemRewardSelect" class="input-field" style="margin: 8px 0 16px 0;">
-        <option value="50">🎟️ 50 Tokens - Pick Your Seat (1 Week)</option>
-        <option value="100">🎟️ 100 Tokens - Late Homework Pass</option>
-        <option value="custom">Custom Token Deduction</option>
-      </select>
-
-      <div id="customTokenBox" class="hidden" style="margin-bottom: 16px;">
-        <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">Custom Tokens to Deduct:</label>
-        <input type="number" id="customTokenInput" class="input-field" placeholder="Enter amount..." min="1" style="margin-top: 4px;">
+  <!-- MODAL: STUDENT MANAGEMENT (TOKENS & XP) -->
+  <div id="studentManageModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 420px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">Manage Student</h3>
+        <button class="modal-close" id="closeManageModalBtn">×</button>
       </div>
 
-      <button class="btn" id="confirmRedeemBtn" style="background: var(--success);">Confirm Redemption</button>
+      <div style="background: var(--bg-primary); padding: 12px 16px; border-radius: var(--radius); margin-bottom: 16px; text-align: left;">
+        <p style="margin: 0 0 4px 0; font-size: 1.1rem; font-weight: 800;"><span id="mStudentName">--</span> (<span id="mStudentClass">--</span>)</p>
+        <p style="margin: 0; font-size: 0.9rem; color: var(--text-muted);">
+          PIN Code: <strong id="mStudentCode">--</strong> | XP: <strong id="mCurrentXP" style="color:var(--accent);">0</strong> | Tokens: <strong id="mCurrentTokens" style="color:#d97706;">0</strong>
+        </p>
+      </div>
+
+      <!-- XP ADJUSTMENT -->
+      <div style="margin-bottom: 16px; text-align: left;">
+        <label style="font-weight: 700; font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Award / Deduct XP:</label>
+        <input type="number" id="mXPChangeInput" class="input-field" placeholder="e.g. +50 or -20">
+      </div>
+
+      <!-- TOKEN ADJUSTMENT -->
+      <div style="margin-bottom: 20px; text-align: left;">
+        <label style="font-weight: 700; font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Award / Redeem Tokens:</label>
+        <input type="number" id="mTokenChangeInput" class="input-field" placeholder="e.g. +10 or -50">
+        
+        <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn" style="padding: 4px 8px; font-size: 0.75rem; width: auto; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);" id="btnQuickSeat">-50 (Seat Pass)</button>
+          <button type="button" class="btn" style="padding: 4px 8px; font-size: 0.75rem; width: auto; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);" id="btnQuickHwk">-100 (Hwk Pass)</button>
+          <button type="button" class="btn" style="padding: 4px 8px; font-size: 0.75rem; width: auto; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);" id="btnQuickBonus">+20 (Bonus)</button>
+        </div>
+      </div>
+
+      <button class="btn" id="saveStudentManageBtn" style="background: var(--success);">💾 Save & Sync to Google Sheet</button>
     </div>
   </div>
 
