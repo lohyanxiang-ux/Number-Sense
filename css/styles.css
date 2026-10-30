@@ -113,7 +113,7 @@ main { max-width: 800px; width: 100%; margin: 0 auto; padding: 20px; }
 .nl-container { 
   position: relative; 
   margin: 40px 0;
-  padding: 0 14px; /* Matches 14px thumb radius for exact tick alignment */
+  padding: 0 14px; /* Matches 14px thumb radius for pixel-perfect edge alignment */
   box-sizing: border-box;
 }
 
@@ -148,7 +148,7 @@ main { max-width: 800px; width: 100%; margin: 0 auto; padding: 20px; }
   border: 3px solid white; 
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   cursor: pointer; 
-  margin-top: -10px; /* Vertically centers 28px thumb over 8px track */
+  margin-top: -10px; /* Vertically centers 28px thumb over 8px line */
 }
 
 .nl-slider::-moz-range-thumb { 
