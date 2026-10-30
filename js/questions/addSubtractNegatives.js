@@ -22,13 +22,13 @@ const addSubtractNegativesModule = {
 
     let explanationText = '';
     if (op === '+' && b > 0) {
-      explanationText = `1) Place Start pin on <strong>${a}</strong>.<br>2) Add (+) means move RIGHT (Blue arrow) by ${b} steps to land on <strong>${target}</strong>.`;
+      explanationText = `Place Start pin on <strong>${a}</strong>, tap <strong>Move</strong> to draw an arrow RIGHT by ${b} steps to land on <strong>${target}</strong>.`;
     } else if (op === '+' && b < 0) {
-      explanationText = `1) Place Start pin on <strong>${a}</strong>.<br>2) Add (+) starts moving RIGHT (Blue arrow) by ${Math.abs(b)} steps. Tapping 'Flip negative number' mirrors it about ${a} into a RED arrow pointing LEFT to land on <strong>${target}</strong>.`;
+      explanationText = `Place Start pin on <strong>${a}</strong>, tap <strong>Move</strong> to draw an arrow RIGHT by ${Math.abs(b)} steps, then tap <strong>Flip negative number</strong> to mirror it to land on <strong>${target}</strong>.`;
     } else if (op === '-' && b > 0) {
-      explanationText = `1) Place Start pin on <strong>${a}</strong>.<br>2) Subtract (-) means move LEFT (Green arrow) by ${b} steps to land on <strong>${target}</strong>.`;
+      explanationText = `Place Start pin on <strong>${a}</strong>, tap <strong>Move</strong> to draw an arrow LEFT by ${b} steps to land on <strong>${target}</strong>.`;
     } else {
-      explanationText = `1) Place Start pin on <strong>${a}</strong>.<br>2) Subtract (-) starts moving LEFT (Green arrow) by ${Math.abs(b)} steps. Tapping 'Flip negative number' mirrors it about ${a} into a RED arrow pointing RIGHT to land on <strong>${target}</strong>.`;
+      explanationText = `Place Start pin on <strong>${a}</strong>, tap <strong>Move</strong> to draw an arrow LEFT by ${Math.abs(b)} steps, then tap <strong>Flip negative number</strong> to mirror it to land on <strong>${target}</strong>.`;
     }
 
     return {
@@ -38,7 +38,7 @@ const addSubtractNegativesModule = {
       b: b,
       target: target,
       exprStr: exprStr,
-      prompt: `Evaluate <strong>${formatMath(exprStr)}</strong>. First place the starting number <strong>(${a})</strong> on the line, then drag the arrow tip and key in your answer:`,
+      prompt: `Evaluate <strong>${formatMath(exprStr)}</strong> using the number line, then key in your final answer:`,
       explanation: formatMath(explanationText)
     };
   },
@@ -81,7 +81,7 @@ const addSubtractNegativesModule = {
       }
     }
 
-    // Default start pin position (Offset from q.a initially so student must place it)
+    // Default start pin position (Offset from q.a initially so student positions it)
     let initialStart = 0;
     if (q.a === 0) initialStart = 3;
 
@@ -90,18 +90,8 @@ const addSubtractNegativesModule = {
     let html = `
       <div style="max-width: 580px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
         
-        <!-- STEP GUIDANCE HEADER -->
-        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.85rem; font-weight: 700;">
-          <span id="step1Badge" style="background: #8b5cf6; color: white; padding: 4px 10px; border-radius: 12px; transition: all 0.2s;">
-            1️⃣ Place Start Pin at ${q.a}
-          </span>
-          <span id="step2Badge" style="background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 12px; transition: all 0.2s;">
-            2️⃣ Drag Tip Steps
-          </span>
-        </div>
-
         <!-- NUMBER LINE TRACK -->
-        <div style="position: relative; height: 140px; margin: 35px 20px 10px 20px; padding: 0 10px;">
+        <div style="position: relative; height: 140px; margin: 25px 20px 10px 20px; padding: 0 10px;">
           <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 55px; touch-action: none;">
             ${ticksHtml}
 
@@ -135,7 +125,7 @@ const addSubtractNegativesModule = {
               z-index: 5;
             "></div>
 
-            <!-- Dynamic Vector Arrow Bar -->
+            <!-- Dynamic Vector Arrow Bar (Initially Hidden until "Move" is clicked) -->
             <div id="vectorBar" style="
               position: absolute;
               top: -3px;
@@ -143,6 +133,7 @@ const addSubtractNegativesModule = {
               border-radius: 3px;
               z-index: 2;
               pointer-events: none;
+              display: none;
               transition: background 0.2s ease;
             "></div>
 
@@ -163,9 +154,10 @@ const addSubtractNegativesModule = {
               pointer-events: none;
               z-index: 4;
               white-space: nowrap;
+              display: none;
             ">0 steps</div>
 
-            <!-- Draggable Arrow Tip Handle -->
+            <!-- Draggable Arrow Tip Handle (Initially Hidden until "Move" is clicked) -->
             <div id="arrowHead" data-val="${initialStart}" style="
               position: absolute;
               top: -28px;
@@ -180,19 +172,33 @@ const addSubtractNegativesModule = {
               cursor: grab;
               touch-action: none;
               z-index: 5;
+              display: none;
               transition: background 0.2s ease;
             ">➔</div>
 
           </div>
         </div>
 
-        <!-- FLIP ACTION BUTTON -->
-        <div style="display: flex; justify-content: center; margin: 15px 0 20px 0;">
+        <!-- ACTION BUTTONS BAR: MOVE & FLIP -->
+        <div style="display: flex; justify-content: center; gap: 12px; margin: 15px 0 20px 0; flex-wrap: wrap;">
+          <button id="moveBtn" style="
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transition: transform 0.1s ease;
+          ">➡️ Move</button>
+
           <button id="flipBtn" style="
             background: #ef4444;
             color: white;
             border: none;
-            padding: 10px 24px;
+            padding: 10px 22px;
             border-radius: 10px;
             font-weight: 800;
             font-size: 1rem;
@@ -261,6 +267,7 @@ const addSubtractNegativesModule = {
     // STATE VARIABLES
     let currentStartVal = initialStart;
     let currentTipVal = initialStart;
+    let hasMoved = false;
     let isFlipped = false;
     let typedAnswer = '';
 
@@ -270,10 +277,9 @@ const addSubtractNegativesModule = {
     const arrowHead = container.querySelector('#arrowHead');
     const vectorBar = container.querySelector('#vectorBar');
     const vectorStepBadge = container.querySelector('#vectorStepBadge');
+    const moveBtn = container.querySelector('#moveBtn');
     const flipBtn = container.querySelector('#flipBtn');
     const ansDisplay = container.querySelector('#ansDisplay');
-    const step1Badge = container.querySelector('#step1Badge');
-    const step2Badge = container.querySelector('#step2Badge');
 
     // Automatic color and arrow tip symbol based on direction & flip state
     const getArrowDetails = () => {
@@ -306,49 +312,46 @@ const addSubtractNegativesModule = {
       startPin.innerText = `Start: ${currentStartVal}`;
       startPin.setAttribute('data-val', currentStartVal);
 
-      // Check if Step 1 is complete
-      const isStartPlacedCorrectly = (currentStartVal === q.a);
-      if (isStartPlacedCorrectly) {
-        step1Badge.style.background = '#10b981';
-        step1Badge.innerText = `✓ Start Pin at ${q.a}`;
-        step2Badge.style.background = 'var(--accent)';
-        step2Badge.style.color = 'white';
+      if (hasMoved) {
+        // Reveal Vector Arrow & Step Badge
+        vectorBar.style.display = 'block';
+        vectorStepBadge.style.display = 'block';
+        arrowHead.style.display = 'block';
+
+        const { color, symbol } = getArrowDetails();
+        arrowHead.style.background = color;
+        vectorBar.style.background = color;
+        arrowHead.innerText = symbol;
+
+        const tipPctVal = ((currentTipVal - minVal) / totalRange) * 100;
+        arrowHead.style.left = `${tipPctVal}%`;
+
+        const leftPct = Math.min(startPctVal, tipPctVal);
+        const widthPct = Math.abs(tipPctVal - startPctVal);
+
+        vectorBar.style.left = `${leftPct}%`;
+        vectorBar.style.width = `${widthPct}%`;
+
+        // Update Floating Step Counter Badge
+        const stepsCount = Math.abs(currentTipVal - currentStartVal);
+        const midPct = (startPctVal + tipPctVal) / 2;
+
+        vectorStepBadge.style.left = `${midPct}%`;
+        vectorStepBadge.innerText = `${stepsCount} ${stepsCount === 1 ? 'step' : 'steps'}`;
+        vectorStepBadge.style.borderColor = color;
+        vectorStepBadge.style.color = color;
       } else {
-        step1Badge.style.background = '#8b5cf6';
-        step1Badge.innerText = `1️⃣ Place Start Pin at ${q.a}`;
-        step2Badge.style.background = 'var(--bg-primary)';
-        step2Badge.style.color = 'var(--text-muted)';
+        vectorBar.style.display = 'none';
+        vectorStepBadge.style.display = 'none';
+        arrowHead.style.display = 'none';
       }
 
-      // Update Arrow UI
-      const { color, symbol } = getArrowDetails();
-      arrowHead.style.background = color;
-      vectorBar.style.background = color;
-      arrowHead.innerText = symbol;
-
-      const tipPctVal = ((currentTipVal - minVal) / totalRange) * 100;
-      arrowHead.style.left = `${tipPctVal}%`;
-
-      const leftPct = Math.min(startPctVal, tipPctVal);
-      const widthPct = Math.abs(tipPctVal - startPctVal);
-
-      vectorBar.style.left = `${leftPct}%`;
-      vectorBar.style.width = `${widthPct}%`;
-
-      // Update Floating Step Counter Badge
-      const stepsCount = Math.abs(currentTipVal - currentStartVal);
-      const midPct = (startPctVal + tipPctVal) / 2;
-
-      vectorStepBadge.style.left = `${midPct}%`;
-      vectorStepBadge.innerText = `${stepsCount} ${stepsCount === 1 ? 'step' : 'steps'}`;
-      vectorStepBadge.style.borderColor = color;
-      vectorStepBadge.style.color = color;
-
       arrowHead.setAttribute('data-val', currentTipVal);
+      arrowHead.setAttribute('data-moved', hasMoved ? 'true' : 'false');
       arrowHead.setAttribute('data-flipped', isFlipped ? 'true' : 'false');
     };
 
-    // POINTER DRAG LOGIC - START PIN (STEP 1)
+    // POINTER DRAG LOGIC - START PIN
     let isDraggingStart = false;
     startPin.onpointerdown = (e) => {
       isDraggingStart = true;
@@ -365,7 +368,7 @@ const addSubtractNegativesModule = {
       
       const diff = rawVal - currentStartVal;
       currentStartVal = rawVal;
-      currentTipVal += diff; // Move tip along with start pin during initial placement
+      currentTipVal += diff;
       updateUI();
     };
 
@@ -377,9 +380,18 @@ const addSubtractNegativesModule = {
       }
     };
 
-    // POINTER DRAG LOGIC - ARROW TIP (STEP 2)
+    // "MOVE" BUTTON LOGIC (ACTIVATES ARROW)
+    moveBtn.onclick = () => {
+      hasMoved = true;
+      moveBtn.style.background = '#10b981';
+      moveBtn.innerText = '✓ Move Active';
+      updateUI();
+    };
+
+    // POINTER DRAG LOGIC - ARROW TIP
     let isDraggingTip = false;
     arrowHead.onpointerdown = (e) => {
+      if (!hasMoved) return;
       isDraggingTip = true;
       arrowHead.style.cursor = 'grabbing';
       arrowHead.setPointerCapture(e.pointerId);
@@ -404,6 +416,12 @@ const addSubtractNegativesModule = {
 
     // FLIP BUTTON LOGIC
     flipBtn.onclick = () => {
+      if (!hasMoved) {
+        hasMoved = true;
+        moveBtn.style.background = '#10b981';
+        moveBtn.innerText = '✓ Move Active';
+      }
+
       isFlipped = !isFlipped;
       
       // Mirror position about start pin
@@ -447,17 +465,13 @@ const addSubtractNegativesModule = {
 
     const userStartVal = parseInt(startPin.getAttribute('data-val'), 10);
     const userLineVal = parseInt(arrowHead.getAttribute('data-val'), 10);
+    const userMoved = arrowHead.getAttribute('data-moved') === 'true';
     const userFlipped = arrowHead.getAttribute('data-flipped') === 'true';
     const userTypedVal = parseInt(ansDisplay.getAttribute('data-typed'), 10);
 
     const requiredFlip = q.b < 0;
 
-    // Strict Evaluation Requirements:
-    // 1. Placed Start Pin at 'a'
-    // 2. Placed Arrow Tip at target on number line
-    // 3. Flipped state matches negative 'b' requirement
-    // 4. Typed numerical answer matches target
-    return userStartVal === q.a && userLineVal === q.target && userFlipped === requiredFlip && userTypedVal === q.target;
+    return userStartVal === q.a && userMoved && userLineVal === q.target && userFlipped === requiredFlip && userTypedVal === q.target;
   }
 };
 
