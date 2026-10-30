@@ -87,8 +87,8 @@ const addSubtractNegativesModule = {
       <div style="max-width: 550px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
         
         <!-- NUMBER LINE TRACK -->
-        <div style="position: relative; height: 110px; margin: 25px 20px 10px 20px; padding: 0 10px;">
-          <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 40px; touch-action: none;">
+        <div style="position: relative; height: 130px; margin: 35px 20px 10px 20px; padding: 0 10px;">
+          <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 50px; touch-action: none;">
             ${ticksHtml}
 
             <!-- Pivot Point Dot (Start) -->
@@ -129,6 +129,26 @@ const addSubtractNegativesModule = {
               transition: background 0.2s ease;
             "></div>
 
+            <!-- Floating Step Count Badge Near Arrow -->
+            <div id="vectorStepBadge" style="
+              position: absolute;
+              top: -52px;
+              left: ${startPct}%;
+              transform: translateX(-50%);
+              background: var(--bg-card);
+              border: 2px solid var(--accent);
+              color: var(--accent);
+              font-weight: 800;
+              font-size: 0.8rem;
+              padding: 2px 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+              pointer-events: none;
+              z-index: 4;
+              white-space: nowrap;
+              transition: border-color 0.2s ease, color 0.2s ease;
+            ">0 steps</div>
+
             <!-- Draggable Arrow Tip Handle -->
             <div id="arrowHead" data-val="${q.a}" style="
               position: absolute;
@@ -143,7 +163,7 @@ const addSubtractNegativesModule = {
               box-shadow: 0 3px 6px rgba(0,0,0,0.25);
               cursor: grab;
               touch-action: none;
-              z-index: 4;
+              z-index: 5;
               transition: background 0.2s ease;
             ">➔</div>
 
@@ -215,6 +235,7 @@ const addSubtractNegativesModule = {
     const track = container.querySelector('#asnTrack');
     const arrowHead = container.querySelector('#arrowHead');
     const vectorBar = container.querySelector('#vectorBar');
+    const vectorStepBadge = container.querySelector('#vectorStepBadge');
     const flipBtn = container.querySelector('#flipBtn');
     const ansDisplay = container.querySelector('#ansDisplay');
 
@@ -256,6 +277,15 @@ const addSubtractNegativesModule = {
 
       vectorBar.style.left = `${leftPct}%`;
       vectorBar.style.width = `${widthPct}%`;
+
+      // Update Floating Step Counter Badge
+      const stepsCount = Math.abs(currentRawVal - q.a);
+      const midPct = (startPct + currentPct) / 2;
+
+      vectorStepBadge.style.left = `${midPct}%`;
+      vectorStepBadge.innerText = `${stepsCount} ${stepsCount === 1 ? 'step' : 'steps'}`;
+      vectorStepBadge.style.borderColor = color;
+      vectorStepBadge.style.color = color;
 
       arrowHead.setAttribute('data-val', currentRawVal);
       arrowHead.setAttribute('data-flipped', isFlipped ? 'true' : 'false');
