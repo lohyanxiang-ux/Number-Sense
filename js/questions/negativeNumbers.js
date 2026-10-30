@@ -31,19 +31,6 @@ const negativeNumbersModule = {
 
     let html = `
       <div style="max-width: 550px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
-        
-        <!-- TARGET READOUT CARDS -->
-        <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 20px;">
-          <div style="background: var(--bg-primary); border: 2px solid var(--accent); padding: 8px 16px; border-radius: var(--radius); flex: 1; max-width: 220px;">
-            <span style="font-size: 0.8rem; font-weight: 700; color: var(--accent); display: block;">Marker A Target: ${q.numA}</span>
-            <span style="font-size: 1.1rem; font-weight: 800;">Position: <span id="posADisplay" style="color: var(--accent);">0</span></span>
-          </div>
-          <div style="background: var(--bg-primary); border: 2px solid #d97706; padding: 8px 16px; border-radius: var(--radius); flex: 1; max-width: 220px;">
-            <span style="font-size: 0.8rem; font-weight: 700; color: #d97706; display: block;">Marker B Target: ${q.numB > 0 ? '+' + q.numB : q.numB}</span>
-            <span style="font-size: 1.1rem; font-weight: 800;">Position: <span id="posBDisplay" style="color: #d97706;">0</span></span>
-          </div>
-        </div>
-
         <!-- NUMBER LINE CONTAINER -->
     `;
 
@@ -82,7 +69,7 @@ const negativeNumbersModule = {
       }
 
       html += `
-        <div style="position: relative; height: 90px; margin: 30px 20px 20px 20px; padding: 0 10px;">
+        <div style="position: relative; height: 90px; margin: 20px 20px 20px 20px; padding: 0 10px;">
           <!-- Track -->
           <div id="nlTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 25px; touch-action: none;">
             ${ticksHtml}
@@ -161,7 +148,7 @@ const negativeNumbersModule = {
       }
 
       html += `
-        <div style="display: flex; justify-content: center; margin: 20px 0 30px 0;">
+        <div style="display: flex; justify-content: center; margin: 10px 0 20px 0;">
           <div id="nlTrack" style="position: relative; width: 60px; height: 300px; touch-action: none;">
             <div style="position: absolute; left: 30px; top: 0; bottom: 0; width: 6px; background: var(--border-color); border-radius: 3px;">
               ${ticksHtml}
@@ -247,10 +234,8 @@ const negativeNumbersModule = {
     const track = container.querySelector('#nlTrack');
     const pinA = container.querySelector('#pinA');
     const pinB = container.querySelector('#pinB');
-    const posADisplay = container.querySelector('#posADisplay');
-    const posBDisplay = container.querySelector('#posBDisplay');
 
-    const setupMarkerDrag = (pinEl, displayEl) => {
+    const setupMarkerDrag = (pinEl) => {
       let isDragging = false;
 
       const updatePositionFromPointer = (e) => {
@@ -265,12 +250,10 @@ const negativeNumbersModule = {
           ratio = Math.max(0, Math.min(1, y / rect.height));
         }
 
-        // Convert ratio to integer between -10 and 10
         const rawVal = minVal + ratio * totalRange;
         const snappedVal = Math.round(rawVal);
         
         pinEl.setAttribute('data-val', snappedVal);
-        displayEl.innerText = snappedVal > 0 ? '+' + snappedVal : snappedVal;
 
         const snappedPct = ((snappedVal - minVal) / totalRange) * 100;
         if (q.orientation === 'horizontal') {
@@ -301,8 +284,8 @@ const negativeNumbersModule = {
       };
     };
 
-    setupMarkerDrag(pinA, posADisplay);
-    setupMarkerDrag(pinB, posBDisplay);
+    setupMarkerDrag(pinA);
+    setupMarkerDrag(pinB);
   },
 
   evaluate(q) {
