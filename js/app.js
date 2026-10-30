@@ -580,7 +580,7 @@ function renderRosterTable(students) {
     return;
   }
 
-  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'placeValue', 'negative_numbers', 'add_subtract_negatives'];
+  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'place_Value', 'negative_numbers', 'add_subtract_negatives'];
 
   let html = '';
   students.forEach(s => {
