@@ -41,7 +41,6 @@ let tokenChangeVal = 0;
 let isNegativeSign = false;
 let currentDigits = '0';
 
-// FIX 1: ADDED MISSING COMMA IN ARRAY DEFINITION
 const ALL_TOPICS = [
   { key: 'grid_shader', name: '📐 Grid Shader (Fractions / % / Dec)' },
   { key: 'number_line', name: '📏 Number Line' },
@@ -61,7 +60,6 @@ function getTodayDateString() {
   return `${year}-${month}-${day}`;
 }
 
-// FIX 2: RUN setupKeypad() FIRST SO KEYPAD ALWAYS WORKS IMMEDIATELY
 function initApp() {
   setupKeypad();
   
@@ -105,7 +103,6 @@ function setupKeypad() {
   }
 }
 
-// FIX 3: SAFE BINDING WRAPPER PREVENTS NULL ELEMENT ERRORS FROM CRASHING JS
 function setupEventHandlers() {
   const bindClick = (id, handler) => {
     const el = document.getElementById(id);
@@ -128,7 +125,6 @@ function setupEventHandlers() {
     if (extraTabBtn) switchTab('extra', extraTabBtn);
   });
 
-  // Class Filter Handler
   const classSelect = document.getElementById('classFilterSelect');
   if (classSelect) {
     classSelect.onchange = (e) => {
@@ -137,12 +133,10 @@ function setupEventHandlers() {
     };
   }
 
-  // KPI Card Click Handlers
   bindClick('kpiCardTotal', () => setRosterFilter('all'));
   bindClick('kpiCardActiveToday', () => setRosterFilter('active_today'));
   bindClick('kpiCardStruggling', () => setRosterFilter('needs_attention'));
 
-  // Filter Chips Handler
   document.querySelectorAll('.filter-chip').forEach(btn => {
     btn.onclick = () => {
       const filterType = btn.getAttribute('data-filter');
@@ -150,7 +144,6 @@ function setupEventHandlers() {
     };
   });
 
-  // Clickable Header Handlers for Teaching Demos
   document.querySelectorAll('.topic-hdr').forEach(hdr => {
     hdr.onclick = () => {
       const typeKey = hdr.getAttribute('data-type');
@@ -158,7 +151,6 @@ function setupEventHandlers() {
     };
   });
 
-  // Modal Close Handlers
   bindClick('closeSampleModalBtn', () => {
     const m = document.getElementById('sampleQuestionModal');
     if (m) m.classList.add('hidden');
@@ -173,11 +165,9 @@ function setupEventHandlers() {
     generateSampleQuestion(activeSampleTopicKey);
   });
 
-  // Manage Modal Mode Tabs
   bindClick('tabModeXP', () => switchManageMode('xp'));
   bindClick('tabModeTokens', () => switchManageMode('tokens'));
 
-  // Manage Modal Keypad Handlers
   document.querySelectorAll('.m-num-key').forEach(btn => {
     btn.onclick = () => {
       const k = btn.getAttribute('data-k');
@@ -231,7 +221,6 @@ async function handleLogin() {
     return;
   }
 
-  // 1. TEACHER DASHBOARD LOGIN (PIN 3005)
   if (enteredPin === '3005') {
     enteredPin = '';
     const display = document.getElementById('pinDisplay');
@@ -240,7 +229,6 @@ async function handleLogin() {
     return;
   }
 
-  // 2. STUDENT LOGIN
   const todayStr = getTodayDateString();
 
   if (sheetWebAppUrl) {
@@ -273,7 +261,6 @@ async function handleLogin() {
     } catch (e) {}
   }
 
-  // Local Student Fallback
   const localDoneToday = localStorage.getItem(`NUMSENSE_DAILY_DONE_${enteredPin}`) === todayStr;
   currentUser = { 
     code: enteredPin, 
@@ -361,7 +348,6 @@ function saveSheetUrl() {
   }
 }
 
-// DAILY PRACTICE LOGIC
 function startDailySession() {
   currentQIndex = 0;
   sessionScore = 0;
@@ -488,7 +474,6 @@ async function finishDailySession() {
   }
 }
 
-// EXTRA PRACTICE LOGIC
 function resetExtraPracticeUI() {
   document.getElementById('extraActiveCard').innerHTML = `
     <div class="q-header">
@@ -544,7 +529,7 @@ function renderCurrentExtraQuestion() {
   renderQuestion(currentExtraQuestion, ws);
 
   document.getElementById('extraFeedbackBox').classList.add('hidden');
-  document.getElementById('extraSubmitBtn').classList.remove('hidden');
+  document.getElementById('submitBtn').classList.remove('hidden');
 }
 
 function handleExtraAnswerSubmit() {
@@ -633,7 +618,6 @@ async function finishExtraPracticeSession() {
   }
 }
 
-// STUDENT MY PROGRESS TAB LOGIC
 function renderStudentProgressTab() {
   const container = document.getElementById('studentProgressContainer');
   if (!container || !currentUser) return;
@@ -720,7 +704,6 @@ function renderStudentProgressTab() {
   });
 }
 
-// TEACHER DASHBOARD LOGIC
 async function loadTeacherDashboard() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appContainer').classList.add('hidden');
@@ -904,7 +887,7 @@ function renderRosterTable(students) {
   if (!tbody) return;
 
   if (!students || students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
@@ -982,7 +965,6 @@ function getProfBadgeHtml(history) {
   }
 }
 
-// SAMPLE QUESTION PREVIEW MODAL LOGIC
 function openSampleQuestionModal(typeKey, topicTitle) {
   activeSampleTopicKey = typeKey;
   document.getElementById('sampleModalTitle').innerText = `Sample Question: ${topicTitle}`;
@@ -992,12 +974,13 @@ function openSampleQuestionModal(typeKey, topicTitle) {
 
 function generateSampleQuestion(typeKey) {
   const q = getQuestionByType(typeKey);
+  if (!q) return;
+
   document.getElementById('sampleQPrompt').innerHTML = q.prompt;
   const ws = document.getElementById('sampleQWorkspace');
   renderQuestion(q, ws);
 }
 
-// STUDENT MANAGEMENT MODAL LOGIC
 function openStudentManageModal(studentCode) {
   const student = teacherRosterData.find(s => s.code === studentCode);
   if (!student) return;
@@ -1023,17 +1006,13 @@ function switchManageMode(mode) {
   const lbl = document.getElementById('mActiveModeLabel');
 
   if (mode === 'xp') {
-    btnXP.style.background = 'var(--accent)';
-    btnXP.style.color = 'white';
-    btnTokens.style.background = 'var(--bg-primary)';
-    btnTokens.style.color = 'var(--text-main)';
-    lbl.innerText = 'XP Adjustment:';
+    if (btnXP) { btnXP.style.background = 'var(--accent)'; btnXP.style.color = 'white'; }
+    if (btnTokens) { btnTokens.style.background = 'var(--bg-primary)'; btnTokens.style.color = 'var(--text-main)'; }
+    if (lbl) lbl.innerText = 'XP Adjustment:';
   } else {
-    btnTokens.style.background = '#d97706';
-    btnTokens.style.color = 'white';
-    btnXP.style.background = 'var(--bg-primary)';
-    btnXP.style.color = 'var(--text-main)';
-    lbl.innerText = 'Tokens Adjustment:';
+    if (btnTokens) { btnTokens.style.background = '#d97706'; btnTokens.style.color = 'white'; }
+    if (btnXP) { btnXP.style.background = 'var(--bg-primary)'; btnXP.style.color = 'var(--text-main)'; }
+    if (lbl) lbl.innerText = 'Tokens Adjustment:';
   }
 
   updateManageKeypadDisplay();
@@ -1041,6 +1020,8 @@ function switchManageMode(mode) {
 
 function updateManageKeypadDisplay() {
   const display = document.getElementById('mKeypadDisplay');
+  if (!display) return;
+
   const val = parseInt(currentDigits, 10) || 0;
   const signedVal = isNegativeSign ? -val : val;
 
