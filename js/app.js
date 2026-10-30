@@ -31,17 +31,16 @@ let activeExtraTopicKey = 'random';
 let teacherRosterData = [];
 let activeSampleTopicKey = '';
 let activeManageStudentCode = null;
-let activeRosterFilter = 'all'; 
-let activeClassFilter = 'all'; 
+let activeRosterFilter = 'all';
+let activeClassFilter = 'all';
 
 // Manage Student Modal State
-let manageTargetMode = 'xp'; 
+let manageTargetMode = 'xp';
 let xpChangeVal = 0;
 let tokenChangeVal = 0;
 let isNegativeSign = false;
 let currentDigits = '0';
 
-// FIX 1: ADDED MISSING COMMA IN ARRAY DEFINITION
 const ALL_TOPICS = [
   { key: 'grid_shader', name: '📐 Grid Shader (Fractions / % / Dec)' },
   { key: 'number_line', name: '📏 Number Line' },
@@ -61,7 +60,6 @@ function getTodayDateString() {
   return `${year}-${month}-${day}`;
 }
 
-// FIX 2: RUN setupKeypad() FIRST SO KEYPAD ALWAYS WORKS IMMEDIATELY
 function initApp() {
   setupKeypad();
   
@@ -105,7 +103,6 @@ function setupKeypad() {
   }
 }
 
-// FIX 3: SAFE BINDING WRAPPER PREVENTS NULL ELEMENT ERRORS FROM CRASHING JS
 function setupEventHandlers() {
   const bindClick = (id, handler) => {
     const el = document.getElementById(id);
@@ -904,7 +901,7 @@ function renderRosterTable(students) {
   if (!tbody) return;
 
   if (!students || students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
