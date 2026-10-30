@@ -22,13 +22,13 @@ const addSubtractNegativesModule = {
 
     let explanationText = '';
     if (op === '+' && b > 0) {
-      explanationText = `Add (+) means move RIGHT (Blue arrow) by ${b} steps from ${a} to land on ${target}.`;
+      explanationText = `1) Place Start pin on <strong>${a}</strong>.<br>2) Add (+) means move RIGHT (Blue arrow) by ${b} steps to land on <strong>${target}</strong>.`;
     } else if (op === '+' && b < 0) {
-      explanationText = `Add (+) starts moving RIGHT (Blue arrow) by ${Math.abs(b)} steps. Tapping 'Flip negative number' mirrors it about ${a} into a RED arrow pointing LEFT to land on ${target}.`;
+      explanationText = `1) Place Start pin on <strong>${a}</strong>.<br>2) Add (+) starts moving RIGHT (Blue arrow) by ${Math.abs(b)} steps. Tapping 'Flip negative number' mirrors it about ${a} into a RED arrow pointing LEFT to land on <strong>${target}</strong>.`;
     } else if (op === '-' && b > 0) {
-      explanationText = `Subtract (-) means move LEFT (Green arrow) by ${b} steps from ${a} to land on ${target}.`;
+      explanationText = `1) Place Start pin on <strong>${a}</strong>.<br>2) Subtract (-) means move LEFT (Green arrow) by ${b} steps to land on <strong>${target}</strong>.`;
     } else {
-      explanationText = `Subtract (-) starts moving LEFT (Green arrow) by ${Math.abs(b)} steps. Tapping 'Flip negative number' mirrors it about ${a} into a RED arrow pointing RIGHT to land on ${target}.`;
+      explanationText = `1) Place Start pin on <strong>${a}</strong>.<br>2) Subtract (-) starts moving LEFT (Green arrow) by ${Math.abs(b)} steps. Tapping 'Flip negative number' mirrors it about ${a} into a RED arrow pointing RIGHT to land on <strong>${target}</strong>.`;
     }
 
     return {
@@ -38,7 +38,7 @@ const addSubtractNegativesModule = {
       b: b,
       target: target,
       exprStr: exprStr,
-      prompt: `Evaluate <strong>${formatMath(exprStr)}</strong> using the number line and flip tool, then key in your final answer:`,
+      prompt: `Evaluate <strong>${formatMath(exprStr)}</strong>. First place the starting number <strong>(${a})</strong> on the line, then drag the arrow tip and key in your answer:`,
       explanation: formatMath(explanationText)
     };
   },
@@ -81,41 +81,58 @@ const addSubtractNegativesModule = {
       }
     }
 
-    const startPct = ((q.a - minVal) / totalRange) * 100;
+    // Default start pin position (Offset from q.a initially so student must place it)
+    let initialStart = 0;
+    if (q.a === 0) initialStart = 3;
+
+    const startPct = ((initialStart - minVal) / totalRange) * 100;
 
     let html = `
-      <div style="max-width: 550px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
+      <div style="max-width: 580px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
         
+        <!-- STEP GUIDANCE HEADER -->
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.85rem; font-weight: 700;">
+          <span id="step1Badge" style="background: #8b5cf6; color: white; padding: 4px 10px; border-radius: 12px; transition: all 0.2s;">
+            1️⃣ Place Start Pin at ${q.a}
+          </span>
+          <span id="step2Badge" style="background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 12px; transition: all 0.2s;">
+            2️⃣ Drag Tip Steps
+          </span>
+        </div>
+
         <!-- NUMBER LINE TRACK -->
-        <div style="position: relative; height: 130px; margin: 35px 20px 10px 20px; padding: 0 10px;">
-          <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 50px; touch-action: none;">
+        <div style="position: relative; height: 140px; margin: 35px 20px 10px 20px; padding: 0 10px;">
+          <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 55px; touch-action: none;">
             ${ticksHtml}
 
-            <!-- Pivot Point Dot (Start) -->
-            <div style="
+            <!-- DRAGGABLE START PIN HANDLE (PURPLE) -->
+            <div id="startPin" data-val="${initialStart}" style="
               position: absolute;
-              top: -26px;
+              top: -34px;
               left: ${startPct}%;
               transform: translateX(-50%);
-              background: var(--text-main);
+              background: #8b5cf6;
               color: white;
               font-weight: 800;
-              font-size: 0.75rem;
-              padding: 2px 8px;
-              border-radius: 10px;
-              z-index: 2;
-            ">Start (${q.a})</div>
+              font-size: 0.8rem;
+              padding: 3px 10px;
+              border-radius: 12px;
+              box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+              cursor: grab;
+              touch-action: none;
+              z-index: 6;
+            ">Start: ${initialStart}</div>
 
-            <div style="
+            <div id="startDot" style="
               position: absolute;
               top: -5px;
               left: ${startPct}%;
-              width: 10px;
-              height: 10px;
+              width: 12px;
+              height: 12px;
               border-radius: 50%;
-              background: var(--text-main);
+              background: #8b5cf6;
               transform: translateX(-50%);
-              z-index: 3;
+              z-index: 5;
             "></div>
 
             <!-- Dynamic Vector Arrow Bar -->
@@ -132,7 +149,7 @@ const addSubtractNegativesModule = {
             <!-- Floating Step Count Badge Near Arrow -->
             <div id="vectorStepBadge" style="
               position: absolute;
-              top: -52px;
+              top: -54px;
               left: ${startPct}%;
               transform: translateX(-50%);
               background: var(--bg-card);
@@ -146,19 +163,18 @@ const addSubtractNegativesModule = {
               pointer-events: none;
               z-index: 4;
               white-space: nowrap;
-              transition: border-color 0.2s ease, color 0.2s ease;
             ">0 steps</div>
 
             <!-- Draggable Arrow Tip Handle -->
-            <div id="arrowHead" data-val="${q.a}" style="
+            <div id="arrowHead" data-val="${initialStart}" style="
               position: absolute;
               top: -28px;
               left: ${startPct}%;
               transform: translateX(-50%);
               color: white;
               font-weight: 800;
-              font-size: 1rem;
-              padding: 2px 8px;
+              font-size: 1.1rem;
+              padding: 3px 10px;
               border-radius: 14px;
               box-shadow: 0 3px 6px rgba(0,0,0,0.25);
               cursor: grab;
@@ -176,37 +192,39 @@ const addSubtractNegativesModule = {
             background: #ef4444;
             color: white;
             border: none;
-            padding: 10px 22px;
-            border-radius: 8px;
+            padding: 10px 24px;
+            border-radius: 10px;
             font-weight: 800;
-            font-size: 0.95rem;
+            font-size: 1rem;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
             transition: transform 0.1s ease;
           ">🔄 Flip negative number</button>
         </div>
 
-        <!-- EQUATION INPUT & KEYPAD -->
+        <!-- EQUATION INPUT & ENLARGED TOUCH KEYPAD -->
         <div style="
           background: var(--bg-primary); 
           border: 2px solid var(--border-color); 
           border-radius: var(--radius); 
-          padding: 16px; 
-          max-width: 320px; 
+          padding: 20px; 
+          max-width: 380px; 
           margin: 0 auto;
+          box-shadow: var(--shadow);
         ">
-          <div style="font-size: 1.3rem; font-weight: 800; margin-bottom: 10px;">
+          <!-- EQUATION DISPLAY -->
+          <div style="font-size: 1.6rem; font-weight: 800; margin-bottom: 14px;">
             ${q.exprStr} = <span id="ansDisplay" style="
               color: var(--accent); 
-              border-bottom: 3px solid var(--accent); 
-              padding: 0 10px;
-              min-width: 50px;
+              border-bottom: 3.5px solid var(--accent); 
+              padding: 0 12px;
+              min-width: 65px;
               display: inline-block;
             ">?</span>
           </div>
 
-          <!-- KEYPAD -->
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+          <!-- ENLARGED KEYPAD GRID -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
             <button class="asn-key" data-k="1">1</button>
             <button class="asn-key" data-k="2">2</button>
             <button class="asn-key" data-k="3">3</button>
@@ -216,9 +234,9 @@ const addSubtractNegativesModule = {
             <button class="asn-key" data-k="7">7</button>
             <button class="asn-key" data-k="8">8</button>
             <button class="asn-key" data-k="9">9</button>
-            <button class="asn-key" data-k="-" style="background: rgba(79,70,229,0.1); color: var(--accent); font-weight: 800;">-</button>
+            <button class="asn-key" data-k="-" style="background: rgba(79,70,229,0.12); color: var(--accent); font-weight: 800;">-</button>
             <button class="asn-key" data-k="0">0</button>
-            <button class="asn-key" id="asnClear" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); font-weight: 700;">C</button>
+            <button class="asn-key" id="asnClear" style="background: rgba(239, 68, 68, 0.12); color: var(--danger); font-weight: 800;">C</button>
           </div>
         </div>
 
@@ -227,17 +245,35 @@ const addSubtractNegativesModule = {
 
     container.innerHTML = html;
 
+    // KEYPAD CSS STYLING ENHANCEMENT
+    container.querySelectorAll('.asn-key').forEach(btn => {
+      btn.style.height = '58px';
+      btn.style.fontSize = '1.4rem';
+      btn.style.fontWeight = '800';
+      btn.style.borderRadius = '10px';
+      btn.style.border = '2px solid var(--border-color)';
+      btn.style.background = 'var(--bg-card)';
+      btn.style.color = 'var(--text-main)';
+      btn.style.cursor = 'pointer';
+      btn.style.touchAction = 'manipulation';
+    });
+
     // STATE VARIABLES
+    let currentStartVal = initialStart;
+    let currentTipVal = initialStart;
     let isFlipped = false;
-    let currentRawVal = q.a; // Position on line
     let typedAnswer = '';
 
     const track = container.querySelector('#asnTrack');
+    const startPin = container.querySelector('#startPin');
+    const startDot = container.querySelector('#startDot');
     const arrowHead = container.querySelector('#arrowHead');
     const vectorBar = container.querySelector('#vectorBar');
     const vectorStepBadge = container.querySelector('#vectorStepBadge');
     const flipBtn = container.querySelector('#flipBtn');
     const ansDisplay = container.querySelector('#ansDisplay');
+    const step1Badge = container.querySelector('#step1Badge');
+    const step2Badge = container.querySelector('#step2Badge');
 
     // Automatic color and arrow tip symbol based on direction & flip state
     const getArrowDetails = () => {
@@ -246,12 +282,12 @@ const addSubtractNegativesModule = {
 
       if (isFlipped) {
         color = '#ef4444'; // Red when flipped
-        symbol = currentRawVal >= q.a ? '➔' : '⬅';
+        symbol = currentTipVal >= currentStartVal ? '➔' : '⬅';
       } else {
-        if (currentRawVal > q.a) {
+        if (currentTipVal > currentStartVal) {
           color = '#3b82f6'; // Blue when right of start
           symbol = '➔';
-        } else if (currentRawVal < q.a) {
+        } else if (currentTipVal < currentStartVal) {
           color = '#10b981'; // Green when left of start
           symbol = '⬅';
         } else {
@@ -262,63 +298,105 @@ const addSubtractNegativesModule = {
       return { color, symbol };
     };
 
-    const updateArrowUI = () => {
+    const updateUI = () => {
+      // Update Start Pin UI
+      const startPctVal = ((currentStartVal - minVal) / totalRange) * 100;
+      startPin.style.left = `${startPctVal}%`;
+      startDot.style.left = `${startPctVal}%`;
+      startPin.innerText = `Start: ${currentStartVal}`;
+      startPin.setAttribute('data-val', currentStartVal);
+
+      // Check if Step 1 is complete
+      const isStartPlacedCorrectly = (currentStartVal === q.a);
+      if (isStartPlacedCorrectly) {
+        step1Badge.style.background = '#10b981';
+        step1Badge.innerText = `✓ Start Pin at ${q.a}`;
+        step2Badge.style.background = 'var(--accent)';
+        step2Badge.style.color = 'white';
+      } else {
+        step1Badge.style.background = '#8b5cf6';
+        step1Badge.innerText = `1️⃣ Place Start Pin at ${q.a}`;
+        step2Badge.style.background = 'var(--bg-primary)';
+        step2Badge.style.color = 'var(--text-muted)';
+      }
+
+      // Update Arrow UI
       const { color, symbol } = getArrowDetails();
-      
       arrowHead.style.background = color;
       vectorBar.style.background = color;
       arrowHead.innerText = symbol;
 
-      const currentPct = ((currentRawVal - minVal) / totalRange) * 100;
-      arrowHead.style.left = `${currentPct}%`;
+      const tipPctVal = ((currentTipVal - minVal) / totalRange) * 100;
+      arrowHead.style.left = `${tipPctVal}%`;
 
-      const leftPct = Math.min(startPct, currentPct);
-      const widthPct = Math.abs(currentPct - startPct);
+      const leftPct = Math.min(startPctVal, tipPctVal);
+      const widthPct = Math.abs(tipPctVal - startPctVal);
 
       vectorBar.style.left = `${leftPct}%`;
       vectorBar.style.width = `${widthPct}%`;
 
       // Update Floating Step Counter Badge
-      const stepsCount = Math.abs(currentRawVal - q.a);
-      const midPct = (startPct + currentPct) / 2;
+      const stepsCount = Math.abs(currentTipVal - currentStartVal);
+      const midPct = (startPctVal + tipPctVal) / 2;
 
       vectorStepBadge.style.left = `${midPct}%`;
       vectorStepBadge.innerText = `${stepsCount} ${stepsCount === 1 ? 'step' : 'steps'}`;
       vectorStepBadge.style.borderColor = color;
       vectorStepBadge.style.color = color;
 
-      arrowHead.setAttribute('data-val', currentRawVal);
+      arrowHead.setAttribute('data-val', currentTipVal);
       arrowHead.setAttribute('data-flipped', isFlipped ? 'true' : 'false');
     };
 
-    // POINTER DRAG LOGIC
-    let isDragging = false;
+    // POINTER DRAG LOGIC - START PIN (STEP 1)
+    let isDraggingStart = false;
+    startPin.onpointerdown = (e) => {
+      isDraggingStart = true;
+      startPin.style.cursor = 'grabbing';
+      startPin.setPointerCapture(e.pointerId);
+    };
 
-    const updateFromPointer = (e) => {
+    startPin.onpointermove = (e) => {
+      if (!isDraggingStart) return;
       const rect = track.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const ratio = Math.max(0, Math.min(1, x / rect.width));
-
-      const rawVal = minVal + ratio * totalRange;
-      currentRawVal = Math.round(rawVal);
-      updateArrowUI();
+      const rawVal = Math.round(minVal + ratio * totalRange);
+      
+      const diff = rawVal - currentStartVal;
+      currentStartVal = rawVal;
+      currentTipVal += diff; // Move tip along with start pin during initial placement
+      updateUI();
     };
 
+    startPin.onpointerup = (e) => {
+      if (isDraggingStart) {
+        isDraggingStart = false;
+        startPin.style.cursor = 'grab';
+        startPin.releasePointerCapture(e.pointerId);
+      }
+    };
+
+    // POINTER DRAG LOGIC - ARROW TIP (STEP 2)
+    let isDraggingTip = false;
     arrowHead.onpointerdown = (e) => {
-      isDragging = true;
+      isDraggingTip = true;
       arrowHead.style.cursor = 'grabbing';
       arrowHead.setPointerCapture(e.pointerId);
-      updateFromPointer(e);
     };
 
     arrowHead.onpointermove = (e) => {
-      if (!isDragging) return;
-      updateFromPointer(e);
+      if (!isDraggingTip) return;
+      const rect = track.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, x / rect.width));
+      currentTipVal = Math.round(minVal + ratio * totalRange);
+      updateUI();
     };
 
     arrowHead.onpointerup = (e) => {
-      if (isDragging) {
-        isDragging = false;
+      if (isDraggingTip) {
+        isDraggingTip = false;
         arrowHead.style.cursor = 'grab';
         arrowHead.releasePointerCapture(e.pointerId);
       }
@@ -328,11 +406,11 @@ const addSubtractNegativesModule = {
     flipBtn.onclick = () => {
       isFlipped = !isFlipped;
       
-      // Mirror position about start pivot 'a'
-      const distFromStart = currentRawVal - q.a;
-      currentRawVal = q.a - distFromStart;
+      // Mirror position about start pin
+      const distFromStart = currentTipVal - currentStartVal;
+      currentTipVal = currentStartVal - distFromStart;
 
-      updateArrowUI();
+      updateUI();
     };
 
     // KEYPAD LOGIC
@@ -357,22 +435,29 @@ const addSubtractNegativesModule = {
     };
 
     // Initial render setup
-    updateArrowUI();
+    updateUI();
   },
 
   evaluate(q) {
+    const startPin = document.getElementById('startPin');
     const arrowHead = document.getElementById('arrowHead');
     const ansDisplay = document.getElementById('ansDisplay');
 
-    if (!arrowHead || !ansDisplay) return false;
+    if (!startPin || !arrowHead || !ansDisplay) return false;
 
+    const userStartVal = parseInt(startPin.getAttribute('data-val'), 10);
     const userLineVal = parseInt(arrowHead.getAttribute('data-val'), 10);
     const userFlipped = arrowHead.getAttribute('data-flipped') === 'true';
     const userTypedVal = parseInt(ansDisplay.getAttribute('data-typed'), 10);
 
     const requiredFlip = q.b < 0;
 
-    return userTypedVal === q.target && userLineVal === q.target && userFlipped === requiredFlip;
+    // Strict Evaluation Requirements:
+    // 1. Placed Start Pin at 'a'
+    // 2. Placed Arrow Tip at target on number line
+    // 3. Flipped state matches negative 'b' requirement
+    // 4. Typed numerical answer matches target
+    return userStartVal === q.a && userLineVal === q.target && userFlipped === requiredFlip && userTypedVal === q.target;
   }
 };
 
