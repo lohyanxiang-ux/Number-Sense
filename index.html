@@ -1,224 +1,183 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>NumSense - Daily Numeracy</title>
-  <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
+import { registerQuestionType, formatMath } from './registry.js';
 
-  <!-- HEADER BAR -->
-  <header>
-    <div class="brand">📐 NumSense</div>
-    
-    <!-- STUDENT HEADER STATS -->
-    <div id="userStatsHeader" class="stats-bar hidden">
-      <span class="stat-badge user-info">👤 <span id="hdrStudentName">Student</span> (<span id="hdrStudentClass">Sec 2</span>)</span>
-      <span class="stat-badge">🔥 <span id="hdrStreak">0</span> Days</span>
-      <span class="stat-badge">⭐ <span id="hdrXP">0</span> XP</span>
-      <span class="stat-badge">🎟️ <span id="hdrTokens">0</span></span>
-      <button class="btn" id="logoutBtn" style="width:auto; padding: 6px 12px; font-size: 0.85rem; background: var(--border-color); color: var(--text-main);">Exit</button>
-    </div>
+const negativeNumbersModule = {
+  generate() {
+    const questionTypes = ['scenario', 'compare', 'opposite'];
+    const selectedType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
 
-    <!-- TEACHER HEADER BADGE -->
-    <div id="teacherHeader" class="stats-bar hidden">
-      <span class="stat-badge user-info" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: var(--success);">
-        👨‍🏫 Teacher Dashboard
-      </span>
-      <button class="btn" id="teacherLogoutBtn" style="width:auto; padding: 6px 12px; font-size: 0.85rem; background: var(--border-color); color: var(--text-main);">Exit</button>
-    </div>
-  </header>
+    if (selectedType === 'scenario') {
+      const scenarios = [
+        { text: 'A submarine is swimming <strong>6 metres below sea level</strong>. What number represents its depth?', target: -6, unit: 'm' },
+        { text: 'The temperature in a freezer is <strong>4°C below freezing (0°C)</strong>. What is the temperature?', target: -4, unit: '°C' },
+        { text: 'A basement car park is <strong>2 floors below the ground floor (Level 0)</strong>. What floor is it on?', target: -2, unit: 'Level' },
+        { text: 'A bank balance has a <strong>$9 debt (overdrawn)</strong>. What number represents this balance?', target: -9, unit: '$' },
+        { text: 'A bird is flying <strong>5 metres above sea level</strong>. What number represents its height?', target: 5, unit: 'm' }
+      ];
+      const s = scenarios[Math.floor(Math.random() * scenarios.length)];
+      return {
+        type: 'negative_numbers',
+        subType: 'scenario',
+        prompt: s.text,
+        targetVal: s.target,
+        unit: s.unit,
+        explanation: `${s.target < 0 ? 'Below' : 'Above'} zero is represented by the signed integer <strong>${s.target}</strong>.`
+      };
+    }
 
-  <main>
-    <!-- 1. LOGIN SCREEN -->
-    <div id="loginScreen" class="card login-box">
-      <h2>Welcome Back!</h2>
-      <p style="color: var(--text-muted); margin-top: 6px;">Enter your 4-digit PIN to start</p>
-      
-      <div class="pin-display" id="pinDisplay">••••</div>
-      <p id="loginError" class="hidden" style="color: var(--danger); font-weight: 600; margin-bottom: 12px;"></p>
+    if (selectedType === 'compare') {
+      const pairs = [
+        { a: -7, b: -2, question: 'Which temperature is <strong>COLDER (lower)</strong>?', target: -7 },
+        { a: -5, b: -8, question: 'Which bank balance represents a <strong>GREATER DEBT</strong> (smaller value)?', target: -8 },
+        { a: -3, b: -1, question: 'Which depth is <strong>CLOSER to sea level (greater value)</strong>?', target: -1 },
+        { a: -6, b: 2, question: 'Which number is <strong>GREATER</strong>?', target: 2 }
+      ];
+      const p = pairs[Math.floor(Math.random() * pairs.length)];
+      return {
+        type: 'negative_numbers',
+        subType: 'compare',
+        prompt: p.question,
+        options: [p.a, p.b].sort(() => Math.random() - 0.5),
+        targetVal: p.target,
+        explanation: `On a number line, numbers further to the left (or lower down) are smaller. Therefore, <strong>${p.target}</strong> is the correct answer.`
+      };
+    }
 
-      <div class="keypad-grid">
-        <button class="key-btn" data-key="1">1</button>
-        <button class="key-btn" data-key="2">2</button>
-        <button class="key-btn" data-key="3">3</button>
-        <button class="key-btn" data-key="4">4</button>
-        <button class="key-btn" data-key="5">5</button>
-        <button class="key-btn" data-key="6">6</button>
-        <button class="key-btn" data-key="7">7</button>
-        <button class="key-btn" data-key="8">8</button>
-        <button class="key-btn" data-key="9">9</button>
-        <button class="key-btn key-action" id="keyClear">C</button>
-        <button class="key-btn" data-key="0">0</button>
-        <button class="key-btn key-action" id="keyDel">⌫</button>
-      </div>
+    // Opposite recognition
+    const num = (Math.floor(Math.random() * 8) + 1) * (Math.random() < 0.5 ? 1 : -1);
+    const targetOpp = -num;
+    return {
+      type: 'negative_numbers',
+      subType: 'opposite',
+      prompt: `What is the <strong>exact opposite</strong> of <strong>${num > 0 ? '+' + num : num}</strong> across zero?`,
+      targetVal: targetOpp,
+      explanation: `The opposite of ${num} is <strong>${targetOpp}</strong> because both are exactly ${Math.abs(num)} units away from 0 in opposite directions.`
+    };
+  },
 
-      <button class="btn" id="loginBtn" style="margin-top: 20px;">Start Practice</button>
-    </div>
+  render(q, container) {
+    if (q.subType === 'scenario' || q.subType === 'opposite') {
+      const minVal = -10;
+      const maxVal = 10;
 
-    <!-- 2. STUDENT APP CONTAINER -->
-    <div id="appContainer" class="hidden">
-      <div class="nav-tabs">
-        <button class="tab-btn active" data-tab="practice">Daily Practice</button>
-        <button class="tab-btn" data-tab="shop">Privilege Shop</button>
-      </div>
+      let html = `
+        <div style="text-align: center; margin: 20px 0;">
+          <div style="
+            display: inline-flex;
+            gap: 4px;
+            overflow-x: auto;
+            max-width: 100%;
+            padding: 16px;
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            border: 2px solid var(--border-color);
+          ">
+      `;
 
-      <!-- Practice Tab -->
-      <div id="tabPractice" style="margin-top: 16px;">
-        <div class="card">
-          <div class="q-header">
-            <span id="qProgress" style="font-weight: 700;">Question 1 of 5</span>
+      for (let v = minVal; v <= maxVal; v++) {
+        const isZero = v === 0;
+        const btnStyle = isZero 
+          ? 'background: var(--accent); color: white; border-color: var(--accent);' 
+          : 'background: var(--bg-card); color: var(--text-main); border-color: var(--border-color);';
+
+        html += `
+          <button class="neg-num-card" data-val="${v}" style="
+            min-width: 42px;
+            height: 50px;
+            border: 2px solid;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: all 0.15s ease;
+            ${btnStyle}
+          ">${v > 0 ? '+' + v : v}</button>
+        `;
+      }
+
+      html += `
           </div>
+          <p style="margin-top: 16px; font-weight: 700; font-size: 1.1rem; color: var(--text-muted);">
+            Selected Number: <span id="selectedNegNum" style="color: var(--accent); font-size: 1.4rem;">--</span>
+          </p>
+        </div>
+      `;
 
-          <div id="qPrompt" class="q-prompt">Loading question...</div>
-          <div id="workspace"></div>
+      container.innerHTML = html;
 
-          <div id="feedbackBox" class="feedback-box hidden">
-            <h3 id="feedbackTitle" style="margin-bottom: 6px;">Explanation</h3>
-            <div id="visualExp" class="visual-explanation"></div>
-            <button class="btn" id="nextBtn" style="margin-top: 16px;">Next Question ➔</button>
+      container.querySelectorAll('.neg-num-card').forEach(btn => {
+        btn.onclick = () => {
+          container.querySelectorAll('.neg-num-card').forEach(b => {
+            const isZ = b.getAttribute('data-val') === '0';
+            b.style.borderColor = isZ ? 'var(--accent)' : 'var(--border-color)';
+            b.style.background = isZ ? 'var(--accent)' : 'var(--bg-card)';
+            b.style.color = isZ ? 'white' : 'var(--text-main)';
+            b.classList.remove('selected');
+          });
+
+          btn.style.borderColor = 'var(--accent)';
+          btn.style.background = 'var(--accent)';
+          btn.style.color = 'white';
+          btn.classList.add('selected');
+
+          document.getElementById('selectedNegNum').innerText = btn.getAttribute('data-val');
+        };
+      });
+
+    } else if (q.subType === 'compare') {
+      let html = `
+        <div style="display: flex; gap: 20px; justify-content: center; margin: 30px 0;">
+      `;
+
+      q.options.forEach(opt => {
+        html += `
+          <div class="neg-compare-card" data-val="${opt}" style="
+            background: var(--bg-primary);
+            border: 3px solid var(--border-color);
+            border-radius: var(--radius);
+            width: 130px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 800;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: all 0.15s ease;
+          ">
+            ${opt > 0 ? '+' + opt : opt}
           </div>
+        `;
+      });
 
-          <button class="btn" id="submitBtn" style="margin-top: 20px;">Check Answer</button>
-        </div>
-      </div>
+      html += `</div>`;
+      container.innerHTML = html;
 
-      <!-- Shop Tab -->
-      <div id="tabShop" class="hidden" style="margin-top: 16px;">
-        <div class="card">
-          <h2>Privilege Shop</h2>
-          <p style="color: var(--text-muted); margin-bottom: 16px;">Exchange your hard-earned tokens for rewards!</p>
-          <div class="shop-grid">
-            <div class="shop-item">
-              <h3>Pick Your Seat (1 Wk)</h3>
-              <p class="shop-price">🎟️ 50 Tokens</p>
-            </div>
-            <div class="shop-item">
-              <h3>Late Homework Pass</h3>
-              <p class="shop-price">🎟️ 100 Tokens</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      container.querySelectorAll('.neg-compare-card').forEach(card => {
+        card.onclick = () => {
+          container.querySelectorAll('.neg-compare-card').forEach(c => {
+            c.style.borderColor = 'var(--border-color)';
+            c.style.background = 'var(--bg-primary)';
+            c.classList.remove('selected');
+          });
 
-    <!-- 3. TEACHER DASHBOARD VIEW -->
-    <div id="teacherDashboard" class="hidden">
-      <!-- KPI Analytics Grid -->
-      <div class="teacher-analytics-grid">
-        <div class="kpi-card">
-          <span class="kpi-label">Total Roster</span>
-          <span class="kpi-value" id="kpiTotalStudents">0</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-label">Active Today</span>
-          <span class="kpi-value" id="kpiActiveToday">0</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-label">Class Avg XP</span>
-          <span class="kpi-value" id="kpiAvgXP">0</span>
-        </div>
-        <div class="kpi-card kpi-warning">
-          <span class="kpi-label">Needs Attention</span>
-          <span class="kpi-value" id="kpiStruggling">0</span>
-        </div>
-      </div>
+          card.style.borderColor = 'var(--accent)';
+          card.style.background = 'rgba(79, 70, 229, 0.12)';
+          card.classList.add('selected');
+        };
+      });
+    }
+  },
 
-      <!-- Roster Proficiency Heatmap Table -->
-      <div class="card" style="margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
-          <div>
-            <h2>Student Proficiency Heatmap</h2>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
-              💡 Tap any topic header (e.g. <em>Grid Shader 👁️</em>) to view a live sample question.
-            </p>
-          </div>
-          <input type="text" id="rosterSearchInput" class="input-field" placeholder="🔍 Search name or class..." style="max-width: 240px;">
-        </div>
+  evaluate(q) {
+    const selected = document.querySelector('.neg-num-card.selected, .neg-compare-card.selected');
+    if (!selected) return false;
+    const userVal = parseInt(selected.getAttribute('data-val'), 10);
+    return userVal === q.targetVal;
+  }
+};
 
-        <!-- STICKY FROZEN TABLE WRAPPER -->
-        <div class="teacher-table-wrapper">
-<table class="teacher-table">
-  <thead>
-    <tr>
-      <!-- FROZEN/STICKY COLUMNS -->
-      <th class="sticky-col col-code">Code</th>
-      <th class="sticky-col col-name">Name</th>
-
-      <!-- SCROLLABLE METRIC COLUMNS -->
-      <th>Class</th>
-      <th>Streak</th>
-      <th>XP</th>
-      <th>Tokens</th>
-
-      <!-- SCROLLABLE TOPIC PROFICIENCY COLUMNS -->
-      <th class="topic-hdr" data-type="grid_shader">Grid Shader 👁️</th>
-      <th class="topic-hdr" data-type="number_line">Number Line 👁️</th>
-      <th class="topic-hdr" data-type="equivalence">Equivalence 👁️</th>
-      <th class="topic-hdr" data-type="place_value">Place Value 👁️</th>
-      <th class="topic-hdr" data-type="negative_numbers">Negative Numbers 👁️</th>
-    </tr>
-  </thead>
-  <tbody id="rosterTableBody">
-    <tr><td colspan="10" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
-  </tbody>
-</table>
-        </div>
-      </div>
-
-      <!-- System Settings -->
-      <div class="card">
-        <h3>System Settings & Google Sheet Connection</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 6px 0 16px 0;">Configure backend URL and sync live database.</p>
-        
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <input type="text" id="sheetUrlInput" class="input-field" placeholder="https://script.google.com/macros/s/.../exec" style="flex: 1;">
-          <button class="btn" id="saveSheetBtn" style="width: auto;">Save Link</button>
-          <button class="btn" id="refreshTeacherDataBtn" style="width: auto; background: var(--success);">🔄 Refresh Data</button>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- MODAL: SAMPLE QUESTION PREVIEW -->
-  <div id="sampleQuestionModal" class="modal-overlay hidden">
-    <div class="modal-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 id="sampleModalTitle">Sample Question Preview</h3>
-        <button class="modal-close" id="closeSampleModalBtn">×</button>
-      </div>
-      <div id="sampleQPrompt" class="q-prompt" style="font-size: 1.1rem; margin-bottom: 16px;"></div>
-      <div id="sampleQWorkspace"></div>
-      <button class="btn" id="newSampleQBtn" style="margin-top: 16px; background: var(--accent);">🎲 Generate Another Sample</button>
-    </div>
-  </div>
-
-  <!-- MODAL: TOKEN REDEMPTION -->
-  <div id="redeemTokenModal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width: 400px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3>Redeem Reward</h3>
-        <button class="modal-close" id="closeRedeemModalBtn">×</button>
-      </div>
-      <p style="margin-bottom: 12px;">Student: <strong id="redeemStudentName">--</strong> (Tokens: <span id="redeemCurrentTokens">0</span>)</p>
-      
-      <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">Select Reward to Deduct:</label>
-      <select id="redeemRewardSelect" class="input-field" style="margin: 8px 0 16px 0;">
-        <option value="50">🎟️ 50 Tokens - Pick Your Seat (1 Week)</option>
-        <option value="100">🎟️ 100 Tokens - Late Homework Pass</option>
-        <option value="custom">Custom Token Deduction</option>
-      </select>
-
-      <div id="customTokenBox" class="hidden" style="margin-bottom: 16px;">
-        <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">Custom Tokens to Deduct:</label>
-        <input type="number" id="customTokenInput" class="input-field" placeholder="Enter amount..." min="1" style="margin-top: 4px;">
-      </div>
-
-      <button class="btn" id="confirmRedeemBtn" style="background: var(--success);">Confirm Redemption</button>
-    </div>
-  </div>
-
-  <script type="module" src="js/app.js"></script>
-</body>
-</html>
+registerQuestionType('negative_numbers', negativeNumbersModule);
