@@ -196,7 +196,7 @@ main { max-width: 800px; width: 100%; margin: 0 auto; padding: 20px; }
   border-color: var(--accent) !important;
 }
 
-/* FIXED AREA BOX CELL FIXES (Fixes cutting layout squishing) */
+/* FIXED AREA BOX CELL FIXES */
 .fixed-area-box div.grid-cell {
   aspect-ratio: unset !important;
   width: 100% !important;
@@ -276,25 +276,6 @@ svg .grid-cell.active {
   color: var(--danger) !important;
 }
 
-/* TEACHER HEATMAP TABLE */
-.teacher-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.teacher-table th, .teacher-table td {
-  padding: 12px 10px;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.teacher-table th {
-  background: var(--bg-primary);
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
 /* PROFICIENCY BADGES */
 .prof-badge {
   display: inline-block;
@@ -311,7 +292,7 @@ svg .grid-cell.active {
 .prof-struggling { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
 .prof-untried { background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); }
 
-/* STICKY FROZEN TABLE COLUMNS */
+/* STICKY FROZEN TABLE COLUMNS (FROZEN UP TO NAME) */
 .teacher-table-wrapper {
   overflow-x: auto;
   max-width: 100%;
@@ -339,7 +320,7 @@ svg .grid-cell.active {
   color: var(--text-muted);
 }
 
-/* Sticky Column Position Rules */
+/* Sticky Column Rules (Code & Name Only) */
 .teacher-table .sticky-col {
   position: sticky;
   background: var(--bg-card);
@@ -351,15 +332,34 @@ svg .grid-cell.active {
   z-index: 3;
 }
 
-.col-code   { left: 0px; min-width: 65px; }
-.col-name   { left: 65px; min-width: 120px; }
-.col-class  { left: 185px; min-width: 70px; }
-.col-streak { left: 255px; min-width: 75px; }
-.col-xp     { left: 330px; min-width: 75px; }
-.col-tokens { 
-  left: 405px; 
-  min-width: 110px; 
-  box-shadow: 3px 0 5px -2px rgba(0,0,0,0.15); /* Separation line between frozen meta columns and scrolling topic columns */
+.col-code { 
+  left: 0px; 
+  min-width: 70px; 
+}
+
+.col-name { 
+  left: 70px; 
+  min-width: 130px; 
+  box-shadow: 3px 0 5px -2px rgba(0,0,0,0.15); /* Separation shadow right after Name */
+}
+
+/* Masked Student PIN Code Badge */
+.code-toggle {
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  background: var(--bg-primary);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.15s ease;
+}
+
+.code-toggle:hover {
+  background: var(--border-color);
 }
 
 /* Clickable Header for Teaching Demo */
