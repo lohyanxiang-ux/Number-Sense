@@ -1,4 +1,4 @@
-import { getAdaptiveQuestion, evaluateQuestion, renderQuestion } from './questions/registry.js';
+import { getAdaptiveQuestion, getQuestionByType, evaluateQuestion, renderQuestion } from './questions/registry.js';
 import './questions/numberLine.js';
 import './questions/gridShader.js';
 import './questions/equivalence.js';
@@ -76,7 +76,7 @@ function setupEventHandlers() {
     searchInput.oninput = (e) => filterRosterTable(e.target.value);
   }
 
-  // Clickable Header Handlers for Sample Questions
+  // Clickable Header Handlers for Teaching Demos
   document.querySelectorAll('.topic-hdr').forEach(hdr => {
     hdr.onclick = () => {
       const typeKey = hdr.getAttribute('data-type');
@@ -259,12 +259,14 @@ function renderRosterTable(students) {
   students.forEach(s => {
     html += `
       <tr>
-        <td class="sticky-col col-code"><strong>${s.code}</strong></td>
+        <td class="sticky-col col-code">
+          <span class="code-toggle" data-code="${s.code}" title="Tap to reveal/hide">••••</span>
+        </td>
         <td class="sticky-col col-name">${s.name}</td>
-        <td class="sticky-col col-class">${s.className}</td>
-        <td class="sticky-col col-streak">🔥 ${s.streak}</td>
-        <td class="sticky-col col-xp">⭐ ${s.xp}</td>
-        <td class="sticky-col col-tokens">
+        <td>${s.className}</td>
+        <td>🔥 ${s.streak}</td>
+        <td>⭐ ${s.xp}</td>
+        <td>
           🎟️ <strong>${s.tokens}</strong>
           <button class="btn-redeem" data-code="${s.code}">Redeem</button>
         </td>
@@ -279,6 +281,20 @@ function renderRosterTable(students) {
   });
 
   tbody.innerHTML = html;
+
+  // Toggle Masked Student Code Handler
+  tbody.querySelectorAll('.code-toggle').forEach(el => {
+    el.onclick = () => {
+      const realCode = el.getAttribute('data-code');
+      if (el.innerText === '••••') {
+        el.innerText = realCode;
+        el.style.letterSpacing = 'normal';
+      } else {
+        el.innerText = '••••';
+        el.style.letterSpacing = '2px';
+      }
+    };
+  });
 
   // Attach Redeem Button Handlers
   tbody.querySelectorAll('.btn-redeem').forEach(btn => {
@@ -333,10 +349,8 @@ function openSampleQuestionModal(typeKey, titleText) {
 }
 
 function generateSampleQuestion(typeKey) {
-  // Construct a dummy single-topic map to generate specific question
-  const dummyMap = {};
-  dummyMap[typeKey] = [0]; 
-  const sampleQ = getAdaptiveQuestion(dummyMap);
+  const sampleQ = getQuestionByType(typeKey);
+  if (!sampleQ) return;
 
   document.getElementById('sampleQPrompt').innerHTML = sampleQ.prompt;
   const ws = document.getElementById('sampleQWorkspace');
@@ -382,7 +396,6 @@ async function processTokenRedemption() {
 
   student.tokens -= cost;
 
-  // Sync token deduction to backend Google Sheet
   if (sheetWebAppUrl) {
     try {
       await fetch(sheetWebAppUrl, {
