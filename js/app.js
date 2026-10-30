@@ -30,6 +30,14 @@ let teacherRosterData = [];
 let activeSampleTopicKey = '';
 let activeManageStudentCode = null;
 let activeRosterFilter = 'all'; // 'all', 'active_today', 'needs_attention', 'uncompleted_daily'
+let activeClassFilter = 'all'; // 'all' or specific class string like 'Sec 2A'
+
+// Manage Student Modal State
+let manageTargetMode = 'xp'; // 'xp' or 'tokens'
+let xpChangeVal = 0;
+let tokenChangeVal = 0;
+let isNegativeSign = false;
+let currentDigits = '0';
 
 function getTodayDateString() {
   const now = new Date();
@@ -100,10 +108,13 @@ function setupEventHandlers() {
   if (logoutBtn) logoutBtn.onclick = logout;
   if (teacherLogoutBtn) teacherLogoutBtn.onclick = logout;
 
-  // Real-time Search Handler
-  const searchInput = document.getElementById('rosterSearchInput');
-  if (searchInput) {
-    searchInput.oninput = () => applyRosterFilters();
+  // Class Filter Handler
+  const classSelect = document.getElementById('classFilterSelect');
+  if (classSelect) {
+    classSelect.onchange = (e) => {
+      activeClassFilter = e.target.value;
+      applyRosterFilters();
+    };
   }
 
   // KPI Card Click Handlers
@@ -140,16 +151,44 @@ function setupEventHandlers() {
     generateSampleQuestion(activeSampleTopicKey);
   };
 
-  // Quick Preset Buttons for Token Modal
-  document.getElementById('btnQuickSeat').onclick = () => {
-    document.getElementById('mTokenChangeInput').value = '-50';
+  // Manage Modal Mode Tabs (XP vs TOKENS)
+  document.getElementById('tabModeXP').onclick = () => switchManageMode('xp');
+  document.getElementById('tabModeTokens').onclick = () => switchManageMode('tokens');
+
+  // Manage Modal Keypad Handlers
+  document.querySelectorAll('.m-num-key').forEach(btn => {
+    btn.onclick = () => {
+      const k = btn.getAttribute('data-k');
+      if (currentDigits === '0') currentDigits = k;
+      else currentDigits += k;
+      updateManageKeypadDisplay();
+    };
+  });
+
+  document.getElementById('mKeyToggleSign').onclick = () => {
+    isNegativeSign = !isNegativeSign;
+    updateManageKeypadDisplay();
   };
-  document.getElementById('btnQuickHwk').onclick = () => {
-    document.getElementById('mTokenChangeInput').value = '-100';
+
+  document.getElementById('mKeyDel').onclick = () => {
+    currentDigits = currentDigits.slice(0, -1);
+    if (!currentDigits || currentDigits === '-') currentDigits = '0';
+    updateManageKeypadDisplay();
   };
-  document.getElementById('btnQuickBonus').onclick = () => {
-    document.getElementById('mTokenChangeInput').value = '+20';
-  };
+
+  document.querySelectorAll('.m-preset-btn').forEach(btn => {
+    btn.onclick = () => {
+      const val = btn.getAttribute('data-val');
+      if (val.startsWith('-')) {
+        isNegativeSign = true;
+        currentDigits = val.replace('-', '');
+      } else {
+        isNegativeSign = false;
+        currentDigits = val.replace('+', '');
+      }
+      updateManageKeypadDisplay();
+    };
+  });
 
   document.getElementById('saveStudentManageBtn').onclick = processStudentManagement;
 
@@ -545,7 +584,7 @@ async function fetchTeacherDashboardData() {
 
     if (data.success && data.isTeacher) {
       teacherRosterData = data.students || [];
-      renderTeacherKPIs(teacherRosterData);
+      populateClassDropdown(teacherRosterData);
       applyRosterFilters();
     }
   } catch (e) {
@@ -553,15 +592,30 @@ async function fetchTeacherDashboardData() {
   }
 }
 
-function renderTeacherKPIs(students) {
-  const total = students.length;
+function populateClassDropdown(students) {
+  const classSelect = document.getElementById('classFilterSelect');
+  if (!classSelect) return;
+
+  const currentSelection = activeClassFilter;
+  const classes = [...new Set(students.map(s => s.className).filter(Boolean))].sort();
+
+  let html = `<option value="all">All Classes</option>`;
+  classes.forEach(c => {
+    html += `<option value="${c}" ${c === currentSelection ? 'selected' : ''}>${c}</option>`;
+  });
+
+  classSelect.innerHTML = html;
+}
+
+function renderTeacherKPIs(studentsInSelectedClass) {
+  const total = studentsInSelectedClass.length;
   let totalXP = 0;
   let strugglingCount = 0;
   let activeTodayCount = 0;
 
   const todayStr = getTodayDateString();
 
-  students.forEach(s => {
+  studentsInSelectedClass.forEach(s => {
     totalXP += s.xp || 0;
     if (s.lastActive && s.lastActive.split('T')[0] === todayStr) {
       activeTodayCount++;
@@ -571,14 +625,15 @@ function renderTeacherKPIs(students) {
     let scores = [];
     Object.keys(profs).forEach(k => {
       if (profs[k].length > 0) {
-        const sum = profs[k].reduce((a, b) => a + b, 0);
-        scores.push(sum / profs[k].length);
+        const numArr = profs[k].map(Number);
+        const sum = numArr.reduce((a, b) => a + b, 0);
+        scores.push(sum / numArr.length);
       }
     });
 
     if (scores.length > 0) {
       const avgAcc = scores.reduce((a, b) => a + b, 0) / scores.length;
-      if (avgAcc < 0.6) strugglingCount++;
+      if (avgAcc < 0.50) strugglingCount++;
     }
   });
 
@@ -654,45 +709,55 @@ function renderRosterTable(students) {
 
 function getProfBadgeHtml(history) {
   if (!history || history.length === 0) {
-    return `<span class="prof-badge prof-untried">Untried</span>`;
+    return `<span class="prof-badge prof-untried" style="background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-weight: 700;">Untried</span>`;
   }
 
-  const score = history.reduce((a, b) => a + b, 0);
-  const acc = score / history.length;
+  const numHistory = history.map(v => Number(v));
+  const score = numHistory.reduce((a, b) => a + b, 0);
+  const acc = score / numHistory.length;
   const pct = Math.round(acc * 100);
 
   // Exact Threshold Color Rules: <50% Red, 50-75% Yellow, >75% Green
   if (acc > 0.75) {
-    return `<span class="prof-badge prof-mastered">🟢 ${pct}%</span>`;
+    return `<span class="prof-badge prof-mastered" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 8px; border-radius: 6px; font-weight: 700;">🟢 ${pct}%</span>`;
   } else if (acc >= 0.50) {
-    return `<span class="prof-badge prof-developing">🟡 ${pct}%</span>`;
+    return `<span class="prof-badge prof-developing" style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 4px 8px; border-radius: 6px; font-weight: 700;">🟡 ${pct}%</span>`;
   } else {
-    return `<span class="prof-badge prof-struggling">🔴 ${pct}%</span>`;
+    return `<span class="prof-badge prof-struggling" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 8px; border-radius: 6px; font-weight: 700;">🔴 ${pct}%</span>`;
   }
 }
 
-// UNIFIED FILTER & SEARCH LOGIC
+// UNIFIED CLASS & STATUS FILTER LOGIC
 function setRosterFilter(filterType) {
   activeRosterFilter = filterType;
   document.querySelectorAll('.filter-chip').forEach(btn => {
     if (btn.getAttribute('data-filter') === filterType) {
       btn.style.background = 'var(--accent)';
       btn.style.color = 'white';
+      btn.style.borderColor = 'var(--accent)';
     } else {
       btn.style.background = 'var(--bg-primary)';
       btn.style.color = 'var(--text-main)';
+      btn.style.borderColor = 'var(--border-color)';
     }
   });
   applyRosterFilters();
 }
 
 function applyRosterFilters() {
-  const searchInput = document.getElementById('rosterSearchInput');
-  const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
   const todayStr = getTodayDateString();
 
-  let filtered = teacherRosterData.filter(s => {
-    // 1. Category Filter Check
+  // 1. First filter by Class Selection
+  let classFilteredStudents = teacherRosterData;
+  if (activeClassFilter !== 'all') {
+    classFilteredStudents = teacherRosterData.filter(s => s.className === activeClassFilter);
+  }
+
+  // 2. Compute KPI analytics ONLY for students in the selected class
+  renderTeacherKPIs(classFilteredStudents);
+
+  // 3. Next filter by Status Chip (All, Active Today, Needs Attention, Pending)
+  let statusFiltered = classFilteredStudents.filter(s => {
     if (activeRosterFilter === 'active_today') {
       const isToday = s.lastActive && s.lastActive.split('T')[0] === todayStr;
       if (!isToday) return false;
@@ -701,30 +766,22 @@ function applyRosterFilters() {
       let scores = [];
       Object.keys(profs).forEach(k => {
         if (profs[k].length > 0) {
-          scores.push(profs[k].reduce((a, b) => a + b, 0) / profs[k].length);
+          const numArr = profs[k].map(Number);
+          scores.push(numArr.reduce((a, b) => a + b, 0) / numArr.length);
         }
       });
       const avgAcc = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length) : 1;
-      if (avgAcc >= 0.6) return false;
+      if (avgAcc >= 0.50) return false;
     } else if (activeRosterFilter === 'uncompleted_daily') {
       if (s.lastDailyCompleted === todayStr) return false;
     }
-
-    // 2. Real-time Search Query Check
-    if (query) {
-      const matchName = s.name.toLowerCase().includes(query);
-      const matchClass = s.className.toLowerCase().includes(query);
-      const matchCode = String(s.code).includes(query);
-      if (!matchName && !matchClass && !matchCode) return false;
-    }
-
     return true;
   });
 
-  renderRosterTable(filtered);
+  renderRosterTable(statusFiltered);
 }
 
-// STUDENT MANAGEMENT MODAL LOGIC (XP & TOKENS)
+// STUDENT MANAGEMENT MODAL LOGIC WITH KEYPAD
 function openStudentManageModal(studentCode) {
   const student = teacherRosterData.find(s => String(s.code) === String(studentCode));
   if (!student) return;
@@ -736,26 +793,67 @@ function openStudentManageModal(studentCode) {
   document.getElementById('mCurrentXP').innerText = student.xp;
   document.getElementById('mCurrentTokens').innerText = student.tokens;
 
-  document.getElementById('mXPChangeInput').value = '';
-  document.getElementById('mTokenChangeInput').value = '';
+  xpChangeVal = 0;
+  tokenChangeVal = 0;
+  currentDigits = '0';
+  isNegativeSign = false;
 
+  switchManageMode('xp');
   document.getElementById('studentManageModal').classList.remove('hidden');
+}
+
+function switchManageMode(mode) {
+  manageTargetMode = mode;
+  const tabXP = document.getElementById('tabModeXP');
+  const tabTokens = document.getElementById('tabModeTokens');
+  const label = document.getElementById('mActiveModeLabel');
+
+  if (mode === 'xp') {
+    tabXP.style.background = 'var(--accent)';
+    tabXP.style.color = 'white';
+    tabTokens.style.background = 'var(--bg-primary)';
+    tabTokens.style.color = 'var(--text-main)';
+    label.innerText = 'XP Adjustment:';
+  } else {
+    tabTokens.style.background = '#d97706';
+    tabTokens.style.color = 'white';
+    tabXP.style.background = 'var(--bg-primary)';
+    tabXP.style.color = 'var(--text-main)';
+    label.innerText = 'Token Adjustment:';
+  }
+
+  currentDigits = '0';
+  isNegativeSign = false;
+  updateManageKeypadDisplay();
+}
+
+function updateManageKeypadDisplay() {
+  const display = document.getElementById('mKeypadDisplay');
+  const num = parseInt(currentDigits, 10) || 0;
+  const finalVal = isNegativeSign ? -num : num;
+
+  if (manageTargetMode === 'xp') {
+    xpChangeVal = finalVal;
+  } else {
+    tokenChangeVal = finalVal;
+  }
+
+  const signStr = finalVal > 0 ? '+' : '';
+  display.innerText = `${signStr}${finalVal}`;
+  display.style.color = manageTargetMode === 'xp' ? 'var(--accent)' : '#d97706';
 }
 
 async function processStudentManagement() {
   const student = teacherRosterData.find(s => String(s.code) === String(activeManageStudentCode));
   if (!student) return;
 
-  const xpChange = parseInt(document.getElementById('mXPChangeInput').value, 10) || 0;
-  const tokenChange = parseInt(document.getElementById('mTokenChangeInput').value, 10) || 0;
-
-  if (xpChange === 0 && tokenChange === 0) {
-    alert('Please enter an amount for XP or Tokens to update.');
+  if (xpChangeVal === 0 && tokenChangeVal === 0) {
+    alert('Please enter an amount for XP or Tokens using the keypad.');
     return;
   }
 
-  student.xp = Math.max(0, student.xp + xpChange);
-  student.tokens = Math.max(0, student.tokens + tokenChange);
+  student.xp = Math.max(0, student.xp + xpChangeVal);
+  student.tokens = Math.max(0, student.tokens + tokenChangeVal);
 
   if (sheetWebAppUrl) {
     try {
@@ -768,8 +866,8 @@ async function processStudentManagement() {
           totalQuestions: 0,
           accuracy: 100,
           topic: 'Teacher Adjustment',
-          tokensEarned: tokenChange,
-          xpEarned: xpChange,
+          tokensEarned: tokenChangeVal,
+          xpEarned: xpChangeVal,
           newTotalXP: student.xp,
           newStreak: student.streak,
           newTokens: student.tokens,
@@ -781,7 +879,6 @@ async function processStudentManagement() {
   }
 
   document.getElementById('studentManageModal').classList.add('hidden');
-  renderTeacherKPIs(teacherRosterData);
   applyRosterFilters();
   alert(`Updated ${student.name}! New XP: ${student.xp}, New Tokens: ${student.tokens}`);
 }
