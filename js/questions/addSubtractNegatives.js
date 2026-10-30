@@ -2,20 +2,28 @@ import { registerQuestionType, formatMath } from './registry.js';
 
 const addSubtractNegativesModule = {
   generate() {
-    let a, op, b, target;
+    let a, op, b, target, intermediate;
 
-    // Keep numbers within range [-10, 10]
+    // Generate questions where Start, Intermediate Shift, and Target ALL fit within [-10, 10]
     do {
-      a = Math.floor(Math.random() * 13) - 6; // -6 to +6
+      a = Math.floor(Math.random() * 17) - 8; // -8 to +8
       op = Math.random() < 0.5 ? '+' : '-';
       
-      const bMag = Math.floor(Math.random() * 5) + 1; // 1 to 5
+      const bMag = Math.floor(Math.random() * 5) + 1; // 1 to 5 steps
       const bSign = Math.random() < 0.5 ? 1 : -1;
       b = bMag * bSign;
 
+      // Intermediate step before flip
+      intermediate = op === '+' ? a + Math.abs(b) : a - Math.abs(b);
+
       const netShift = op === '+' ? b : -b;
       target = a + netShift;
-    } while (target < -10 || target > 10);
+
+    } while (
+      a < -10 || a > 10 ||
+      intermediate < -10 || intermediate > 10 ||
+      target < -10 || target > 10
+    );
 
     const bFormatted = b < 0 ? `(${b})` : `${b}`;
     const exprStr = `${a} ${op} ${bFormatted}`;
@@ -81,7 +89,7 @@ const addSubtractNegativesModule = {
       }
     }
 
-    // Default start pin position (Offset from q.a initially so student positions it)
+    // Default start pin position offset from q.a initially
     let initialStart = 0;
     if (q.a === 0) initialStart = 3;
 
@@ -95,7 +103,7 @@ const addSubtractNegativesModule = {
           <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 55px; touch-action: none;">
             ${ticksHtml}
 
-            <!-- DRAGGABLE START PIN HANDLE (PURPLE) -->
+            <!-- DRAGGABLE / LOCKABLE START PIN HANDLE (PURPLE) -->
             <div id="startPin" data-val="${initialStart}" style="
               position: absolute;
               top: -34px;
@@ -111,6 +119,7 @@ const addSubtractNegativesModule = {
               cursor: grab;
               touch-action: none;
               z-index: 6;
+              transition: background 0.2s ease, opacity 0.2s ease;
             ">Start: ${initialStart}</div>
 
             <div id="startDot" style="
@@ -125,7 +134,7 @@ const addSubtractNegativesModule = {
               z-index: 5;
             "></div>
 
-            <!-- Dynamic Vector Arrow Bar (Initially Hidden until "Move" is clicked) -->
+            <!-- Dynamic Vector Arrow Bar -->
             <div id="vectorBar" style="
               position: absolute;
               top: -3px;
@@ -157,7 +166,7 @@ const addSubtractNegativesModule = {
               display: none;
             ">0 steps</div>
 
-            <!-- Draggable Arrow Tip Handle (Initially Hidden until "Move" is clicked) -->
+            <!-- Draggable Arrow Tip Handle -->
             <div id="arrowHead" data-val="${initialStart}" style="
               position: absolute;
               top: -28px;
@@ -179,33 +188,46 @@ const addSubtractNegativesModule = {
           </div>
         </div>
 
-        <!-- ACTION BUTTONS BAR: MOVE & FLIP -->
-        <div style="display: flex; justify-content: center; gap: 12px; margin: 15px 0 20px 0; flex-wrap: wrap;">
+        <!-- ACTION BUTTONS BAR: MOVE, FLIP & RESET -->
+        <div style="display: flex; justify-content: center; gap: 10px; margin: 15px 0 20px 0; flex-wrap: wrap;">
           <button id="moveBtn" style="
             background: #3b82f6;
             color: white;
             border: none;
-            padding: 10px 22px;
+            padding: 10px 18px;
             border-radius: 10px;
             font-weight: 800;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
             box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-            transition: transform 0.1s ease;
+            transition: transform 0.1s ease, background 0.2s ease;
           ">➡️ Move</button>
 
           <button id="flipBtn" style="
             background: #ef4444;
             color: white;
             border: none;
-            padding: 10px 22px;
+            padding: 10px 18px;
             border-radius: 10px;
             font-weight: 800;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
             box-shadow: 0 3px 6px rgba(0,0,0,0.15);
             transition: transform 0.1s ease;
           ">🔄 Flip negative number</button>
+
+          <button id="asnResetBtn" style="
+            background: var(--bg-primary);
+            color: var(--text-main);
+            border: 2px solid var(--border-color);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.1s ease;
+          ">↺ Reset</button>
         </div>
 
         <!-- EQUATION INPUT & ENLARGED TOUCH KEYPAD -->
@@ -279,6 +301,7 @@ const addSubtractNegativesModule = {
     const vectorStepBadge = container.querySelector('#vectorStepBadge');
     const moveBtn = container.querySelector('#moveBtn');
     const flipBtn = container.querySelector('#flipBtn');
+    const asnResetBtn = container.querySelector('#asnResetBtn');
     const ansDisplay = container.querySelector('#ansDisplay');
 
     // Automatic color and arrow tip symbol based on direction & flip state
@@ -305,14 +328,17 @@ const addSubtractNegativesModule = {
     };
 
     const updateUI = () => {
-      // Update Start Pin UI
+      // Update Start Pin UI & Lock State
       const startPctVal = ((currentStartVal - minVal) / totalRange) * 100;
       startPin.style.left = `${startPctVal}%`;
       startDot.style.left = `${startPctVal}%`;
-      startPin.innerText = `Start: ${currentStartVal}`;
-      startPin.setAttribute('data-val', currentStartVal);
 
       if (hasMoved) {
+        startPin.style.background = '#6b7280';
+        startPin.style.cursor = 'not-allowed';
+        startPin.style.opacity = '0.85';
+        startPin.innerText = `🔒 Start: ${currentStartVal}`;
+
         // Reveal Vector Arrow & Step Badge
         vectorBar.style.display = 'block';
         vectorStepBadge.style.display = 'block';
@@ -341,26 +367,33 @@ const addSubtractNegativesModule = {
         vectorStepBadge.style.borderColor = color;
         vectorStepBadge.style.color = color;
       } else {
+        startPin.style.background = '#8b5cf6';
+        startPin.style.cursor = 'grab';
+        startPin.style.opacity = '1';
+        startPin.innerText = `Start: ${currentStartVal}`;
+
         vectorBar.style.display = 'none';
         vectorStepBadge.style.display = 'none';
         arrowHead.style.display = 'none';
       }
 
+      startPin.setAttribute('data-val', currentStartVal);
       arrowHead.setAttribute('data-val', currentTipVal);
       arrowHead.setAttribute('data-moved', hasMoved ? 'true' : 'false');
       arrowHead.setAttribute('data-flipped', isFlipped ? 'true' : 'false');
     };
 
-    // POINTER DRAG LOGIC - START PIN
+    // POINTER DRAG LOGIC - START PIN (Disabled when locked)
     let isDraggingStart = false;
     startPin.onpointerdown = (e) => {
+      if (hasMoved) return; // Prevent dragging when locked
       isDraggingStart = true;
       startPin.style.cursor = 'grabbing';
       startPin.setPointerCapture(e.pointerId);
     };
 
     startPin.onpointermove = (e) => {
-      if (!isDraggingStart) return;
+      if (!isDraggingStart || hasMoved) return;
       const rect = track.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const ratio = Math.max(0, Math.min(1, x / rect.width));
@@ -375,12 +408,12 @@ const addSubtractNegativesModule = {
     startPin.onpointerup = (e) => {
       if (isDraggingStart) {
         isDraggingStart = false;
-        startPin.style.cursor = 'grab';
+        if (!hasMoved) startPin.style.cursor = 'grab';
         startPin.releasePointerCapture(e.pointerId);
       }
     };
 
-    // "MOVE" BUTTON LOGIC (ACTIVATES ARROW)
+    // "MOVE" BUTTON LOGIC (ACTIVATES ARROW & LOCKS START PIN)
     moveBtn.onclick = () => {
       hasMoved = true;
       moveBtn.style.background = '#10b981';
@@ -427,6 +460,23 @@ const addSubtractNegativesModule = {
       // Mirror position about start pin
       const distFromStart = currentTipVal - currentStartVal;
       currentTipVal = currentStartVal - distFromStart;
+
+      updateUI();
+    };
+
+    // RESET BUTTON LOGIC
+    asnResetBtn.onclick = () => {
+      hasMoved = false;
+      isFlipped = false;
+      currentStartVal = initialStart;
+      currentTipVal = initialStart;
+      typedAnswer = '';
+
+      moveBtn.style.background = '#3b82f6';
+      moveBtn.innerText = '➡️ Move';
+
+      ansDisplay.innerText = '?';
+      ansDisplay.removeAttribute('data-typed');
 
       updateUI();
     };
