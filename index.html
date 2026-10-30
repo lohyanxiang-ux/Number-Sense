@@ -93,12 +93,10 @@
             <div class="shop-item">
               <h3>Pick Your Seat (1 Wk)</h3>
               <p class="shop-price">🎟️ 50 Tokens</p>
-              <button class="btn">Redeem</button>
             </div>
             <div class="shop-item">
               <h3>Late Homework Pass</h3>
               <p class="shop-price">🎟️ 100 Tokens</p>
-              <button class="btn">Redeem</button>
             </div>
           </div>
         </div>
@@ -127,36 +125,44 @@
         </div>
       </div>
 
-      <!-- Roster Proficiency Table -->
+      <!-- Roster Proficiency Heatmap Table -->
       <div class="card" style="margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
-          <h2>Student Proficiency Heatmap</h2>
-          <input type="text" id="rosterSearchInput" class="input-field" placeholder="🔍 Search student name or class..." style="max-width: 260px;">
+          <div>
+            <h2>Student Proficiency Heatmap</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+              💡 Tap any topic header (e.g. <em>Grid Shader 👁️</em>) to view a live sample question.
+            </p>
+          </div>
+          <input type="text" id="rosterSearchInput" class="input-field" placeholder="🔍 Search name or class..." style="max-width: 240px;">
         </div>
 
-        <div style="overflow-x: auto;">
+        <!-- STICKY FROZEN TABLE WRAPPER -->
+        <div class="teacher-table-wrapper">
           <table class="teacher-table">
             <thead>
               <tr>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Class</th>
-                <th>Streak</th>
-                <th>XP</th>
-                <th>Grid Shader</th>
-                <th>Number Line</th>
-                <th>Equivalence</th>
-                <th>Place Value</th>
+                <th class="sticky-col col-code">Code</th>
+                <th class="sticky-col col-name">Name</th>
+                <th class="sticky-col col-class">Class</th>
+                <th class="sticky-col col-streak">Streak</th>
+                <th class="sticky-col col-xp">XP</th>
+                <th class="sticky-col col-tokens">Tokens</th>
+                <!-- Scrollable Topic Headers -->
+                <th class="topic-hdr" data-type="grid_shader">Grid Shader 👁️</th>
+                <th class="topic-hdr" data-type="number_line">Number Line 👁️</th>
+                <th class="topic-hdr" data-type="equivalence">Equivalence 👁️</th>
+                <th class="topic-hdr" data-type="place_value">Place Value 👁️</th>
               </tr>
             </thead>
             <tbody id="rosterTableBody">
-              <tr><td colspan="9" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
+              <tr><td colspan="10" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- System Connection Settings -->
+      <!-- System Settings -->
       <div class="card">
         <h3>System Settings & Google Sheet Connection</h3>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin: 6px 0 16px 0;">Configure backend URL and sync live database.</p>
@@ -169,6 +175,44 @@
       </div>
     </div>
   </main>
+
+  <!-- MODAL: SAMPLE QUESTION PREVIEW -->
+  <div id="sampleQuestionModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 id="sampleModalTitle">Sample Question Preview</h3>
+        <button class="modal-close" id="closeSampleModalBtn">×</button>
+      </div>
+      <div id="sampleQPrompt" class="q-prompt" style="font-size: 1.1rem; margin-bottom: 16px;"></div>
+      <div id="sampleQWorkspace"></div>
+      <button class="btn" id="newSampleQBtn" style="margin-top: 16px; background: var(--accent);">🎲 Generate Another Sample</button>
+    </div>
+  </div>
+
+  <!-- MODAL: TOKEN REDEMPTION -->
+  <div id="redeemTokenModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 400px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3>Redeem Reward</h3>
+        <button class="modal-close" id="closeRedeemModalBtn">×</button>
+      </div>
+      <p style="margin-bottom: 12px;">Student: <strong id="redeemStudentName">--</strong> (Tokens: <span id="redeemCurrentTokens">0</span>)</p>
+      
+      <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">Select Reward to Deduct:</label>
+      <select id="redeemRewardSelect" class="input-field" style="margin: 8px 0 16px 0;">
+        <option value="50">🎟️ 50 Tokens - Pick Your Seat (1 Week)</option>
+        <option value="100">🎟️ 100 Tokens - Late Homework Pass</option>
+        <option value="custom">Custom Token Deduction</option>
+      </select>
+
+      <div id="customTokenBox" class="hidden" style="margin-bottom: 16px;">
+        <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">Custom Tokens to Deduct:</label>
+        <input type="number" id="customTokenInput" class="input-field" placeholder="Enter amount..." min="1" style="margin-top: 4px;">
+      </div>
+
+      <button class="btn" id="confirmRedeemBtn" style="background: var(--success);">Confirm Redemption</button>
+    </div>
+  </div>
 
   <script type="module" src="js/app.js"></script>
 </body>
