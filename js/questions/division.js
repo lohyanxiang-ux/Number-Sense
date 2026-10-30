@@ -1,4 +1,4 @@
-import { registerQuestionType, formatMath } from './registry.js';
+import { registerQuestionType } from './registry.js';
 
 const funObjects = [
   { name: 'Bananas', emoji: '🍌' },
