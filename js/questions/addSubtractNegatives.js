@@ -103,7 +103,7 @@ const addSubtractNegativesModule = {
           <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 55px; touch-action: none;">
             ${ticksHtml}
 
-            <!-- DRAGGABLE / LOCKABLE START PIN HANDLE (PURPLE) -->
+            <!-- DRAGGABLE START PIN HANDLE (PURPLE - Hidden after Move to avoid overlap) -->
             <div id="startPin" data-val="${initialStart}" style="
               position: absolute;
               top: -34px;
@@ -119,9 +119,10 @@ const addSubtractNegativesModule = {
               cursor: grab;
               touch-action: none;
               z-index: 6;
-              transition: background 0.2s ease, opacity 0.2s ease;
+              transition: opacity 0.2s ease;
             ">Start: ${initialStart}</div>
 
+            <!-- ANCHOR DOT ON THE NUMBER LINE -->
             <div id="startDot" style="
               position: absolute;
               top: -5px;
@@ -273,7 +274,7 @@ const addSubtractNegativesModule = {
 
     container.innerHTML = html;
 
-    // KEYPAD CSS STYLING ENHANCEMENT
+    // KEYPAD CSS STYLING
     container.querySelectorAll('.asn-key').forEach(btn => {
       btn.style.height = '58px';
       btn.style.fontSize = '1.4rem';
@@ -328,16 +329,13 @@ const addSubtractNegativesModule = {
     };
 
     const updateUI = () => {
-      // Update Start Pin UI & Lock State
       const startPctVal = ((currentStartVal - minVal) / totalRange) * 100;
-      startPin.style.left = `${startPctVal}%`;
       startDot.style.left = `${startPctVal}%`;
+      startPin.style.left = `${startPctVal}%`;
 
       if (hasMoved) {
-        startPin.style.background = '#6b7280';
-        startPin.style.cursor = 'not-allowed';
-        startPin.style.opacity = '0.85';
-        startPin.innerText = `🔒 Start: ${currentStartVal}`;
+        // HIDE floating Start Pin badge so it doesn't block arrow dragging
+        startPin.style.display = 'none';
 
         // Reveal Vector Arrow & Step Badge
         vectorBar.style.display = 'block';
@@ -367,6 +365,8 @@ const addSubtractNegativesModule = {
         vectorStepBadge.style.borderColor = color;
         vectorStepBadge.style.color = color;
       } else {
+        // Show Start Pin when positioning initial start number
+        startPin.style.display = 'block';
         startPin.style.background = '#8b5cf6';
         startPin.style.cursor = 'grab';
         startPin.style.opacity = '1';
@@ -383,10 +383,10 @@ const addSubtractNegativesModule = {
       arrowHead.setAttribute('data-flipped', isFlipped ? 'true' : 'false');
     };
 
-    // POINTER DRAG LOGIC - START PIN (Disabled when locked)
+    // POINTER DRAG LOGIC - START PIN (Disabled when moved)
     let isDraggingStart = false;
     startPin.onpointerdown = (e) => {
-      if (hasMoved) return; // Prevent dragging when locked
+      if (hasMoved) return;
       isDraggingStart = true;
       startPin.style.cursor = 'grabbing';
       startPin.setPointerCapture(e.pointerId);
@@ -413,7 +413,7 @@ const addSubtractNegativesModule = {
       }
     };
 
-    // "MOVE" BUTTON LOGIC (ACTIVATES ARROW & LOCKS START PIN)
+    // "MOVE" BUTTON LOGIC (ACTIVATES ARROW & HIDES START PIN BADGE)
     moveBtn.onclick = () => {
       hasMoved = true;
       moveBtn.style.background = '#10b981';
@@ -464,7 +464,7 @@ const addSubtractNegativesModule = {
       updateUI();
     };
 
-    // RESET BUTTON LOGIC
+    // RESET BUTTON LOGIC (Restores Start Pin Badge)
     asnResetBtn.onclick = () => {
       hasMoved = false;
       isFlipped = false;
