@@ -61,12 +61,28 @@
     <div id="appContainer" class="hidden">
       <div class="nav-tabs">
         <button class="tab-btn active" data-tab="practice">Daily Practice</button>
+        <button class="tab-btn" data-tab="extra">Extra Practice ⚡</button>
         <button class="tab-btn" data-tab="shop">Privilege Shop</button>
       </div>
 
-      <!-- Practice Tab -->
+      <!-- Tab 1: Daily Warm-Up Practice -->
       <div id="tabPractice" style="margin-top: 16px;">
-        <div class="card">
+        <!-- Lock Screen if Daily Completed -->
+        <div id="dailyLockedCard" class="card hidden" style="text-align: center; padding: 40px 20px;">
+          <h2 style="color: var(--success); font-size: 1.8rem; margin-bottom: 10px;">🎉 Daily Warm-up Complete!</h2>
+          <p style="font-size: 1.1rem; color: var(--text-main); margin-bottom: 12px;">
+            You have already finished your 5 daily questions for today.
+          </p>
+          <p style="color: var(--text-muted); margin-bottom: 24px;">
+            Come back tomorrow to keep your day streak going! In the meantime, head over to <strong>Extra Practice</strong> to sharpen your skills and earn extra XP.
+          </p>
+          <button class="btn" id="goToExtraBtn" style="max-width: 280px; margin: 0 auto; background: var(--accent);">
+            ⚡ Go to Extra Practice
+          </button>
+        </div>
+
+        <!-- Active Daily Question Card -->
+        <div id="dailyActiveCard" class="card">
           <div class="q-header">
             <span id="qProgress" style="font-weight: 700;">Question 1 of 5</span>
           </div>
@@ -84,7 +100,70 @@
         </div>
       </div>
 
-      <!-- Shop Tab -->
+      <!-- Tab 2: Extra Practice -->
+      <div id="tabExtra" class="hidden" style="margin-top: 16px;">
+        <!-- Setup Screen -->
+        <div id="extraSetupCard" class="card">
+          <h2>⚡ Extra Practice Mode</h2>
+          <p style="color: var(--text-muted); margin: 6px 0 20px 0;">
+            Target specific topics or practice a random set. Earn <strong>+2 XP</strong> for every correct question!
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 16px; max-width: 400px;">
+            <div>
+              <label style="font-weight: 700; font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 6px;">
+                Select Topic:
+              </label>
+              <select id="extraTopicSelect" class="input-field" style="font-size: 1rem; font-weight: 600;">
+                <option value="random">🎲 Random Adaptive Mix</option>
+                <option value="grid_shader">📐 Grid Shader (Fractions / % / Decimals)</option>
+                <option value="number_line">📏 Number Line</option>
+                <option value="equivalence">🃏 Equivalence Matching</option>
+                <option value="placeValue">🔢 Place Value</option>
+                <option value="negative_numbers">➖ Negative Numbers</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-weight: 700; font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 6px;">
+                Number of Questions:
+              </label>
+              <select id="extraCountSelect" class="input-field" style="font-size: 1rem; font-weight: 600;">
+                <option value="3">3 Questions</option>
+                <option value="5" selected>5 Questions</option>
+                <option value="10">10 Questions</option>
+              </select>
+            </div>
+
+            <button class="btn" id="startExtraBtn" style="margin-top: 10px; background: var(--accent);">
+              🚀 Start Practice
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Extra Practice Session Card -->
+        <div id="extraActiveCard" class="card hidden">
+          <div class="q-header">
+            <span id="extraQProgress" style="font-weight: 700;">Question 1 of 5 (Extra)</span>
+            <span class="stat-badge" style="background: rgba(79, 70, 229, 0.1); color: var(--accent); font-size: 0.8rem;">
+              ⚡ +2 XP per correct
+            </span>
+          </div>
+
+          <div id="extraQPrompt" class="q-prompt">Loading extra question...</div>
+          <div id="extraWorkspace"></div>
+
+          <div id="extraFeedbackBox" class="feedback-box hidden">
+            <h3 id="extraFeedbackTitle" style="margin-bottom: 6px;">Explanation</h3>
+            <div id="extraVisualExp" class="visual-explanation"></div>
+            <button class="btn" id="extraNextBtn" style="margin-top: 16px;">Next Question ➔</button>
+          </div>
+
+          <button class="btn" id="extraSubmitBtn" style="margin-top: 20px;">Check Answer</button>
+        </div>
+      </div>
+
+      <!-- Tab 3: Shop -->
       <div id="tabShop" class="hidden" style="margin-top: 16px;">
         <div class="card">
           <h2>Privilege Shop</h2>
@@ -137,27 +216,25 @@
           <input type="text" id="rosterSearchInput" class="input-field" placeholder="🔍 Search name or class..." style="max-width: 240px;">
         </div>
 
-        <!-- STICKY FROZEN TABLE WRAPPER -->
         <div class="teacher-table-wrapper">
           <table class="teacher-table">
             <thead>
               <tr>
                 <th class="sticky-col col-code">Code</th>
                 <th class="sticky-col col-name">Name</th>
-                <th class="sticky-col col-class">Class</th>
-                <th class="sticky-col col-streak">Streak</th>
-                <th class="sticky-col col-xp">XP</th>
-                <th class="sticky-col col-tokens">Tokens</th>
-                <!-- Scrollable Topic Headers -->
+                <th>Class</th>
+                <th>Streak</th>
+                <th>XP</th>
+                <th>Tokens</th>
                 <th class="topic-hdr" data-type="grid_shader">Grid Shader 👁️</th>
                 <th class="topic-hdr" data-type="number_line">Number Line 👁️</th>
                 <th class="topic-hdr" data-type="equivalence">Equivalence 👁️</th>
-                <th class="topic-hdr" data-type="place_value">Place Value 👁️</th>
+                <th class="topic-hdr" data-type="placeValue">Place Value 👁️</th>
                 <th class="topic-hdr" data-type="negative_numbers">Negative Numbers 👁️</th>
               </tr>
             </thead>
             <tbody id="rosterTableBody">
-              <tr><td colspan="10" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
+              <tr><td colspan="11" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
             </tbody>
           </table>
         </div>
