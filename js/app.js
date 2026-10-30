@@ -741,14 +741,14 @@ function renderTeacherKPIs(studentsInSelectedClass) {
   document.getElementById('kpiStruggling').innerText = strugglingCount;
 }
 
-// CALCULATE & RENDER CLASS TOPIC AGGREGATE AVERAGES ROW
-function renderTopicAveragesRow(students) {
+// UPDATE TOPIC AVERAGES DIRECTLY INSIDE COLUMN HEADERS
+function updateHeaderTopicAverages(students) {
   ALL_TOPICS.forEach(topic => {
-    const tdCell = document.getElementById(`avg_${topic.key}`);
-    if (!tdCell) return;
+    const el = document.getElementById(`hdrAvg_${topic.key}`);
+    if (!el) return;
 
     if (!students || students.length === 0) {
-      tdCell.innerHTML = '--';
+      el.innerHTML = `<span style="color:var(--text-muted); font-size:0.75rem; font-weight:600;">(--)</span>`;
       return;
     }
 
@@ -770,18 +770,17 @@ function renderTopicAveragesRow(students) {
     });
 
     if (studentsWithAttempts === 0) {
-      tdCell.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem;">Untried</span>`;
+      el.innerHTML = `<span style="color:var(--text-muted); font-size:0.75rem; font-weight:600;">(⚪ Untried)</span>`;
     } else {
       const topicAvgAcc = totalAccSum / studentsWithAttempts;
       const pct = Math.round(topicAvgAcc * 100);
 
-      // Apply exact thresholds (>80% Green, 50-80% Yellow, <50% Red)
       if (topicAvgAcc > 0.80) {
-        tdCell.innerHTML = `<span style="color:#10b981; font-size:0.9rem;">🟢 ${pct}%</span>`;
+        el.innerHTML = `<span style="color:#10b981; font-size:0.75rem; font-weight:800;">(🟢 ${pct}%)</span>`;
       } else if (topicAvgAcc >= 0.50) {
-        tdCell.innerHTML = `<span style="color:#d97706; font-size:0.9rem;">🟡 ${pct}%</span>`;
+        el.innerHTML = `<span style="color:#d97706; font-size:0.75rem; font-weight:800;">(🟡 ${pct}%)</span>`;
       } else {
-        tdCell.innerHTML = `<span style="color:#ef4444; font-size:0.9rem;">🔴 ${pct}%</span>`;
+        el.innerHTML = `<span style="color:#ef4444; font-size:0.75rem; font-weight:800;">(🔴 ${pct}%)</span>`;
       }
     }
   });
@@ -901,8 +900,8 @@ function applyRosterFilters() {
   // 2. Compute KPI analytics ONLY for students in the selected class
   renderTeacherKPIs(classFilteredStudents);
 
-  // 3. Render Aggregate Topic Average Header Row for the selected class
-  renderTopicAveragesRow(classFilteredStudents);
+  // 3. Update Topic Averages directly inside column headers for the selected class
+  updateHeaderTopicAverages(classFilteredStudents);
 
   // 4. Filter by Status Chip (All, Active Today, Needs Attention, Pending)
   let statusFiltered = classFilteredStudents.filter(s => {
