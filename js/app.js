@@ -39,6 +39,15 @@ let tokenChangeVal = 0;
 let isNegativeSign = false;
 let currentDigits = '0';
 
+const ALL_TOPICS = [
+  { key: 'grid_shader', name: '📐 Grid Shader (Fractions / % / Dec)' },
+  { key: 'number_line', name: '📏 Number Line' },
+  { key: 'equivalence', name: '🃏 Equivalence Matching' },
+  { key: 'place_value', name: '🔢 Place Value' },
+  { key: 'negative_numbers', name: '➖ Negative Numbers' },
+  { key: 'add_subtract_negatives', name: '➕➖ Adding & Subtracting Integers' }
+];
+
 function getTodayDateString() {
   const now = new Date();
   const year = now.getFullYear();
@@ -232,7 +241,7 @@ async function handleLogin() {
         currentUser = {
           code: enteredPin,
           name: data.studentName,
-          class: data.className || 'Sec 2',
+          class: String(data.className || 'Sec 2').trim(),
           xp: data.xp,
           streak: data.streak,
           tokens: data.tokens,
@@ -558,6 +567,95 @@ async function finishExtraPracticeSession() {
   }
 }
 
+// STUDENT MY PROGRESS TAB LOGIC
+function renderStudentProgressTab() {
+  const container = document.getElementById('studentProgressContainer');
+  if (!container || !currentUser) return;
+
+  let html = '';
+  ALL_TOPICS.forEach(topic => {
+    let history = (currentUser.proficiency && currentUser.proficiency[topic.key]) || [];
+    if (topic.key === 'place_value' && history.length === 0 && currentUser.proficiency) {
+      history = currentUser.proficiency['placeValue'] || [];
+    }
+
+    const numHistory = history.map(v => Number(v));
+    const attemptsCount = numHistory.length;
+    
+    let accuracyPct = 0;
+    let badgeHtml = `<span style="background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.85rem;">⚪ Untried</span>`;
+
+    if (attemptsCount > 0) {
+      const score = numHistory.reduce((a, b) => a + b, 0);
+      const acc = score / attemptsCount;
+      accuracyPct = Math.round(acc * 100);
+
+      if (acc > 0.80) {
+        badgeHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">🟢 Mastered (${accuracyPct}%)</span>`;
+      } else if (acc >= 0.50) {
+        badgeHtml = `<span style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 4px 10px; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">🟡 Developing (${accuracyPct}%)</span>`;
+      } else {
+        badgeHtml = `<span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 10px; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">🔴 Needs Practice (${accuracyPct}%)</span>`;
+      }
+    }
+
+    // Render 10 visual dots for attempt history
+    let dotsHtml = '';
+    for (let i = 0; i < 10; i++) {
+      if (i < attemptsCount) {
+        const val = numHistory[i];
+        if (val === 1) {
+          dotsHtml += `<span title="Attempt ${i+1}: Correct" style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:50%; background:#10b981; color:white; font-size:0.75rem; font-weight:800; text-align:center;">✓</span>`;
+        } else {
+          dotsHtml += `<span title="Attempt ${i+1}: Incorrect" style="display:inline-block; width:22px; height:22px; line-height:22px; border-radius:50%; background:#ef4444; color:white; font-size:0.75rem; font-weight:800; text-align:center;">✕</span>`;
+        }
+      } else {
+        dotsHtml += `<span title="Attempt ${i+1}: Empty" style="display:inline-block; width:22px; height:22px; border-radius:50%; background:var(--bg-primary); border:2px dashed var(--border-color);"></span>`;
+      }
+    }
+
+    html += `
+      <div style="background: var(--bg-card); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">${topic.name}</h3>
+          ${badgeHtml}
+        </div>
+
+        <div>
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">Recent 10 Attempts History:</span>
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            ${dotsHtml}
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Logged: <strong>${attemptsCount} / 10</strong></span>
+          <button class="btn btn-practice-topic" data-key="${topic.key}" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--accent);">
+            ⚡ Practice Topic Now
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+
+  // Direct Practice Launch Button Handler
+  container.querySelectorAll('.btn-practice-topic').forEach(btn => {
+    btn.onclick = () => {
+      const topicKey = btn.getAttribute('data-key');
+      const extraSelect = document.getElementById('extraTopicSelect');
+      if (extraSelect) extraSelect.value = topicKey;
+
+      resetExtraPracticeUI();
+      const extraTabBtn = document.querySelector('.tab-btn[data-tab="extra"]');
+      if (extraTabBtn) switchTab('extra', extraTabBtn);
+
+      startExtraPracticeSession();
+    };
+  });
+}
+
 // TEACHER DASHBOARD LOGIC
 async function loadTeacherDashboard() {
   document.getElementById('loginScreen').classList.add('hidden');
@@ -596,8 +694,8 @@ function populateClassDropdown(students) {
   const classSelect = document.getElementById('classFilterSelect');
   if (!classSelect) return;
 
-  const currentSelection = activeClassFilter;
-  const classes = [...new Set(students.map(s => s.className).filter(Boolean))].sort();
+  const currentSelection = activeClassFilter.trim();
+  const classes = [...new Set(students.map(s => String(s.className || '').trim()).filter(Boolean))].sort();
 
   let html = `<option value="all">All Classes</option>`;
   classes.forEach(c => {
@@ -643,6 +741,52 @@ function renderTeacherKPIs(studentsInSelectedClass) {
   document.getElementById('kpiStruggling').innerText = strugglingCount;
 }
 
+// CALCULATE & RENDER CLASS TOPIC AGGREGATE AVERAGES ROW
+function renderTopicAveragesRow(students) {
+  ALL_TOPICS.forEach(topic => {
+    const tdCell = document.getElementById(`avg_${topic.key}`);
+    if (!tdCell) return;
+
+    if (!students || students.length === 0) {
+      tdCell.innerHTML = '--';
+      return;
+    }
+
+    let totalAccSum = 0;
+    let studentsWithAttempts = 0;
+
+    students.forEach(s => {
+      let history = (s.proficiency && s.proficiency[topic.key]) || [];
+      if (topic.key === 'place_value' && history.length === 0 && s.proficiency) {
+        history = s.proficiency['placeValue'] || [];
+      }
+
+      if (history.length > 0) {
+        const numArr = history.map(Number);
+        const avg = numArr.reduce((a, b) => a + b, 0) / numArr.length;
+        totalAccSum += avg;
+        studentsWithAttempts++;
+      }
+    });
+
+    if (studentsWithAttempts === 0) {
+      tdCell.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem;">Untried</span>`;
+    } else {
+      const topicAvgAcc = totalAccSum / studentsWithAttempts;
+      const pct = Math.round(topicAvgAcc * 100);
+
+      // Apply exact thresholds (>80% Green, 50-80% Yellow, <50% Red)
+      if (topicAvgAcc > 0.80) {
+        tdCell.innerHTML = `<span style="color:#10b981; font-size:0.9rem;">🟢 ${pct}%</span>`;
+      } else if (topicAvgAcc >= 0.50) {
+        tdCell.innerHTML = `<span style="color:#d97706; font-size:0.9rem;">🟡 ${pct}%</span>`;
+      } else {
+        tdCell.innerHTML = `<span style="color:#ef4444; font-size:0.9rem;">🔴 ${pct}%</span>`;
+      }
+    }
+  });
+}
+
 function renderRosterTable(students) {
   const tbody = document.getElementById('rosterTableBody');
   if (!students || students.length === 0) {
@@ -650,7 +794,7 @@ function renderRosterTable(students) {
     return;
   }
 
-  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'place_value', 'negative_numbers', 'add_subtract_negatives'];
+  const topicKeys = ALL_TOPICS.map(t => t.key);
 
   let html = '';
   students.forEach(s => {
@@ -717,8 +861,8 @@ function getProfBadgeHtml(history) {
   const acc = score / numHistory.length;
   const pct = Math.round(acc * 100);
 
-  // Exact Threshold Color Rules: <50% Red, 50-75% Yellow, >75% Green
-  if (acc > 0.75) {
+  // Updated Threshold Rules: >80% Green, 50-80% Yellow, <50% Red
+  if (acc > 0.80) {
     return `<span class="prof-badge prof-mastered" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 8px; border-radius: 6px; font-weight: 700;">🟢 ${pct}%</span>`;
   } else if (acc >= 0.50) {
     return `<span class="prof-badge prof-developing" style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 4px 8px; border-radius: 6px; font-weight: 700;">🟡 ${pct}%</span>`;
@@ -747,16 +891,20 @@ function setRosterFilter(filterType) {
 function applyRosterFilters() {
   const todayStr = getTodayDateString();
 
-  // 1. First filter by Class Selection
+  // 1. First filter by Class Selection (Strict String Normalization)
   let classFilteredStudents = teacherRosterData;
   if (activeClassFilter !== 'all') {
-    classFilteredStudents = teacherRosterData.filter(s => s.className === activeClassFilter);
+    const targetClass = activeClassFilter.trim().toLowerCase();
+    classFilteredStudents = teacherRosterData.filter(s => String(s.className || '').trim().toLowerCase() === targetClass);
   }
 
   // 2. Compute KPI analytics ONLY for students in the selected class
   renderTeacherKPIs(classFilteredStudents);
 
-  // 3. Next filter by Status Chip (All, Active Today, Needs Attention, Pending)
+  // 3. Render Aggregate Topic Average Header Row for the selected class
+  renderTopicAveragesRow(classFilteredStudents);
+
+  // 4. Filter by Status Chip (All, Active Today, Needs Attention, Pending)
   let statusFiltered = classFilteredStudents.filter(s => {
     if (activeRosterFilter === 'active_today') {
       const isToday = s.lastActive && s.lastActive.split('T')[0] === todayStr;
@@ -919,10 +1067,15 @@ function switchTab(tabName, targetBtn) {
   document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
   document.getElementById('tabPractice').classList.add('hidden');
   document.getElementById('tabExtra').classList.add('hidden');
+  document.getElementById('tabProgress').classList.add('hidden');
   document.getElementById('tabShop').classList.add('hidden');
 
   if (tabName === 'practice') document.getElementById('tabPractice').classList.remove('hidden');
   if (tabName === 'extra') document.getElementById('tabExtra').classList.remove('hidden');
+  if (tabName === 'progress') {
+    document.getElementById('tabProgress').classList.remove('hidden');
+    renderStudentProgressTab();
+  }
   if (tabName === 'shop') document.getElementById('tabShop').classList.remove('hidden');
 
   targetBtn.classList.add('active');
