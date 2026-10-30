@@ -13,7 +13,11 @@ let questions = [];
 let currentQuestion = null;
 let isExtraPractice = false;
 let enteredPin = '';
+
+// Teacher Dashboard State
 let teacherRosterData = [];
+let activeSampleTopicKey = '';
+let activeRedeemStudentCode = null;
 
 function initApp() {
   const sheetInput = document.getElementById('sheetUrlInput');
@@ -66,14 +70,48 @@ function setupEventHandlers() {
   if (logoutBtn) logoutBtn.onclick = logout;
   if (teacherLogoutBtn) teacherLogoutBtn.onclick = logout;
 
-  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
-    btn.onclick = (e) => switchTab(e.target.getAttribute('data-tab'), e.target);
-  });
-
+  // Real-time Search Handler
   const searchInput = document.getElementById('rosterSearchInput');
   if (searchInput) {
     searchInput.oninput = (e) => filterRosterTable(e.target.value);
   }
+
+  // Clickable Header Handlers for Sample Questions
+  document.querySelectorAll('.topic-hdr').forEach(hdr => {
+    hdr.onclick = () => {
+      const typeKey = hdr.getAttribute('data-type');
+      openSampleQuestionModal(typeKey, hdr.innerText);
+    };
+  });
+
+  // Modal Close Handlers
+  document.getElementById('closeSampleModalBtn').onclick = () => {
+    document.getElementById('sampleQuestionModal').classList.add('hidden');
+  };
+
+  document.getElementById('closeRedeemModalBtn').onclick = () => {
+    document.getElementById('redeemTokenModal').classList.add('hidden');
+  };
+
+  document.getElementById('newSampleQBtn').onclick = () => {
+    generateSampleQuestion(activeSampleTopicKey);
+  };
+
+  // Reward Selection Change Handler
+  document.getElementById('redeemRewardSelect').onchange = (e) => {
+    const customBox = document.getElementById('customTokenBox');
+    if (e.target.value === 'custom') {
+      customBox.classList.remove('hidden');
+    } else {
+      customBox.classList.add('hidden');
+    }
+  };
+
+  document.getElementById('confirmRedeemBtn').onclick = processTokenRedemption;
+
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.onclick = (e) => switchTab(e.target.getAttribute('data-tab'), e.target);
+  });
 }
 
 async function handleLogin() {
@@ -86,7 +124,7 @@ async function handleLogin() {
     return;
   }
 
-  // 1. TEACHER LOGIN CHECK (CODE 3005)
+  // 1. TEACHER DASHBOARD LOGIN (PIN 3005)
   if (enteredPin === '3005') {
     enteredPin = '';
     document.getElementById('pinDisplay').innerText = '••••';
@@ -187,7 +225,6 @@ function renderTeacherKPIs(students) {
       activeTodayCount++;
     }
 
-    // Evaluate overall proficiency across topics
     const profs = s.proficiency || {};
     let scores = [];
     Object.keys(profs).forEach(k => {
@@ -212,7 +249,7 @@ function renderTeacherKPIs(students) {
 function renderRosterTable(students) {
   const tbody = document.getElementById('rosterTableBody');
   if (students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px;">No student records found or URL not configured.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
@@ -222,11 +259,15 @@ function renderRosterTable(students) {
   students.forEach(s => {
     html += `
       <tr>
-        <td><strong>${s.code}</strong></td>
-        <td>${s.name}</td>
-        <td>${s.className}</td>
-        <td>🔥 ${s.streak}</td>
-        <td>⭐ ${s.xp}</td>
+        <td class="sticky-col col-code"><strong>${s.code}</strong></td>
+        <td class="sticky-col col-name">${s.name}</td>
+        <td class="sticky-col col-class">${s.className}</td>
+        <td class="sticky-col col-streak">🔥 ${s.streak}</td>
+        <td class="sticky-col col-xp">⭐ ${s.xp}</td>
+        <td class="sticky-col col-tokens">
+          🎟️ <strong>${s.tokens}</strong>
+          <button class="btn-redeem" data-code="${s.code}">Redeem</button>
+        </td>
     `;
 
     topicKeys.forEach(tKey => {
@@ -238,6 +279,14 @@ function renderRosterTable(students) {
   });
 
   tbody.innerHTML = html;
+
+  // Attach Redeem Button Handlers
+  tbody.querySelectorAll('.btn-redeem').forEach(btn => {
+    btn.onclick = () => {
+      const code = btn.getAttribute('data-code');
+      openRedeemModal(code);
+    };
+  });
 }
 
 function getProfBadgeHtml(history) {
@@ -258,14 +307,106 @@ function getProfBadgeHtml(history) {
   }
 }
 
+// Search Filter Logic
 function filterRosterTable(query) {
-  const q = query.toLowerCase();
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    renderRosterTable(teacherRosterData);
+    return;
+  }
+
   const filtered = teacherRosterData.filter(s => 
     s.name.toLowerCase().includes(q) || 
     s.className.toLowerCase().includes(q) ||
     String(s.code).includes(q)
   );
+
   renderRosterTable(filtered);
+}
+
+// Sample Question Teaching Demo
+function openSampleQuestionModal(typeKey, titleText) {
+  activeSampleTopicKey = typeKey;
+  document.getElementById('sampleModalTitle').innerText = titleText.replace('👁️', '') + ' - Teaching Sample';
+  document.getElementById('sampleQuestionModal').classList.remove('hidden');
+  generateSampleQuestion(typeKey);
+}
+
+function generateSampleQuestion(typeKey) {
+  // Construct a dummy single-topic map to generate specific question
+  const dummyMap = {};
+  dummyMap[typeKey] = [0]; 
+  const sampleQ = getAdaptiveQuestion(dummyMap);
+
+  document.getElementById('sampleQPrompt').innerHTML = sampleQ.prompt;
+  const ws = document.getElementById('sampleQWorkspace');
+  renderQuestion(sampleQ, ws);
+}
+
+// Token Redemption Logic
+function openRedeemModal(studentCode) {
+  const student = teacherRosterData.find(s => String(s.code) === String(studentCode));
+  if (!student) return;
+
+  activeRedeemStudentCode = studentCode;
+  document.getElementById('redeemStudentName').innerText = student.name;
+  document.getElementById('redeemCurrentTokens').innerText = student.tokens;
+  document.getElementById('redeemRewardSelect').value = '50';
+  document.getElementById('customTokenBox').classList.add('hidden');
+  document.getElementById('customTokenInput').value = '';
+
+  document.getElementById('redeemTokenModal').classList.remove('hidden');
+}
+
+async function processTokenRedemption() {
+  const student = teacherRosterData.find(s => String(s.code) === String(activeRedeemStudentCode));
+  if (!student) return;
+
+  const selVal = document.getElementById('redeemRewardSelect').value;
+  let cost = 0;
+
+  if (selVal === 'custom') {
+    cost = parseInt(document.getElementById('customTokenInput').value, 10);
+    if (isNaN(cost) || cost <= 0) {
+      alert("Please enter a valid token amount.");
+      return;
+    }
+  } else {
+    cost = parseInt(selVal, 10);
+  }
+
+  if (student.tokens < cost) {
+    alert(`Student only has ${student.tokens} tokens (Needs ${cost}).`);
+    return;
+  }
+
+  student.tokens -= cost;
+
+  // Sync token deduction to backend Google Sheet
+  if (sheetWebAppUrl) {
+    try {
+      await fetch(sheetWebAppUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'saveProgress',
+          studentCode: student.code,
+          studentName: student.name,
+          totalQuestions: 0,
+          accuracy: 100,
+          topic: 'Reward Redemption',
+          tokensEarned: -cost,
+          newTotalXP: student.xp,
+          newStreak: student.streak,
+          newTokens: student.tokens,
+          proficiency: student.proficiency
+        })
+      });
+    } catch(e) {}
+  }
+
+  document.getElementById('redeemTokenModal').classList.add('hidden');
+  renderRosterTable(teacherRosterData);
+  alert(`Redeemed! ${cost} tokens deducted from ${student.name}.`);
 }
 
 function logout() {
