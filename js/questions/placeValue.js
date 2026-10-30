@@ -2,134 +2,92 @@ import { registerQuestionType, formatMath } from './registry.js';
 
 const placeValueModule = {
   generate() {
-    const questionPool = [
-      // Decimals (Tenths, Hundredths, Thousandths)
-      {
-        numStr: '4582.391',
-        digits: ['4', '5', '8', '2', '.', '3', '9', '1'],
-        prompt: 'Tap the digit in the <strong>hundredths</strong> place:',
-        targetIdx: 6, // '9'
-        exp: 'In 4582.391, 3 is in tenths (0.3), 9 is in hundredths (0.09), and 1 is in thousandths (0.001).'
-      },
-      {
-        numStr: '703.452',
-        digits: ['7', '0', '3', '.', '4', '5', '2'],
-        prompt: 'Tap the digit that has a value of <strong>0.05</strong>:',
-        targetIdx: 5, // '5'
-        exp: 'The digit 5 is in the hundredths place, giving it a value of 5 hundredths (0.05).'
-      },
-      {
-        numStr: '12.608',
-        digits: ['1', '2', '.', '6', '0', '8'],
-        prompt: 'Tap the digit in the <strong>thousandths</strong> place:',
-        targetIdx: 5, // '8'
-        exp: 'In 12.608, 6 is in tenths, 0 is in hundredths, and 8 is in thousandths.'
-      },
+    // Generate a random number with whole and decimal parts
+    const whole = Math.floor(Math.random() * 9000) + 1000; // 1000-9999
+    const dec = Math.floor(Math.random() * 900) + 100; // 100-999
+    const numStr = `${whole}.${dec}`;
 
-      // Whole Numbers (Thousands, Hundreds, Tens, Ones)
-      {
-        numStr: '6492.15',
-        digits: ['6', '4', '9', '2', '.', '1', '5'],
-        prompt: 'Tap the digit that has a value of <strong>400</strong>:',
-        targetIdx: 1, // '4'
-        exp: 'The digit 4 is in the hundreds place, so its value is 4 x 100 = 400.'
-      },
-      {
-        numStr: '8051.37',
-        digits: ['8', '0', '5', '1', '.', '3', '7'],
-        prompt: 'Tap the digit in the <strong>tens</strong> place:',
-        targetIdx: 2, // '5'
-        exp: 'In 8051.37, 8 is thousands, 0 is hundreds, 5 is tens, and 1 is ones.'
-      }
+    // Pick a place value to test
+    const places = [
+      { name: 'Thousands', idx: 0 },
+      { name: 'Hundreds', idx: 1 },
+      { name: 'Tens', idx: 2 },
+      { name: 'Ones', idx: 3 },
+      { name: 'Tenths', idx: 5 },
+      { name: 'Hundredths', idx: 6 },
+      { name: 'Thousandths', idx: 7 }
     ];
 
-    const q = questionPool[Math.floor(Math.random() * questionPool.length)];
+    const targetPlace = places[Math.floor(Math.random() * places.length)];
+    const targetDigit = numStr[targetPlace.idx];
 
     return {
-      type: 'place_value',
-      prompt: q.prompt,
-      numStr: q.numStr,
-      digits: q.digits,
-      targetIdx: q.targetIdx,
-      explanation: formatMath(q.exp)
+      type: 'place_value', // UNDERSCORE KEY
+      numStr: numStr,
+      targetPlaceName: targetPlace.name,
+      targetIdx: targetPlace.idx,
+      targetDigit: targetDigit,
+      prompt: `Tap the digit in the <strong>${targetPlace.name}</strong> place in <strong>${numStr}</strong>:`,
+      explanation: `In <strong>${numStr}</strong>, the digit in the <strong>${targetPlace.name}</strong> position is <strong>${targetDigit}</strong>.`
     };
   },
 
   render(q, container) {
-    let html = `
-      <div style="text-align: center; margin: 24px 0;">
-        <div class="pv-digit-row" style="
-          display: inline-flex;
-          gap: 8px;
-          align-items: center;
-          justify-content: center;
-          background: var(--bg-primary);
-          padding: 16px 24px;
-          border-radius: var(--radius);
-          border: 2px solid var(--border-color);
-        ">
-    `;
-
-    q.digits.forEach((char, idx) => {
+    let digitsHtml = '';
+    for (let i = 0; i < q.numStr.length; i++) {
+      const char = q.numStr[i];
       if (char === '.') {
-        html += `
-          <span style="
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: var(--accent);
-            padding: 0 4px;
-            user-select: none;
-          ">.</span>
-        `;
+        digitsHtml += `<span style="font-size: 2.2rem; font-weight: 800; margin: 0 2px; align-self: flex-end;">.</span>`;
       } else {
-        html += `
-          <button class="pv-digit-card" data-idx="${idx}" style="
-            background: var(--bg-card);
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            width: 48px;
-            height: 60px;
+        digitsHtml += `
+          <button class="pv-digit-btn" data-idx="${i}" style="
             font-size: 1.8rem;
             font-weight: 800;
+            width: 48px;
+            height: 58px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
             color: var(--text-main);
             cursor: pointer;
             transition: all 0.15s ease;
-            user-select: none;
-            -webkit-user-select: none;
           ">${char}</button>
         `;
       }
-    });
+    }
 
-    html += `
+    const html = `
+      <div style="max-width: 450px; margin: 0 auto; text-align: center; user-select: none;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin: 20px 0;">
+          ${digitsHtml}
         </div>
       </div>
     `;
 
     container.innerHTML = html;
 
-    // Single Selection Event Handler
-    container.querySelectorAll('.pv-digit-card').forEach(card => {
-      card.onclick = () => {
-        container.querySelectorAll('.pv-digit-card').forEach(c => {
-          c.style.borderColor = 'var(--border-color)';
-          c.style.background = 'var(--bg-card)';
-          c.style.color = 'var(--text-main)';
-          c.classList.remove('selected');
+    container.querySelectorAll('.pv-digit-btn').forEach(btn => {
+      btn.onclick = () => {
+        container.querySelectorAll('.pv-digit-btn').forEach(b => {
+          b.style.borderColor = 'var(--border-color)';
+          b.style.background = 'var(--bg-card)';
+          b.style.color = 'var(--text-main)';
+          b.classList.remove('selected');
         });
 
-        card.style.borderColor = 'var(--accent)';
-        card.style.background = 'var(--accent)';
-        card.style.color = 'white';
-        card.classList.add('selected');
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.background = 'var(--accent)';
+        btn.style.color = 'white';
+        btn.classList.add('selected');
       };
     });
   },
 
   evaluate(q) {
-    const selected = document.querySelector('.pv-digit-card.selected');
-    if (!selected) return false;
-    const selectedIdx = parseInt(selected.getAttribute('data-idx'));
+    const selectedBtn = document.querySelector('.pv-digit-btn.selected');
+    if (!selectedBtn) return false;
+
+    const selectedIdx = parseInt(selectedBtn.getAttribute('data-idx'), 10);
     return selectedIdx === q.targetIdx;
   }
 };
