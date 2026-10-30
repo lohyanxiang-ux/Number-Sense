@@ -18,7 +18,6 @@ let questions = [];
 let currentQuestion = null;
 
 // Extra Practice State
-let isExtraMode = false;
 let extraQuestions = [];
 let extraQIndex = 0;
 let extraSessionScore = 0;
@@ -336,7 +335,6 @@ async function finishDailySession() {
     if (extraTabBtn) switchTab('extra', extraTabBtn);
   };
 
-  // Sync Daily Warm-up to Backend
   if (sheetWebAppUrl) {
     try {
       await fetch(sheetWebAppUrl, {
@@ -362,6 +360,31 @@ async function finishDailySession() {
 }
 
 // EXTRA PRACTICE LOGIC
+function resetExtraPracticeUI() {
+  document.getElementById('extraActiveCard').innerHTML = `
+    <div class="q-header">
+      <span id="extraQProgress" style="font-weight: 700;">Question 1 of 5 (Extra)</span>
+      <span class="stat-badge" style="background: rgba(79, 70, 229, 0.1); color: var(--accent); font-size: 0.8rem;">
+        ⚡ +2 XP per correct
+      </span>
+    </div>
+
+    <div id="extraQPrompt" class="q-prompt">Loading extra question...</div>
+    <div id="extraWorkspace"></div>
+
+    <div id="extraFeedbackBox" class="feedback-box hidden">
+      <h3 id="extraFeedbackTitle" style="margin-bottom: 6px;">Explanation</h3>
+      <div id="extraVisualExp" class="visual-explanation"></div>
+      <button class="btn" id="extraNextBtn" style="margin-top: 16px;">Next Question ➔</button>
+    </div>
+
+    <button class="btn" id="extraSubmitBtn" style="margin-top: 20px;">Check Answer</button>
+  `;
+
+  document.getElementById('extraSubmitBtn').onclick = handleExtraAnswerSubmit;
+  document.getElementById('extraNextBtn').onclick = handleExtraNextQuestion;
+}
+
 function startExtraPracticeSession() {
   activeExtraTopicKey = document.getElementById('extraTopicSelect').value;
   extraTotalQuestions = parseInt(document.getElementById('extraCountSelect').value, 10);
@@ -413,7 +436,7 @@ function handleExtraAnswerSubmit() {
     extraSessionScore++;
     fbBox.classList.add('feedback-correct');
     document.getElementById('extraFeedbackTitle').innerText = "🎯 Correct! (+2 XP)";
-    currentUser.xp += 2; // +2 XP per correct question in Extra Practice
+    currentUser.xp += 2;
     updateHeader();
   } else {
     fbBox.classList.add('feedback-incorrect');
@@ -452,11 +475,11 @@ async function finishExtraPracticeSession() {
   `;
 
   document.getElementById('btnRestartExtra').onclick = () => {
-    // Reset Extra Practice Card view to setup
-    window.location.reload(); 
+    resetExtraPracticeUI();
+    document.getElementById('extraActiveCard').classList.add('hidden');
+    document.getElementById('extraSetupCard').classList.remove('hidden');
   };
 
-  // Sync Extra Practice Session to Backend (isDailyWarmup = false)
   if (sheetWebAppUrl) {
     try {
       await fetch(sheetWebAppUrl, {
@@ -553,11 +576,11 @@ function renderTeacherKPIs(students) {
 function renderRosterTable(students) {
   const tbody = document.getElementById('rosterTableBody');
   if (students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
-  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'placeValue', 'negative_numbers'];
+  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'placeValue', 'negative_numbers', 'add_subtract_negatives'];
 
   let html = '';
   students.forEach(s => {
@@ -586,7 +609,6 @@ function renderRosterTable(students) {
 
   tbody.innerHTML = html;
 
-  // Toggle Masked Student Code Handler
   tbody.querySelectorAll('.code-toggle').forEach(el => {
     el.onclick = () => {
       const realCode = el.getAttribute('data-code');
@@ -600,7 +622,6 @@ function renderRosterTable(students) {
     };
   });
 
-  // Attach Redeem Button Handlers
   tbody.querySelectorAll('.btn-redeem').forEach(btn => {
     btn.onclick = () => {
       const code = btn.getAttribute('data-code');
