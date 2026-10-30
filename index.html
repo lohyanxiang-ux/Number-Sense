@@ -139,26 +139,30 @@
 
         <!-- STICKY FROZEN TABLE WRAPPER -->
         <div class="teacher-table-wrapper">
-          <table class="teacher-table">
-            <thead>
-              <tr>
-                <th class="sticky-col col-code">Code</th>
-                <th class="sticky-col col-name">Name</th>
-                <th class="sticky-col col-class">Class</th>
-                <th class="sticky-col col-streak">Streak</th>
-                <th class="sticky-col col-xp">XP</th>
-                <th class="sticky-col col-tokens">Tokens</th>
-                <!-- Scrollable Topic Headers -->
-                <th class="topic-hdr" data-type="grid_shader">Grid Shader 👁️</th>
-                <th class="topic-hdr" data-type="number_line">Number Line 👁️</th>
-                <th class="topic-hdr" data-type="equivalence">Equivalence 👁️</th>
-                <th class="topic-hdr" data-type="place_value">Place Value 👁️</th>
-              </tr>
-            </thead>
-            <tbody id="rosterTableBody">
-              <tr><td colspan="10" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
-            </tbody>
-          </table>
+<table class="teacher-table">
+  <thead>
+    <tr>
+      <!-- FROZEN/STICKY COLUMNS -->
+      <th class="sticky-col col-code">Code</th>
+      <th class="sticky-col col-name">Name</th>
+
+      <!-- SCROLLABLE METRIC COLUMNS -->
+      <th>Class</th>
+      <th>Streak</th>
+      <th>XP</th>
+      <th>Tokens</th>
+
+      <!-- SCROLLABLE TOPIC PROFICIENCY COLUMNS -->
+      <th class="topic-hdr" data-type="grid_shader">Grid Shader 👁️</th>
+      <th class="topic-hdr" data-type="number_line">Number Line 👁️</th>
+      <th class="topic-hdr" data-type="equivalence">Equivalence 👁️</th>
+      <th class="topic-hdr" data-type="place_value">Place Value 👁️</th>
+    </tr>
+  </thead>
+  <tbody id="rosterTableBody">
+    <tr><td colspan="10" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
+  </tbody>
+</table>
         </div>
       </div>
 
