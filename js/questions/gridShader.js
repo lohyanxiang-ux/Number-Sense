@@ -80,7 +80,7 @@ const gridShaderModule = {
         const randomShape = Math.random() < 0.5 ? 'square' : 'circle';
         return {
           type: 'grid_shader',
-          prompt: `Shade <strong>${formatMath(t.targetStr)}</strong> of the shape below:`,
+          prompt: `Represent <strong>${formatMath(t.targetStr)}</strong> by shading the shape below:`,
           targetRatio: t.ratio,
           partition: randomPartition,
           shape: randomShape,
