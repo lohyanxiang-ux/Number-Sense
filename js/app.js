@@ -3,6 +3,7 @@ import './questions/numberLine.js';
 import './questions/gridShader.js';
 import './questions/equivalence.js';
 import './questions/placeValue.js';
+import './questions/negativeNumbers.js';
 
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
