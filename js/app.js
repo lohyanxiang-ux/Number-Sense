@@ -261,7 +261,8 @@ function handleAnswerSubmit() {
   }
 
   currentUser.proficiency[qType].push(isCorrect ? 1 : 0);
-  currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-5);
+  // Keep the latest 10 attempts
+  currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-10);
 
   const fbBox = document.getElementById('feedbackBox');
   fbBox.classList.remove('hidden', 'feedback-correct', 'feedback-incorrect');
@@ -427,7 +428,8 @@ function handleExtraAnswerSubmit() {
   }
 
   currentUser.proficiency[qType].push(isCorrect ? 1 : 0);
-  currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-5);
+  // Keep the latest 10 attempts
+  currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-10);
 
   const fbBox = document.getElementById('extraFeedbackBox');
   fbBox.classList.remove('hidden', 'feedback-correct', 'feedback-incorrect');
@@ -580,7 +582,7 @@ function renderRosterTable(students) {
     return;
   }
 
-  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'place_Value', 'negative_numbers', 'add_subtract_negatives'];
+  const topicKeys = ['grid_shader', 'number_line', 'equivalence', 'place_value', 'negative_numbers', 'add_subtract_negatives'];
 
   let html = '';
   students.forEach(s => {
