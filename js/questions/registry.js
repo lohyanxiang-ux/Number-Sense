@@ -8,6 +8,14 @@ export function registerQuestionType(typeKey, module) {
   registry[typeKey] = module;
 }
 
+// Generate a specific question type directly (for teacher teaching samples)
+export function getQuestionByType(typeKey) {
+  if (registry[typeKey]) {
+    return registry[typeKey].generate();
+  }
+  return null;
+}
+
 // Adaptive Weighted Question Selection
 export function getAdaptiveQuestion(proficiencyMap = {}) {
   const keys = Object.keys(registry);
