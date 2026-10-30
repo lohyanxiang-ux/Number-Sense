@@ -17,7 +17,7 @@ const divisionModule = {
   generate() {
     const b = Math.floor(Math.random() * 4) + 2; // Divisor (groups): 2 to 5
     const target = Math.floor(Math.random() * 5) + 2; // Quotient (per group): 2 to 6
-    const a = b * target; // Dividend (total items): e.g. 8
+    const a = b * target; // Dividend (total items)
 
     const item = funObjects[Math.floor(Math.random() * funObjects.length)];
     const exprStr = `${a} ÷ ${b}`;
@@ -37,8 +37,8 @@ const divisionModule = {
 
   render(q, container) {
     let unallocatedCount = q.a;
-    let selectedGroupCount = 0; // Starts unselected or default
-    let groupCounts = []; // Array tracking items allocated per group
+    let selectedGroupCount = 0;
+    let groupCounts = [];
     let typedAnswer = '';
 
     const html = `
@@ -106,7 +106,6 @@ const divisionModule = {
             border: 2px dashed var(--accent);
             border-radius: 10px;
           ">
-            <!-- Pool emoji items generated dynamically -->
           </div>
         </div>
 
@@ -182,7 +181,6 @@ const divisionModule = {
 
     container.innerHTML = html;
 
-    // KEYPAD CSS STYLING
     container.querySelectorAll('.div-key').forEach(btn => {
       btn.style.height = '58px';
       btn.style.fontSize = '1.4rem';
@@ -201,7 +199,6 @@ const divisionModule = {
     const sentenceEl = container.querySelector('#divAddSentence');
     const ansDisplay = container.querySelector('#ansDisplay');
 
-    // RENDER POOL EMOJIS
     const renderPool = () => {
       let poolHtml = '';
       for (let i = 0; i < unallocatedCount; i++) {
@@ -221,7 +218,6 @@ const divisionModule = {
       poolEl.innerHTML = poolHtml;
       poolBadge.innerText = `${unallocatedCount} Remaining`;
 
-      // Enable touch drag / tap on pool items
       poolEl.querySelectorAll('.div-pool-item').forEach(itemEl => {
         let clone = null;
 
@@ -255,7 +251,6 @@ const divisionModule = {
               clone = null;
             }
 
-            // Check if dropped onto a group tray
             document.querySelectorAll('.div-tray-card').forEach((tray, gIdx) => {
               const rect = tray.getBoundingClientRect();
               if (
@@ -267,10 +262,9 @@ const divisionModule = {
             });
           };
         };
-      };
+      });
     };
 
-    // UPDATE REPEATED DIVISION SENTENCE DISPLAY
     const updateSentenceDisplay = () => {
       if (selectedGroupCount === 0) {
         sentenceEl.innerText = 'Select groups to begin';
@@ -294,7 +288,6 @@ const divisionModule = {
       container.setAttribute('data-group-counts', JSON.stringify(groupCounts));
     };
 
-    // ALLOCATE ONE ITEM TO A SPECIFIC GROUP
     const allocateToGroup = (gIdx) => {
       if (unallocatedCount > 0) {
         unallocatedCount--;
@@ -305,7 +298,6 @@ const divisionModule = {
       }
     };
 
-    // DE-ALLOCATE ONE ITEM FROM A GROUP BACK TO POOL
     const deallocateFromGroup = (gIdx) => {
       if (groupCounts[gIdx] > 0) {
         groupCounts[gIdx]--;
@@ -316,7 +308,6 @@ const divisionModule = {
       }
     };
 
-    // RENDER GROUP TRAYS
     const renderTrays = () => {
       if (selectedGroupCount === 0) return;
 
@@ -373,7 +364,6 @@ const divisionModule = {
 
       traysContainer.innerHTML = traysHtml;
 
-      // Group tray tap handlers
       traysContainer.querySelectorAll('.div-tray-card').forEach((trayEl, gIdx) => {
         trayEl.onclick = () => {
           if (unallocatedCount > 0) {
@@ -385,17 +375,14 @@ const divisionModule = {
       });
     };
 
-    // STEP 1: SELECT NUMBER OF GROUPS HANDLER
     container.querySelectorAll('.div-group-btn').forEach(btn => {
       btn.onclick = () => {
         const count = parseInt(btn.getAttribute('data-cnt'), 10);
         selectedGroupCount = count;
 
-        // Reset selections & allocation counts
         unallocatedCount = q.a;
         groupCounts = Array(count).fill(0);
 
-        // Highlight selected button
         container.querySelectorAll('.div-group-btn').forEach(b => {
           if (parseInt(b.getAttribute('data-cnt'), 10) === count) {
             b.style.background = 'var(--accent)';
@@ -414,7 +401,6 @@ const divisionModule = {
       };
     });
 
-    // KEYPAD EVENT HANDLERS
     container.querySelectorAll('.div-key[data-k]').forEach(btn => {
       btn.onclick = () => {
         const k = btn.getAttribute('data-k');
@@ -447,10 +433,6 @@ const divisionModule = {
     const groupCounts = groupCountsJson ? JSON.parse(groupCountsJson) : [];
     const userTypedVal = parseInt(ansDisplay.getAttribute('data-typed'), 10);
 
-    // Evaluation checks:
-    // 1. Group count matches divisor (q.b)
-    // 2. All groups have exactly the target quotient items (q.target)
-    // 3. User typed answer matches quotient (q.target)
     const isGroupCountCorrect = selectedGroups === q.b;
     const isDistributionCorrect = groupCounts.length === q.b && groupCounts.every(cnt => cnt === q.target);
     const isTypedAnswerCorrect = userTypedVal === q.target;
