@@ -29,16 +29,24 @@ const divisionModule = {
       itemEmoji: item.emoji,
       itemName: item.name,
       exprStr: `${a} ÷ ${b}`,
-      prompt: `Evaluate <strong>${a} divide ${b} by dividing into equal groups</strong>:`,
-      explanation: `<strong>${a} ÷ ${b}</strong> means dividing <strong>${a} ${item.emoji}</strong> equally into <strong>${b} groups</strong>.<br>Each group gets <strong>${target} ${item.emoji}</strong>.`
+      prompt: `Evaluate <strong>${a} ÷ ${b} by dividing into equal groups</strong>:`,
+      explanation: `<strong>${a} ÷ ${b}</strong> means dividing <strong>${a} ${item.emoji}</strong> equally into <strong>${b} groups</strong>.<br>Each group gets <strong>${target} ${item.emoji}</strong>.`,
+      userSelectedGroups: 0,
+      userGroupCounts: [],
+      userTypedAnswer: ''
     };
   },
 
   render(q, container) {
     let unallocatedCount = q.a;
-    let selectedGroupCount = 0;
-    let groupCounts = [];
-    let typedAnswer = '';
+    let selectedGroupCount = q.userSelectedGroups || 0;
+    let groupCounts = q.userGroupCounts || [];
+    let typedAnswer = q.userTypedAnswer || '';
+
+    // Initialize state on question object
+    q.userSelectedGroups = selectedGroupCount;
+    q.userGroupCounts = groupCounts;
+    q.userTypedAnswer = typedAnswer;
 
     const html = `
       <div style="max-width: 620px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
@@ -122,7 +130,7 @@ const divisionModule = {
           </div>
         </div>
 
-        <!-- EQUATION INPUT & ENLARGED TOUCH KEYPAD -->
+        <!-- EQUATION INPUT & TOUCH KEYPAD -->
         <div style="
           background: var(--bg-primary); 
           border: 2px solid var(--border-color); 
@@ -139,7 +147,7 @@ const divisionModule = {
               padding: 0 12px;
               min-width: 65px;
               display: inline-block;
-            ">?</span>
+            ">${typedAnswer || '?'}</span>
           </div>
 
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
@@ -231,7 +239,7 @@ const divisionModule = {
               clone = null;
             }
 
-            document.querySelectorAll('.div-tray-card').forEach((tray, gIdx) => {
+            container.querySelectorAll('.div-tray-card').forEach((tray, gIdx) => {
               const rect = tray.getBoundingClientRect();
               if (
                 pe.clientX >= rect.left && pe.clientX <= rect.right &&
@@ -249,6 +257,7 @@ const divisionModule = {
       if (unallocatedCount > 0) {
         unallocatedCount--;
         groupCounts[gIdx]++;
+        q.userGroupCounts = [...groupCounts];
         renderPool();
         renderTrays();
       }
@@ -258,6 +267,7 @@ const divisionModule = {
       if (groupCounts[gIdx] > 0) {
         groupCounts[gIdx]--;
         unallocatedCount++;
+        q.userGroupCounts = [...groupCounts];
         renderPool();
         renderTrays();
       }
@@ -266,15 +276,11 @@ const divisionModule = {
     const renderTrays = () => {
       if (selectedGroupCount === 0) return;
 
-      container.setAttribute('data-selected-groups', selectedGroupCount);
-      container.setAttribute('data-group-counts', JSON.stringify(groupCounts));
-
-      // CHECK IF ALL ITEMS ARE DIVIDED EQUALLY
       const isAllDivided = (unallocatedCount === 0);
       const isAllEqual = groupCounts.length > 0 && groupCounts.every(val => val === groupCounts[0] && val > 0);
       const isFullyEqual = isAllDivided && isAllEqual;
 
-      // COLOR THEME: GREEN IF EQUAL & COMPLETE, RED IF NOT EQUAL
+      // RED if unequal or incomplete, GREEN when all items divided equally
       const trayBorderColor = isFullyEqual ? '#10b981' : '#ef4444';
       const trayBg = isFullyEqual ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.06)';
       const badgeBg = isFullyEqual ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)';
@@ -348,9 +354,11 @@ const divisionModule = {
       btn.onclick = () => {
         const count = parseInt(btn.getAttribute('data-cnt'), 10);
         selectedGroupCount = count;
-
         unallocatedCount = q.a;
         groupCounts = Array(count).fill(0);
+
+        q.userSelectedGroups = count;
+        q.userGroupCounts = [...groupCounts];
 
         container.querySelectorAll('.div-group-btn').forEach(b => {
           if (parseInt(b.getAttribute('data-cnt'), 10) === count) {
@@ -375,34 +383,31 @@ const divisionModule = {
         if (typedAnswer === '0') typedAnswer = k;
         else typedAnswer += k;
 
+        q.userTypedAnswer = typedAnswer;
         ansDisplay.innerText = typedAnswer || '?';
-        ansDisplay.setAttribute('data-typed', typedAnswer);
       };
     });
 
-    container.querySelector('#divClear').onclick = () => {
-      typedAnswer = '';
-      ansDisplay.innerText = '?';
-      ansDisplay.removeAttribute('data-typed');
-    };
+    const clearBtn = container.querySelector('#divClear');
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        typedAnswer = '';
+        q.userTypedAnswer = '';
+        ansDisplay.innerText = '?';
+      };
+    }
 
     renderPool();
   },
 
   evaluate(q) {
-    const container = document.querySelector('#workspace') || document.querySelector('#extraWorkspace') || document.querySelector('#sampleQWorkspace');
-    const ansDisplay = document.getElementById('ansDisplay');
+    const selectedGroups = q.userSelectedGroups || 0;
+    const groupCounts = q.userGroupCounts || [];
+    const userTypedVal = parseInt(q.userTypedAnswer, 10);
 
-    if (!ansDisplay || !container) return false;
-
-    const selectedGroups = parseInt(container.getAttribute('data-selected-groups'), 10) || 0;
-    const groupCountsJson = container.getAttribute('data-group-counts');
-    const groupCounts = groupCountsJson ? JSON.parse(groupCountsJson) : [];
-    const userTypedVal = parseInt(ansDisplay.getAttribute('data-typed'), 10);
-
-    const isGroupCountCorrect = selectedGroups === q.b;
-    const isDistributionCorrect = groupCounts.length === q.b && groupCounts.every(cnt => cnt === q.target);
-    const isTypedAnswerCorrect = userTypedVal === q.target;
+    const isGroupCountCorrect = (selectedGroups === q.b);
+    const isDistributionCorrect = (groupCounts.length === q.b) && groupCounts.every(cnt => cnt === q.target);
+    const isTypedAnswerCorrect = (userTypedVal === q.target);
 
     return isGroupCountCorrect && isDistributionCorrect && isTypedAnswerCorrect;
   }
