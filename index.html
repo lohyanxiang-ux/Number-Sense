@@ -62,6 +62,7 @@
       <div class="nav-tabs">
         <button class="tab-btn active" data-tab="practice">Daily Practice</button>
         <button class="tab-btn" data-tab="extra">Extra Practice ⚡</button>
+        <button class="tab-btn" data-tab="progress">My Progress 📊</button>
         <button class="tab-btn" data-tab="shop">Privilege Shop</button>
       </div>
 
@@ -74,7 +75,7 @@
             You have already finished your 5 daily questions for today.
           </p>
           <p style="color: var(--text-muted); margin-bottom: 24px;">
-            Come back tomorrow to keep your day streak going! In the meantime, head over to <strong>Extra Practice</strong> to sharpen your skills and earn extra XP.
+            Come back tomorrow to keep your day streak going! In the meantime, head over to <strong>Extra Practice</strong> or check <strong>My Progress</strong> to sharpen your skills.
           </p>
           <button class="btn" id="goToExtraBtn" style="max-width: 280px; margin: 0 auto; background: var(--accent);">
             ⚡ Go to Extra Practice
@@ -164,7 +165,21 @@
         </div>
       </div>
 
-      <!-- Tab 3: Shop -->
+      <!-- Tab 3: Student Progress & Topic Summary -->
+      <div id="tabProgress" class="hidden" style="margin-top: 16px;">
+        <div class="card">
+          <h2>📊 My Topic Proficiency</h2>
+          <p style="color: var(--text-muted); margin: 6px 0 20px 0;">
+            Review your latest 10 attempts per topic and jump straight into practice to improve your mastery!
+          </p>
+
+          <div id="studentProgressContainer" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Dynamic Topic Progress Cards render here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Shop -->
       <div id="tabShop" class="hidden" style="margin-top: 16px;">
         <div class="card">
           <h2>Privilege Shop</h2>
@@ -214,11 +229,11 @@
               💡 Tap a student's <strong>Name</strong> to adjust XP or Tokens. Tap a topic header to view a sample question.
             </p>
             
-            <!-- HEATMAP COLOR LEGEND -->
+            <!-- HEATMAP COLOR LEGEND (>80% Mastery, 50-80% Developing, <50% Needs Attention) -->
             <div style="display: flex; gap: 10px; align-items: center; font-size: 0.8rem; font-weight: 700; margin-top: 10px; flex-wrap: wrap;">
               <span style="color: var(--text-muted);">Legend:</span>
-              <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 3px 8px; border-radius: 6px;">🟢 > 75% (Mastered)</span>
-              <span style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 3px 8px; border-radius: 6px;">🟡 50% – 75% (Developing)</span>
+              <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 3px 8px; border-radius: 6px;">🟢 > 80% (Mastery)</span>
+              <span style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 3px 8px; border-radius: 6px;">🟡 50% – 80% (Developing)</span>
               <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 3px 8px; border-radius: 6px;">🔴 < 50% (Needs Attention)</span>
               <span style="background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 6px;">⚪ Untried</span>
             </div>
@@ -258,6 +273,18 @@
                 <th class="topic-hdr" data-type="place_value">Place Value 👁️</th>
                 <th class="topic-hdr" data-type="negative_numbers">Negative Numbers 👁️</th>
                 <th class="topic-hdr" data-type="add_subtract_negatives">Adding/Subtracting 👁️</th>
+              </tr>
+              <!-- TOPIC AGGREGATE AVERAGE ROW -->
+              <tr id="topicAvgRow" style="background: rgba(79, 70, 229, 0.06); border-bottom: 2px solid var(--accent);">
+                <td colspan="7" class="sticky-col col-code" style="font-weight: 800; color: var(--accent); text-align: right; padding-right: 12px;">
+                  📊 Class Topic Averages:
+                </td>
+                <td id="avg_grid_shader" style="font-weight: 800;">--</td>
+                <td id="avg_number_line" style="font-weight: 800;">--</td>
+                <td id="avg_equivalence" style="font-weight: 800;">--</td>
+                <td id="avg_place_value" style="font-weight: 800;">--</td>
+                <td id="avg_negative_numbers" style="font-weight: 800;">--</td>
+                <td id="avg_add_subtract_negatives" style="font-weight: 800;">--</td>
               </tr>
             </thead>
             <tbody id="rosterTableBody">
