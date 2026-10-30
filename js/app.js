@@ -28,7 +28,8 @@ let activeExtraTopicKey = 'random';
 // Teacher Dashboard State
 let teacherRosterData = [];
 let activeSampleTopicKey = '';
-let activeRedeemStudentCode = null;
+let activeManageStudentCode = null;
+let activeRosterFilter = 'all'; // 'all', 'active_today', 'needs_attention', 'uncompleted_daily'
 
 function getTodayDateString() {
   const now = new Date();
@@ -102,8 +103,21 @@ function setupEventHandlers() {
   // Real-time Search Handler
   const searchInput = document.getElementById('rosterSearchInput');
   if (searchInput) {
-    searchInput.oninput = (e) => filterRosterTable(e.target.value);
+    searchInput.oninput = () => applyRosterFilters();
   }
+
+  // KPI Card Click Handlers
+  document.getElementById('kpiCardTotal').onclick = () => setRosterFilter('all');
+  document.getElementById('kpiCardActiveToday').onclick = () => setRosterFilter('active_today');
+  document.getElementById('kpiCardStruggling').onclick = () => setRosterFilter('needs_attention');
+
+  // Filter Chips Handler
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.onclick = () => {
+      const filterType = btn.getAttribute('data-filter');
+      setRosterFilter(filterType);
+    };
+  });
 
   // Clickable Header Handlers for Teaching Demos
   document.querySelectorAll('.topic-hdr').forEach(hdr => {
@@ -118,25 +132,26 @@ function setupEventHandlers() {
     document.getElementById('sampleQuestionModal').classList.add('hidden');
   };
 
-  document.getElementById('closeRedeemModalBtn').onclick = () => {
-    document.getElementById('redeemTokenModal').classList.add('hidden');
+  document.getElementById('closeManageModalBtn').onclick = () => {
+    document.getElementById('studentManageModal').classList.add('hidden');
   };
 
   document.getElementById('newSampleQBtn').onclick = () => {
     generateSampleQuestion(activeSampleTopicKey);
   };
 
-  // Reward Selection Change Handler
-  document.getElementById('redeemRewardSelect').onchange = (e) => {
-    const customBox = document.getElementById('customTokenBox');
-    if (e.target.value === 'custom') {
-      customBox.classList.remove('hidden');
-    } else {
-      customBox.classList.add('hidden');
-    }
+  // Quick Preset Buttons for Token Modal
+  document.getElementById('btnQuickSeat').onclick = () => {
+    document.getElementById('mTokenChangeInput').value = '-50';
+  };
+  document.getElementById('btnQuickHwk').onclick = () => {
+    document.getElementById('mTokenChangeInput').value = '-100';
+  };
+  document.getElementById('btnQuickBonus').onclick = () => {
+    document.getElementById('mTokenChangeInput').value = '+20';
   };
 
-  document.getElementById('confirmRedeemBtn').onclick = processTokenRedemption;
+  document.getElementById('saveStudentManageBtn').onclick = processStudentManagement;
 
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.onclick = (e) => switchTab(e.target.getAttribute('data-tab'), e.target);
@@ -261,7 +276,6 @@ function handleAnswerSubmit() {
   }
 
   currentUser.proficiency[qType].push(isCorrect ? 1 : 0);
-  // Keep the latest 10 attempts
   currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-10);
 
   const fbBox = document.getElementById('feedbackBox');
@@ -428,7 +442,6 @@ function handleExtraAnswerSubmit() {
   }
 
   currentUser.proficiency[qType].push(isCorrect ? 1 : 0);
-  // Keep the latest 10 attempts
   currentUser.proficiency[qType] = currentUser.proficiency[qType].slice(-10);
 
   const fbBox = document.getElementById('extraFeedbackBox');
@@ -533,7 +546,7 @@ async function fetchTeacherDashboardData() {
     if (data.success && data.isTeacher) {
       teacherRosterData = data.students || [];
       renderTeacherKPIs(teacherRosterData);
-      renderRosterTable(teacherRosterData);
+      applyRosterFilters();
     }
   } catch (e) {
     alert("Could not fetch roster data. Check your Web App URL connection.");
@@ -577,8 +590,8 @@ function renderTeacherKPIs(students) {
 
 function renderRosterTable(students) {
   const tbody = document.getElementById('rosterTableBody');
-  if (students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
+  if (!students || students.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="13" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
@@ -586,23 +599,28 @@ function renderRosterTable(students) {
 
   let html = '';
   students.forEach(s => {
+    const lastDateDisplay = s.lastDailyCompleted ? s.lastDailyCompleted : '<span style="color:var(--text-muted);">Never</span>';
+
     html += `
       <tr>
         <td class="sticky-col col-code">
           <span class="code-toggle" data-code="${s.code}" title="Tap to reveal/hide">••••</span>
         </td>
-        <td class="sticky-col col-name">${s.name}</td>
+        <td class="sticky-col col-name">
+          <span class="student-name-link" data-code="${s.code}" style="color: var(--accent); font-weight: 700; cursor: pointer; text-decoration: underline;" title="Tap to manage XP and Tokens">${s.name}</span>
+        </td>
         <td>${s.className}</td>
+        <td>${lastDateDisplay}</td>
         <td>🔥 ${s.streak}</td>
         <td>⭐ ${s.xp}</td>
-        <td>
-          🎟️ <strong>${s.tokens}</strong>
-          <button class="btn-redeem" data-code="${s.code}">Redeem</button>
-        </td>
+        <td>🎟️ <strong>${s.tokens}</strong></td>
     `;
 
     topicKeys.forEach(tKey => {
-      const history = (s.proficiency && s.proficiency[tKey]) || [];
+      let history = (s.proficiency && s.proficiency[tKey]) || [];
+      if (tKey === 'place_value' && history.length === 0 && s.proficiency) {
+        history = s.proficiency['placeValue'] || [];
+      }
       html += `<td>${getProfBadgeHtml(history)}</td>`;
     });
 
@@ -611,6 +629,15 @@ function renderRosterTable(students) {
 
   tbody.innerHTML = html;
 
+  // Student Name Click Handler to Open Management Modal
+  tbody.querySelectorAll('.student-name-link').forEach(el => {
+    el.onclick = () => {
+      const code = el.getAttribute('data-code');
+      openStudentManageModal(code);
+    };
+  });
+
+  // Toggle Masked Student Code Handler
   tbody.querySelectorAll('.code-toggle').forEach(el => {
     el.onclick = () => {
       const realCode = el.getAttribute('data-code');
@@ -621,13 +648,6 @@ function renderRosterTable(students) {
         el.innerText = '••••';
         el.style.letterSpacing = '2px';
       }
-    };
-  });
-
-  tbody.querySelectorAll('.btn-redeem').forEach(btn => {
-    btn.onclick = () => {
-      const code = btn.getAttribute('data-code');
-      openRedeemModal(code);
     };
   });
 }
@@ -641,29 +661,129 @@ function getProfBadgeHtml(history) {
   const acc = score / history.length;
   const pct = Math.round(acc * 100);
 
-  if (acc >= 0.8) {
+  // Exact Threshold Color Rules: <50% Red, 50-75% Yellow, >75% Green
+  if (acc > 0.75) {
     return `<span class="prof-badge prof-mastered">🟢 ${pct}%</span>`;
-  } else if (acc >= 0.5) {
+  } else if (acc >= 0.50) {
     return `<span class="prof-badge prof-developing">🟡 ${pct}%</span>`;
   } else {
     return `<span class="prof-badge prof-struggling">🔴 ${pct}%</span>`;
   }
 }
 
-function filterRosterTable(query) {
-  const q = query.trim().toLowerCase();
-  if (!q) {
-    renderRosterTable(teacherRosterData);
+// UNIFIED FILTER & SEARCH LOGIC
+function setRosterFilter(filterType) {
+  activeRosterFilter = filterType;
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    if (btn.getAttribute('data-filter') === filterType) {
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'white';
+    } else {
+      btn.style.background = 'var(--bg-primary)';
+      btn.style.color = 'var(--text-main)';
+    }
+  });
+  applyRosterFilters();
+}
+
+function applyRosterFilters() {
+  const searchInput = document.getElementById('rosterSearchInput');
+  const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const todayStr = getTodayDateString();
+
+  let filtered = teacherRosterData.filter(s => {
+    // 1. Category Filter Check
+    if (activeRosterFilter === 'active_today') {
+      const isToday = s.lastActive && s.lastActive.split('T')[0] === todayStr;
+      if (!isToday) return false;
+    } else if (activeRosterFilter === 'needs_attention') {
+      const profs = s.proficiency || {};
+      let scores = [];
+      Object.keys(profs).forEach(k => {
+        if (profs[k].length > 0) {
+          scores.push(profs[k].reduce((a, b) => a + b, 0) / profs[k].length);
+        }
+      });
+      const avgAcc = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length) : 1;
+      if (avgAcc >= 0.6) return false;
+    } else if (activeRosterFilter === 'uncompleted_daily') {
+      if (s.lastDailyCompleted === todayStr) return false;
+    }
+
+    // 2. Real-time Search Query Check
+    if (query) {
+      const matchName = s.name.toLowerCase().includes(query);
+      const matchClass = s.className.toLowerCase().includes(query);
+      const matchCode = String(s.code).includes(query);
+      if (!matchName && !matchClass && !matchCode) return false;
+    }
+
+    return true;
+  });
+
+  renderRosterTable(filtered);
+}
+
+// STUDENT MANAGEMENT MODAL LOGIC (XP & TOKENS)
+function openStudentManageModal(studentCode) {
+  const student = teacherRosterData.find(s => String(s.code) === String(studentCode));
+  if (!student) return;
+
+  activeManageStudentCode = studentCode;
+  document.getElementById('mStudentName').innerText = student.name;
+  document.getElementById('mStudentClass').innerText = student.className;
+  document.getElementById('mStudentCode').innerText = student.code;
+  document.getElementById('mCurrentXP').innerText = student.xp;
+  document.getElementById('mCurrentTokens').innerText = student.tokens;
+
+  document.getElementById('mXPChangeInput').value = '';
+  document.getElementById('mTokenChangeInput').value = '';
+
+  document.getElementById('studentManageModal').classList.remove('hidden');
+}
+
+async function processStudentManagement() {
+  const student = teacherRosterData.find(s => String(s.code) === String(activeManageStudentCode));
+  if (!student) return;
+
+  const xpChange = parseInt(document.getElementById('mXPChangeInput').value, 10) || 0;
+  const tokenChange = parseInt(document.getElementById('mTokenChangeInput').value, 10) || 0;
+
+  if (xpChange === 0 && tokenChange === 0) {
+    alert('Please enter an amount for XP or Tokens to update.');
     return;
   }
 
-  const filtered = teacherRosterData.filter(s => 
-    s.name.toLowerCase().includes(q) || 
-    s.className.toLowerCase().includes(q) ||
-    String(s.code).includes(q)
-  );
+  student.xp = Math.max(0, student.xp + xpChange);
+  student.tokens = Math.max(0, student.tokens + tokenChange);
 
-  renderRosterTable(filtered);
+  if (sheetWebAppUrl) {
+    try {
+      await fetch(sheetWebAppUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'saveProgress',
+          studentCode: student.code,
+          studentName: student.name,
+          totalQuestions: 0,
+          accuracy: 100,
+          topic: 'Teacher Adjustment',
+          tokensEarned: tokenChange,
+          xpEarned: xpChange,
+          newTotalXP: student.xp,
+          newStreak: student.streak,
+          newTokens: student.tokens,
+          isDailyWarmup: false,
+          proficiency: student.proficiency
+        })
+      });
+    } catch(e) {}
+  }
+
+  document.getElementById('studentManageModal').classList.add('hidden');
+  renderTeacherKPIs(teacherRosterData);
+  applyRosterFilters();
+  alert(`Updated ${student.name}! New XP: ${student.xp}, New Tokens: ${student.tokens}`);
 }
 
 function openSampleQuestionModal(typeKey, titleText) {
@@ -680,72 +800,6 @@ function generateSampleQuestion(typeKey) {
   document.getElementById('sampleQPrompt').innerHTML = sampleQ.prompt;
   const ws = document.getElementById('sampleQWorkspace');
   renderQuestion(sampleQ, ws);
-}
-
-function openRedeemModal(studentCode) {
-  const student = teacherRosterData.find(s => String(s.code) === String(studentCode));
-  if (!student) return;
-
-  activeRedeemStudentCode = studentCode;
-  document.getElementById('redeemStudentName').innerText = student.name;
-  document.getElementById('redeemCurrentTokens').innerText = student.tokens;
-  document.getElementById('redeemRewardSelect').value = '50';
-  document.getElementById('customTokenBox').classList.add('hidden');
-  document.getElementById('customTokenInput').value = '';
-
-  document.getElementById('redeemTokenModal').classList.remove('hidden');
-}
-
-async function processTokenRedemption() {
-  const student = teacherRosterData.find(s => String(s.code) === String(activeRedeemStudentCode));
-  if (!student) return;
-
-  const selVal = document.getElementById('redeemRewardSelect').value;
-  let cost = 0;
-
-  if (selVal === 'custom') {
-    cost = parseInt(document.getElementById('customTokenInput').value, 10);
-    if (isNaN(cost) || cost <= 0) {
-      alert("Please enter a valid token amount.");
-      return;
-    }
-  } else {
-    cost = parseInt(selVal, 10);
-  }
-
-  if (student.tokens < cost) {
-    alert(`Student only has ${student.tokens} tokens (Needs ${cost}).`);
-    return;
-  }
-
-  student.tokens -= cost;
-
-  if (sheetWebAppUrl) {
-    try {
-      await fetch(sheetWebAppUrl, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'saveProgress',
-          studentCode: student.code,
-          studentName: student.name,
-          totalQuestions: 0,
-          accuracy: 100,
-          topic: 'Reward Redemption',
-          tokensEarned: -cost,
-          xpEarned: 0,
-          newTotalXP: student.xp,
-          newStreak: student.streak,
-          newTokens: student.tokens,
-          isDailyWarmup: false,
-          proficiency: student.proficiency
-        })
-      });
-    } catch(e) {}
-  }
-
-  document.getElementById('redeemTokenModal').classList.add('hidden');
-  renderRosterTable(teacherRosterData);
-  alert(`Redeemed! ${cost} tokens deducted from ${student.name}.`);
 }
 
 function logout() {
