@@ -8,6 +8,7 @@ import './questions/addSubtractNegatives.js';
 import './questions/multiplication.js';
 import './questions/division.js';
 import './questions/orderOfOperations.js';
+import './questions/factors.js';
 
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
@@ -51,7 +52,8 @@ const ALL_TOPICS = [
   { key: 'add_subtract_negatives', name: '➕➖ Adding & Subtracting Integers' },
   { key: 'multiplication', name: '✖️ Multiplication' },
   { key: 'division', name: '➗ Division' },
-  { key: 'order_of_operations', name: '🔢 Order of Operations' }
+  { key: 'order_of_operations', name: '🔢 Order of Operations' },
+  { key: 'factors', name: '🔐 Factors' }
 ];
 
 function getTodayDateString() {
