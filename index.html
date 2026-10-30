@@ -68,7 +68,6 @@
 
       <!-- Tab 1: Daily Warm-Up Practice -->
       <div id="tabPractice" style="margin-top: 16px;">
-        <!-- Lock Screen if Daily Completed -->
         <div id="dailyLockedCard" class="card hidden" style="text-align: center; padding: 40px 20px;">
           <h2 style="color: var(--success); font-size: 1.8rem; margin-bottom: 10px;">🎉 Daily Warm-up Complete!</h2>
           <p style="font-size: 1.1rem; color: var(--text-main); margin-bottom: 12px;">
@@ -82,7 +81,6 @@
           </button>
         </div>
 
-        <!-- Active Daily Question Card -->
         <div id="dailyActiveCard" class="card">
           <div class="q-header">
             <span id="qProgress" style="font-weight: 700;">Question 1 of 5</span>
@@ -103,7 +101,6 @@
 
       <!-- Tab 2: Extra Practice -->
       <div id="tabExtra" class="hidden" style="margin-top: 16px;">
-        <!-- Setup Screen -->
         <div id="extraSetupCard" class="card">
           <h2>⚡ Extra Practice Mode</h2>
           <p style="color: var(--text-muted); margin: 6px 0 20px 0;">
@@ -124,6 +121,7 @@
                 <option value="negative_numbers">➖ Negative Numbers</option>
                 <option value="add_subtract_negatives">➕➖ Adding & Subtracting Integers</option>
                 <option value="multiplication">✖️ Multiplication</option>
+                <option value="division">➗ Division</option>
               </select>
             </div>
 
@@ -144,7 +142,6 @@
           </div>
         </div>
 
-        <!-- Active Extra Practice Session Card -->
         <div id="extraActiveCard" class="card hidden">
           <div class="q-header">
             <span id="extraQProgress" style="font-weight: 700;">Question 1 of 5 (Extra)</span>
@@ -175,7 +172,6 @@
           </p>
 
           <div id="studentProgressContainer" style="display: flex; flex-direction: column; gap: 16px;">
-            <!-- Dynamic Topic Progress Cards render here -->
           </div>
         </div>
       </div>
@@ -201,7 +197,6 @@
 
     <!-- 3. TEACHER DASHBOARD VIEW -->
     <div id="teacherDashboard" class="hidden">
-      <!-- KPI Analytics Grid -->
       <div class="teacher-analytics-grid">
         <div class="kpi-card" id="kpiCardTotal" style="cursor: pointer;" title="Show all students in selected class">
           <span class="kpi-label">Total Roster</span>
@@ -221,7 +216,6 @@
         </div>
       </div>
 
-      <!-- Roster Proficiency Heatmap Table -->
       <div class="card" style="margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
           <div>
@@ -230,7 +224,6 @@
               💡 Tap a student's <strong>Name</strong> to adjust XP or Tokens. Tap a topic header to view a sample question.
             </p>
             
-            <!-- HEATMAP COLOR LEGEND -->
             <div style="display: flex; gap: 10px; align-items: center; font-size: 0.8rem; font-weight: 700; margin-top: 10px; flex-wrap: wrap;">
               <span style="color: var(--text-muted);">Legend:</span>
               <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 3px 8px; border-radius: 6px;">🟢 > 80% (Mastery)</span>
@@ -240,7 +233,6 @@
             </div>
           </div>
 
-          <!-- CLASS DROPDOWN FILTER -->
           <div style="display: flex; align-items: center; gap: 8px;">
             <label style="font-weight: 700; font-size: 0.9rem; color: var(--text-muted);">Class Filter:</label>
             <select id="classFilterSelect" class="input-field" style="width: auto; min-width: 140px; font-weight: 700;">
@@ -249,7 +241,6 @@
           </div>
         </div>
 
-        <!-- Filter Quick Bar -->
         <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
           <button class="btn filter-chip active" data-filter="all" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--accent); color: white; border: 1px solid var(--accent);">All Students</button>
           <button class="btn filter-chip" data-filter="active_today" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);">⚡ Active Today</button>
@@ -296,16 +287,19 @@
                   <div>Multiplication 👁️</div>
                   <div id="hdrAvg_multiplication" style="margin-top: 2px;">(--)</div>
                 </th>
+                <th class="topic-hdr" data-type="division">
+                  <div>Division 👁️</div>
+                  <div id="hdrAvg_division" style="margin-top: 2px;">(--)</div>
+                </th>
               </tr>
             </thead>
             <tbody id="rosterTableBody">
-              <tr><td colspan="14" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
+              <tr><td colspan="15" style="text-align:center; padding: 20px;">Loading student roster...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- System Settings -->
       <div class="card">
         <h3>System Settings & Google Sheet Connection</h3>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin: 6px 0 16px 0;">Configure backend URL and sync live database.</p>
@@ -319,7 +313,6 @@
     </div>
   </main>
 
-  <!-- MODAL: SAMPLE QUESTION PREVIEW -->
   <div id="sampleQuestionModal" class="modal-overlay hidden">
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -332,7 +325,6 @@
     </div>
   </div>
 
-  <!-- MODAL: STUDENT MANAGEMENT WITH ON-SCREEN TOUCH KEYPAD -->
   <div id="studentManageModal" class="modal-overlay hidden">
     <div class="modal-card" style="max-width: 420px; user-select: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -340,7 +332,6 @@
         <button class="modal-close" id="closeManageModalBtn">×</button>
       </div>
 
-      <!-- STUDENT DETAILS BANNER -->
       <div style="background: var(--bg-primary); padding: 12px 16px; border-radius: var(--radius); margin-bottom: 14px; text-align: left; border: 1px solid var(--border-color);">
         <p style="margin: 0 0 4px 0; font-size: 1.1rem; font-weight: 800;"><span id="mStudentName">--</span> (<span id="mStudentClass">--</span>)</p>
         <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">
@@ -348,19 +339,16 @@
         </p>
       </div>
 
-      <!-- MODE TOGGLE TABS (XP vs TOKENS) -->
       <div style="display: flex; gap: 8px; margin-bottom: 12px;">
         <button id="tabModeXP" class="btn" style="flex: 1; padding: 8px; font-size: 0.9rem; background: var(--accent); color: white; border: none;">⭐ XP Mode</button>
         <button id="tabModeTokens" class="btn" style="flex: 1; padding: 8px; font-size: 0.9rem; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);">🎟️ Tokens Mode</button>
       </div>
 
-      <!-- DISPLAY VALUE TO BE AWARDED / DEDUCTED -->
       <div style="background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 10px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
         <span id="mActiveModeLabel" style="font-weight: 700; font-size: 0.9rem; color: var(--text-muted);">XP Adjustment:</span>
         <span id="mKeypadDisplay" style="font-size: 1.5rem; font-weight: 800; color: var(--accent);">+0</span>
       </div>
 
-      <!-- QUICK PRESET BUTTONS -->
       <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; justify-content: center;">
         <button type="button" class="btn m-preset-btn" data-val="+20" style="padding: 4px 10px; font-size: 0.75rem; width: auto; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);">+20 Bonus</button>
         <button type="button" class="btn m-preset-btn" data-val="+50" style="padding: 4px 10px; font-size: 0.75rem; width: auto; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);">+50 Bonus</button>
@@ -368,7 +356,6 @@
         <button type="button" class="btn m-preset-btn" data-val="-100" style="padding: 4px 10px; font-size: 0.75rem; width: auto; background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color);">-100 Pass</button>
       </div>
 
-      <!-- ON-SCREEN KEYPAD -->
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;">
         <button class="key-btn m-num-key" data-k="1">1</button>
         <button class="key-btn m-num-key" data-k="2">2</button>
