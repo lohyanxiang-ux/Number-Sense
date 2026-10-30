@@ -1,211 +1,323 @@
 import { registerQuestionType, formatMath } from './registry.js';
 
-// Calculate balanced grid dimensions for square shapes
-function getSquareGridDimensions(parts) {
-  if (parts === 4) return { rows: 2, cols: 2 };
-  if (parts === 6) return { rows: 2, cols: 3 };
-  if (parts === 8) return { rows: 2, cols: 4 };
-  if (parts === 9) return { rows: 3, cols: 3 };
-  if (parts === 10) return { rows: 2, cols: 5 };
-  if (parts === 12) return { rows: 3, cols: 4 };
-  if (parts === 100) return { rows: 10, cols: 10 };
-  return { rows: 1, cols: parts }; // Fallback for 2, 3, 5, etc.
-}
-
-const gridShaderModule = {
+const negativeNumbersModule = {
   generate() {
-    // Flat pool where every single question type has an equal probability
-    const questionPool = [
-      // 1. 100-Grid Percentage (e.g. 12%)
-      () => {
-        const targetCount = Math.floor(Math.random() * 92) + 3;
-        return {
-          type: 'grid_shader',
-          prompt: `Shade <strong>${formatMath(targetCount + '%')}</strong> of the 100-grid below:`,
-          targetRatio: targetCount / 100,
-          partition: 100,
-          shape: 'square',
-          explanation: formatMath(`${targetCount}% means exactly ${targetCount} parts shaded out of 100 (${targetCount}/100).`)
-        };
-      },
+    // 1. Generate 2 distinct numbers (Num A is always negative, Num B can be positive or negative)
+    const numA = -(Math.floor(Math.random() * 9) + 1); // -1 to -9
+    
+    let numB;
+    do {
+      numB = Math.floor(Math.random() * 19) - 9; // -9 to +9
+    } while (numB === numA);
 
-      // 2. 100-Grid Decimal (e.g. 0.12)
-      () => {
-        const targetCount = Math.floor(Math.random() * 92) + 3;
-        const decStr = (targetCount / 100).toFixed(2);
-        return {
-          type: 'grid_shader',
-          prompt: `Shade <strong>${formatMath(decStr)}</strong> of the 100-grid below:`,
-          targetRatio: targetCount / 100,
-          partition: 100,
-          shape: 'square',
-          explanation: formatMath(`${decStr} is equal to ${targetCount}/100 or ${targetCount}%, which means ${targetCount} shaded squares out of 100.`)
-        };
-      },
+    const correctSymbol = numA > numB ? '>' : '<';
+    const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
 
-      // 3. 100-Grid Fraction (e.g. 12/100)
-      () => {
-        const targetCount = Math.floor(Math.random() * 92) + 3;
-        return {
-          type: 'grid_shader',
-          prompt: `Shade <strong>${formatMath(targetCount + '/100')}</strong> of the 100-grid below:`,
-          targetRatio: targetCount / 100,
-          partition: 100,
-          shape: 'square',
-          explanation: formatMath(`${targetCount}/100 means ${targetCount} shaded squares out of a total of 100 squares.`)
-        };
-      },
-
-      // 4–15. Standard Multi-Partition Templates
-      ...[
-        // Fractions
-        { targetStr: '1/2', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], exp: '1/2 means half of the shape. On 6 parts shade 3, on 8 shade 4, or on 12 shade 6.' },
-        { targetStr: '3/4', ratio: 0.75, partitions: [4, 8, 12], exp: '3/4 is equivalent to 6/8 or 9/12.' },
-        { targetStr: '1/3', ratio: 1/3, partitions: [3, 6, 9, 12], exp: '1/3 is equivalent to 2/6, 3/9, or 4/12.' },
-        { targetStr: '2/3', ratio: 2/3, partitions: [3, 6, 9, 12], exp: '2/3 is equivalent to 4/6, 6/9, or 8/12.' },
-        { targetStr: '2/5', ratio: 0.4, partitions: [5, 10], exp: '2/5 is equivalent to 4/10.' },
-        { targetStr: '3/5', ratio: 0.6, partitions: [5, 10], exp: '3/5 is equivalent to 6/10.' },
-
-        // Decimals
-        { targetStr: '0.5', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], exp: '0.5 is equal to 1/2. On an 8-part shape, shade 4 parts.' },
-        { targetStr: '0.25', ratio: 0.25, partitions: [4, 8, 12], exp: '0.25 is equal to 1/4. On an 8-part shape, shade 2 parts.' },
-        { targetStr: '0.4', ratio: 0.4, partitions: [5, 10], exp: '0.4 is equal to 2/5 or 4/10.' },
-
-        // Percentages
-        { targetStr: '50%', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], exp: '50% represents half of the total shape.' },
-        { targetStr: '25%', ratio: 0.25, partitions: [4, 8, 12], exp: '25% is 1/4. On 8 parts, shade 2 parts.' },
-        { targetStr: '20%', ratio: 0.2, partitions: [5, 10], exp: '20% is 1/5. On 10 parts, shade 2 parts.' }
-      ].map(t => () => {
-        const randomPartition = t.partitions[Math.floor(Math.random() * t.partitions.length)];
-        const randomShape = Math.random() < 0.5 ? 'square' : 'circle';
-        return {
-          type: 'grid_shader',
-          prompt: `Shade <strong>${formatMath(t.targetStr)}</strong> of the shape below:`,
-          targetRatio: t.ratio,
-          partition: randomPartition,
-          shape: randomShape,
-          explanation: formatMath(t.exp)
-        };
-      })
-    ];
-
-    // Pick uniformly across all 15 question types
-    const selectedGenerator = questionPool[Math.floor(Math.random() * questionPool.length)];
-    return selectedGenerator();
+    return {
+      type: 'negative_numbers',
+      numA: numA,
+      numB: numB,
+      correctSymbol: correctSymbol,
+      orientation: orientation,
+      prompt: `Drag <strong>Marker A</strong> to <strong><span style="color:var(--accent);">${numA}</span></strong> and <strong>Marker B</strong> to <strong><span style="color:#d97706;">${numB > 0 ? '+' + numB : numB}</span></strong> on the ${orientation} number line, then choose the correct sign:`,
+      explanation: `On a ${orientation} number line, numbers further ${orientation === 'horizontal' ? 'right' : 'up'} are greater. Since <strong>${numA}</strong> is ${numA > numB ? (orientation === 'horizontal' ? 'to the right of' : 'above') : (orientation === 'horizontal' ? 'to the left of' : 'below')} <strong>${numB}</strong>, <strong>${numA} ${correctSymbol} ${numB}</strong>.`
+    };
   },
 
   render(q, container) {
+    const minVal = -10;
+    const maxVal = 10;
+    const totalRange = maxVal - minVal;
+
     let html = `
-      <!-- FIXED 300px x 300px CONTAINER -->
-      <div class="fixed-area-box" id="touchGrid" style="
-        width: 300px;
-        height: 300px;
-        margin: 20px auto 10px auto;
-        touch-action: none;
-        user-select: none;
-        -webkit-user-select: none;
-      ">
+      <div style="max-width: 550px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
+        
+        <!-- TARGET READOUT CARDS -->
+        <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 20px;">
+          <div style="background: var(--bg-primary); border: 2px solid var(--accent); padding: 8px 16px; border-radius: var(--radius); flex: 1; max-width: 220px;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--accent); display: block;">Marker A Target: ${q.numA}</span>
+            <span style="font-size: 1.1rem; font-weight: 800;">Position: <span id="posADisplay" style="color: var(--accent);">0</span></span>
+          </div>
+          <div style="background: var(--bg-primary); border: 2px solid #d97706; padding: 8px 16px; border-radius: var(--radius); flex: 1; max-width: 220px;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #d97706; display: block;">Marker B Target: ${q.numB > 0 ? '+' + q.numB : q.numB}</span>
+            <span style="font-size: 1.1rem; font-weight: 800;">Position: <span id="posBDisplay" style="color: #d97706;">0</span></span>
+          </div>
+        </div>
+
+        <!-- NUMBER LINE CONTAINER -->
     `;
 
-    if (q.shape === 'square') {
-      const { rows, cols } = getSquareGridDimensions(q.partition);
+    if (q.orientation === 'horizontal') {
+      // HORIZONTAL TICK MARKS FOR EVERY UNIT (-10 to +10)
+      let ticksHtml = '';
+      for (let v = minVal; v <= maxVal; v++) {
+        const posPct = ((v - minVal) / totalRange) * 100;
+        const isMajor = v % 2 === 0;
+        
+        ticksHtml += `
+          <div style="
+            position: absolute; 
+            left: ${posPct}%; 
+            top: ${isMajor ? '-6px' : '-2px'}; 
+            width: 2px; 
+            height: ${isMajor ? '18px' : '10px'}; 
+            background: ${v === 0 ? 'var(--accent)' : 'var(--text-muted)'}; 
+            transform: translateX(-50%);
+          "></div>
+        `;
 
-      html += `<div style="
-        display: grid;
-        width: 300px;
-        height: 300px;
-        grid-template-columns: repeat(${cols}, 1fr);
-        grid-template-rows: repeat(${rows}, 1fr);
-        gap: ${q.partition === 100 ? '1px' : '3px'};
-        background: var(--border-color);
-        padding: 4px;
-        border-radius: 8px;
-        box-sizing: border-box;
-      ">`;
-      for (let i = 0; i < q.partition; i++) {
-        html += `<div class="grid-cell" data-idx="${i}"></div>`;
+        if (isMajor) {
+          ticksHtml += `
+            <span style="
+              position: absolute; 
+              left: ${posPct}%; 
+              top: 18px; 
+              transform: translateX(-50%); 
+              font-size: 0.75rem; 
+              font-weight: ${v === 0 ? '800' : '600'}; 
+              color: ${v === 0 ? 'var(--accent)' : 'var(--text-muted)'};
+            ">${v}</span>
+          `;
+        }
       }
-      html += `</div>`;
+
+      html += `
+        <div style="position: relative; height: 90px; margin: 30px 20px 20px 20px; padding: 0 10px;">
+          <!-- Track -->
+          <div id="nlTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 25px; touch-action: none;">
+            ${ticksHtml}
+
+            <!-- Draggable Pin A -->
+            <div id="pinA" class="drag-pin" data-val="0" style="
+              position: absolute;
+              top: -30px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: var(--accent);
+              color: white;
+              font-weight: 800;
+              font-size: 0.85rem;
+              padding: 4px 10px;
+              border-radius: 14px;
+              box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+              cursor: grab;
+              touch-action: none;
+              z-index: 3;
+            ">A</div>
+
+            <!-- Draggable Pin B -->
+            <div id="pinB" class="drag-pin" data-val="0" style="
+              position: absolute;
+              top: 18px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #d97706;
+              color: white;
+              font-weight: 800;
+              font-size: 0.85rem;
+              padding: 4px 10px;
+              border-radius: 14px;
+              box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+              cursor: grab;
+              touch-action: none;
+              z-index: 3;
+            ">B</div>
+          </div>
+        </div>
+      `;
+
     } else {
-      html += generateCircleSVG(q.partition);
+      // VERTICAL TICK MARKS FOR EVERY UNIT (-10 to +10)
+      let ticksHtml = '';
+      for (let v = maxVal; v >= minVal; v--) {
+        const posPct = ((v - minVal) / totalRange) * 100;
+        const isMajor = v % 2 === 0;
+
+        ticksHtml += `
+          <div style="
+            position: absolute; 
+            bottom: ${posPct}%; 
+            right: ${isMajor ? '-6px' : '-2px'}; 
+            width: ${isMajor ? '18px' : '10px'}; 
+            height: 2px; 
+            background: ${v === 0 ? 'var(--accent)' : 'var(--text-muted)'}; 
+            transform: translateY(50%);
+          "></div>
+        `;
+
+        if (isMajor) {
+          ticksHtml += `
+            <span style="
+              position: absolute; 
+              bottom: ${posPct}%; 
+              right: 20px; 
+              transform: translateY(50%); 
+              font-size: 0.75rem; 
+              font-weight: ${v === 0 ? '800' : '600'}; 
+              color: ${v === 0 ? 'var(--accent)' : 'var(--text-muted)'};
+            ">${v}</span>
+          `;
+        }
+      }
+
+      html += `
+        <div style="display: flex; justify-content: center; margin: 20px 0 30px 0;">
+          <div id="nlTrack" style="position: relative; width: 60px; height: 300px; touch-action: none;">
+            <div style="position: absolute; left: 30px; top: 0; bottom: 0; width: 6px; background: var(--border-color); border-radius: 3px;">
+              ${ticksHtml}
+
+              <!-- Draggable Pin A -->
+              <div id="pinA" class="drag-pin" data-val="0" style="
+                position: absolute;
+                bottom: 50%;
+                left: -38px;
+                transform: translateY(50%);
+                background: var(--accent);
+                color: white;
+                font-weight: 800;
+                font-size: 0.85rem;
+                padding: 4px 10px;
+                border-radius: 14px;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+                cursor: grab;
+                touch-action: none;
+                z-index: 3;
+              ">A</div>
+
+              <!-- Draggable Pin B -->
+              <div id="pinB" class="drag-pin" data-val="0" style="
+                position: absolute;
+                bottom: 50%;
+                right: -38px;
+                transform: translateY(50%);
+                background: #d97706;
+                color: white;
+                font-weight: 800;
+                font-size: 0.85rem;
+                padding: 4px 10px;
+                border-radius: 14px;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+                cursor: grab;
+                touch-action: none;
+                z-index: 3;
+              ">B</div>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
+    // DROPDOWN SELECTOR FOR INEQUALITY COMPARISON
     html += `
+        <div style="
+          background: var(--bg-primary);
+          border: 2px solid var(--border-color);
+          border-radius: var(--radius);
+          padding: 14px 20px;
+          display: inline-flex;
+          align-items: center;
+          gap: 16px;
+          margin-top: 10px;
+        ">
+          <span style="font-size: 1.8rem; font-weight: 800; color: var(--accent);">${q.numA}</span>
+          
+          <select id="symbolSelect" class="input-field" style="
+            width: 75px; 
+            font-size: 1.5rem; 
+            font-weight: 800; 
+            text-align: center; 
+            padding: 4px 8px;
+            cursor: pointer;
+            border: 2px solid var(--border-color);
+          ">
+            <option value="">?</option>
+            <option value=">">></option>
+            <option value="<"><</option>
+          </select>
+
+          <span style="font-size: 1.8rem; font-weight: 800; color: #d97706;">${q.numB > 0 ? '+' + q.numB : q.numB}</span>
+        </div>
+
       </div>
-      <p style="text-align: center; font-weight: 700; margin-top: 14px; font-size: 1.1rem;">
-        Shaded: <span id="cellCount" style="color: var(--accent);">0</span> / ${q.partition} parts
-      </p>
     `;
 
     container.innerHTML = html;
-    setupDragToShade(container);
+
+    // DRAG AND SNAP LOGIC FOR MARKERS A & B
+    const track = container.querySelector('#nlTrack');
+    const pinA = container.querySelector('#pinA');
+    const pinB = container.querySelector('#pinB');
+    const posADisplay = container.querySelector('#posADisplay');
+    const posBDisplay = container.querySelector('#posBDisplay');
+
+    const setupMarkerDrag = (pinEl, displayEl) => {
+      let isDragging = false;
+
+      const updatePositionFromPointer = (e) => {
+        const rect = track.getBoundingClientRect();
+        let ratio;
+
+        if (q.orientation === 'horizontal') {
+          const x = e.clientX - rect.left;
+          ratio = Math.max(0, Math.min(1, x / rect.width));
+        } else {
+          const y = rect.bottom - e.clientY;
+          ratio = Math.max(0, Math.min(1, y / rect.height));
+        }
+
+        // Convert ratio to integer between -10 and 10
+        const rawVal = minVal + ratio * totalRange;
+        const snappedVal = Math.round(rawVal);
+        
+        pinEl.setAttribute('data-val', snappedVal);
+        displayEl.innerText = snappedVal > 0 ? '+' + snappedVal : snappedVal;
+
+        const snappedPct = ((snappedVal - minVal) / totalRange) * 100;
+        if (q.orientation === 'horizontal') {
+          pinEl.style.left = `${snappedPct}%`;
+        } else {
+          pinEl.style.bottom = `${snappedPct}%`;
+        }
+      };
+
+      pinEl.onpointerdown = (e) => {
+        isDragging = true;
+        pinEl.style.cursor = 'grabbing';
+        pinEl.setPointerCapture(e.pointerId);
+        updatePositionFromPointer(e);
+      };
+
+      pinEl.onpointermove = (e) => {
+        if (!isDragging) return;
+        updatePositionFromPointer(e);
+      };
+
+      pinEl.onpointerup = (e) => {
+        if (isDragging) {
+          isDragging = false;
+          pinEl.style.cursor = 'grab';
+          pinEl.releasePointerCapture(e.pointerId);
+        }
+      };
+    };
+
+    setupMarkerDrag(pinA, posADisplay);
+    setupMarkerDrag(pinB, posBDisplay);
   },
 
   evaluate(q) {
-    const activeCount = document.querySelectorAll('.grid-cell.active').length;
-    const totalCells = document.querySelectorAll('.grid-cell').length;
-    if (totalCells === 0) return false;
+    const pinA = document.getElementById('pinA');
+    const pinB = document.getElementById('pinB');
+    const symbolSelect = document.getElementById('symbolSelect');
 
-    const userRatio = activeCount / totalCells;
-    return Math.abs(userRatio - q.targetRatio) < 0.001;
+    if (!pinA || !pinB || !symbolSelect) return false;
+
+    const valA = parseInt(pinA.getAttribute('data-val'), 10);
+    const valB = parseInt(pinB.getAttribute('data-val'), 10);
+    const selectedSymbol = symbolSelect.value;
+
+    return valA === q.numA && valB === q.numB && selectedSymbol === q.correctSymbol;
   }
 };
 
-function generateCircleSVG(n) {
-  const cx = 150, cy = 150, r = 140;
-  let svg = `<svg viewBox="0 0 300 300" width="300" height="300" style="display:block; margin:0 auto; width:100%; height:100%;">`;
-  const angleStep = (2 * Math.PI) / n;
-
-  for (let i = 0; i < n; i++) {
-    const startAngle = i * angleStep - Math.PI / 2;
-    const endAngle = (i + 1) * angleStep - Math.PI / 2;
-    const x1 = cx + r * Math.cos(startAngle);
-    const y1 = cy + r * Math.sin(startAngle);
-    const x2 = cx + r * Math.cos(endAngle);
-    const y2 = cy + r * Math.sin(endAngle);
-    const largeArc = angleStep > Math.PI ? 1 : 0;
-
-    const d = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
-    svg += `<path d="${d}" class="grid-cell" data-idx="${i}"></path>`;
-  }
-  svg += `</svg>`;
-  return svg;
-}
-
-function setupDragToShade(container) {
-  const grid = container.querySelector('#touchGrid');
-  let isDragging = false;
-  let targetState = true;
-
-  const updateCount = () => {
-    const active = grid.querySelectorAll('.grid-cell.active').length;
-    const countEl = document.getElementById('cellCount');
-    if (countEl) countEl.innerText = active;
-  };
-
-  const processCell = (cell) => {
-    if (cell && cell.classList.contains('grid-cell')) {
-      cell.classList.toggle('active', targetState);
-      updateCount();
-    }
-  };
-
-  grid.onpointerdown = (e) => {
-    if (!e.target.classList.contains('grid-cell')) return;
-    isDragging = true;
-    targetState = !e.target.classList.contains('active');
-    processCell(e.target);
-  };
-
-  grid.ontouchmove = (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-    processCell(elem);
-  };
-
-  window.onpointerup = () => { isDragging = false; };
-}
-
-registerQuestionType('grid_shader', gridShaderModule);
+registerQuestionType('negative_numbers', negativeNumbersModule);
