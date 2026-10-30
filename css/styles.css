@@ -310,3 +310,116 @@ svg .grid-cell.active {
 .prof-developing { background: rgba(245, 158, 11, 0.15); color: #d97706; }
 .prof-struggling { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
 .prof-untried { background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); }
+
+/* STICKY FROZEN TABLE COLUMNS */
+.teacher-table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.teacher-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.teacher-table th, .teacher-table td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.teacher-table th {
+  background: var(--bg-primary);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Sticky Column Position Rules */
+.teacher-table .sticky-col {
+  position: sticky;
+  background: var(--bg-card);
+  z-index: 2;
+}
+
+.teacher-table th.sticky-col {
+  background: var(--bg-primary) !important;
+  z-index: 3;
+}
+
+.col-code   { left: 0px; min-width: 65px; }
+.col-name   { left: 65px; min-width: 120px; }
+.col-class  { left: 185px; min-width: 70px; }
+.col-streak { left: 255px; min-width: 75px; }
+.col-xp     { left: 330px; min-width: 75px; }
+.col-tokens { 
+  left: 405px; 
+  min-width: 110px; 
+  box-shadow: 3px 0 5px -2px rgba(0,0,0,0.15); /* Separation line between frozen meta columns and scrolling topic columns */
+}
+
+/* Clickable Header for Teaching Demo */
+.topic-hdr {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.topic-hdr:hover {
+  color: var(--accent);
+}
+
+/* Inline Redeem Button */
+.btn-redeem {
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 6px;
+}
+.btn-redeem:hover {
+  background: var(--accent);
+  color: white;
+}
+
+/* MODAL DIALOGS */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modal-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  padding: 24px;
+  width: 100%;
+  max-width: 550px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+}
