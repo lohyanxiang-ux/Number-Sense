@@ -46,7 +46,7 @@ const ALL_TOPICS = [
   { key: 'equivalence', name: '🃏 Equivalence Matching' },
   { key: 'place_value', name: '🔢 Place Value' },
   { key: 'negative_numbers', name: '➖ Negative Numbers' },
-  { key: 'add_subtract_negatives', name: '➕➖ Adding & Subtracting Integers' }
+  { key: 'add_subtract_negatives', name: '➕➖ Adding & Subtracting Integers' },
   { key: 'multiplication', name: '✖️ Multiplication' }
 ];
 
