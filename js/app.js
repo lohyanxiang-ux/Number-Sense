@@ -4,6 +4,7 @@ import './questions/gridShader.js';
 import './questions/equivalence.js';
 import './questions/placeValue.js';
 import './questions/negativeNumbers.js';
+import './questions/addSubtractNegatives.js';
 
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
