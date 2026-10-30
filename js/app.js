@@ -6,7 +6,6 @@ import './questions/placeValue.js';
 import './questions/negativeNumbers.js';
 import './questions/addSubtractNegatives.js';
 import './questions/multiplication.js';
-import './questions/division.js';
 
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
@@ -31,16 +30,17 @@ let activeExtraTopicKey = 'random';
 let teacherRosterData = [];
 let activeSampleTopicKey = '';
 let activeManageStudentCode = null;
-let activeRosterFilter = 'all';
-let activeClassFilter = 'all';
+let activeRosterFilter = 'all'; 
+let activeClassFilter = 'all'; 
 
 // Manage Student Modal State
-let manageTargetMode = 'xp';
+let manageTargetMode = 'xp'; 
 let xpChangeVal = 0;
 let tokenChangeVal = 0;
 let isNegativeSign = false;
 let currentDigits = '0';
 
+// FIX 1: ADDED MISSING COMMA IN ARRAY DEFINITION
 const ALL_TOPICS = [
   { key: 'grid_shader', name: '📐 Grid Shader (Fractions / % / Dec)' },
   { key: 'number_line', name: '📏 Number Line' },
@@ -48,8 +48,7 @@ const ALL_TOPICS = [
   { key: 'place_value', name: '🔢 Place Value' },
   { key: 'negative_numbers', name: '➖ Negative Numbers' },
   { key: 'add_subtract_negatives', name: '➕➖ Adding & Subtracting Integers' },
-  { key: 'multiplication', name: '✖️ Multiplication' },
-  { key: 'division', name: '➗ Division' }
+  { key: 'multiplication', name: '✖️ Multiplication' }
 ];
 
 function getTodayDateString() {
@@ -60,6 +59,7 @@ function getTodayDateString() {
   return `${year}-${month}-${day}`;
 }
 
+// FIX 2: RUN setupKeypad() FIRST SO KEYPAD ALWAYS WORKS IMMEDIATELY
 function initApp() {
   setupKeypad();
   
@@ -103,6 +103,7 @@ function setupKeypad() {
   }
 }
 
+// FIX 3: SAFE BINDING WRAPPER PREVENTS NULL ELEMENT ERRORS FROM CRASHING JS
 function setupEventHandlers() {
   const bindClick = (id, handler) => {
     const el = document.getElementById(id);
@@ -125,6 +126,7 @@ function setupEventHandlers() {
     if (extraTabBtn) switchTab('extra', extraTabBtn);
   });
 
+  // Class Filter Handler
   const classSelect = document.getElementById('classFilterSelect');
   if (classSelect) {
     classSelect.onchange = (e) => {
@@ -133,10 +135,12 @@ function setupEventHandlers() {
     };
   }
 
+  // KPI Card Click Handlers
   bindClick('kpiCardTotal', () => setRosterFilter('all'));
   bindClick('kpiCardActiveToday', () => setRosterFilter('active_today'));
   bindClick('kpiCardStruggling', () => setRosterFilter('needs_attention'));
 
+  // Filter Chips Handler
   document.querySelectorAll('.filter-chip').forEach(btn => {
     btn.onclick = () => {
       const filterType = btn.getAttribute('data-filter');
@@ -144,6 +148,7 @@ function setupEventHandlers() {
     };
   });
 
+  // Clickable Header Handlers for Teaching Demos
   document.querySelectorAll('.topic-hdr').forEach(hdr => {
     hdr.onclick = () => {
       const typeKey = hdr.getAttribute('data-type');
@@ -151,6 +156,7 @@ function setupEventHandlers() {
     };
   });
 
+  // Modal Close Handlers
   bindClick('closeSampleModalBtn', () => {
     const m = document.getElementById('sampleQuestionModal');
     if (m) m.classList.add('hidden');
@@ -165,9 +171,11 @@ function setupEventHandlers() {
     generateSampleQuestion(activeSampleTopicKey);
   });
 
+  // Manage Modal Mode Tabs
   bindClick('tabModeXP', () => switchManageMode('xp'));
   bindClick('tabModeTokens', () => switchManageMode('tokens'));
 
+  // Manage Modal Keypad Handlers
   document.querySelectorAll('.m-num-key').forEach(btn => {
     btn.onclick = () => {
       const k = btn.getAttribute('data-k');
@@ -221,6 +229,7 @@ async function handleLogin() {
     return;
   }
 
+  // 1. TEACHER DASHBOARD LOGIN (PIN 3005)
   if (enteredPin === '3005') {
     enteredPin = '';
     const display = document.getElementById('pinDisplay');
@@ -229,6 +238,7 @@ async function handleLogin() {
     return;
   }
 
+  // 2. STUDENT LOGIN
   const todayStr = getTodayDateString();
 
   if (sheetWebAppUrl) {
@@ -261,6 +271,7 @@ async function handleLogin() {
     } catch (e) {}
   }
 
+  // Local Student Fallback
   const localDoneToday = localStorage.getItem(`NUMSENSE_DAILY_DONE_${enteredPin}`) === todayStr;
   currentUser = { 
     code: enteredPin, 
@@ -348,6 +359,7 @@ function saveSheetUrl() {
   }
 }
 
+// DAILY PRACTICE LOGIC
 function startDailySession() {
   currentQIndex = 0;
   sessionScore = 0;
@@ -474,6 +486,7 @@ async function finishDailySession() {
   }
 }
 
+// EXTRA PRACTICE LOGIC
 function resetExtraPracticeUI() {
   document.getElementById('extraActiveCard').innerHTML = `
     <div class="q-header">
@@ -618,6 +631,7 @@ async function finishExtraPracticeSession() {
   }
 }
 
+// STUDENT MY PROGRESS TAB LOGIC
 function renderStudentProgressTab() {
   const container = document.getElementById('studentProgressContainer');
   if (!container || !currentUser) return;
@@ -704,6 +718,7 @@ function renderStudentProgressTab() {
   });
 }
 
+// TEACHER DASHBOARD LOGIC
 async function loadTeacherDashboard() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appContainer').classList.add('hidden');
@@ -887,7 +902,7 @@ function renderRosterTable(students) {
   if (!tbody) return;
 
   if (!students || students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="15" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
@@ -965,8 +980,24 @@ function getProfBadgeHtml(history) {
   }
 }
 
+// SAMPLE QUESTION PREVIEW MODAL LOGIC
+function openSampleQuestionModal(typeKey, topicTitle) {
+  activeSampleTopicKey = typeKey;
+  document.getElementById('sampleModalTitle').innerText = `Sample Question: ${topicTitle}`;
+  generateSampleQuestion(typeKey);
+  document.getElementById('sampleQuestionModal').classList.remove('hidden');
+}
+
+function generateSampleQuestion(typeKey) {
+  const q = getQuestionByType(typeKey);
+  document.getElementById('sampleQPrompt').innerHTML = q.prompt;
+  const ws = document.getElementById('sampleQWorkspace');
+  renderQuestion(q, ws);
+}
+
+// STUDENT MANAGEMENT MODAL LOGIC
 function openStudentManageModal(studentCode) {
-  const student = teacherRosterData.find(s => String(s.code) === String(studentCode));
+  const student = teacherRosterData.find(s => s.code === studentCode);
   if (!student) return;
 
   activeManageStudentCode = studentCode;
@@ -990,13 +1021,17 @@ function switchManageMode(mode) {
   const lbl = document.getElementById('mActiveModeLabel');
 
   if (mode === 'xp') {
-    if (btnXP) { btnXP.style.background = 'var(--accent)'; btnXP.style.color = 'white'; }
-    if (btnTokens) { btnTokens.style.background = 'var(--bg-primary)'; btnTokens.style.color = 'var(--text-main)'; }
-    if (lbl) lbl.innerText = 'XP Adjustment:';
+    btnXP.style.background = 'var(--accent)';
+    btnXP.style.color = 'white';
+    btnTokens.style.background = 'var(--bg-primary)';
+    btnTokens.style.color = 'var(--text-main)';
+    lbl.innerText = 'XP Adjustment:';
   } else {
-    if (btnTokens) { btnTokens.style.background = '#d97706'; btnTokens.style.color = 'white'; }
-    if (btnXP) { btnXP.style.background = 'var(--bg-primary)'; btnXP.style.color = 'var(--text-main)'; }
-    if (lbl) lbl.innerText = 'Tokens Adjustment:';
+    btnTokens.style.background = '#d97706';
+    btnTokens.style.color = 'white';
+    btnXP.style.background = 'var(--bg-primary)';
+    btnXP.style.color = 'var(--text-main)';
+    lbl.innerText = 'Tokens Adjustment:';
   }
 
   updateManageKeypadDisplay();
@@ -1004,8 +1039,6 @@ function switchManageMode(mode) {
 
 function updateManageKeypadDisplay() {
   const display = document.getElementById('mKeypadDisplay');
-  if (!display) return;
-
   const val = parseInt(currentDigits, 10) || 0;
   const signedVal = isNegativeSign ? -val : val;
 
@@ -1023,7 +1056,7 @@ function updateManageKeypadDisplay() {
 async function processStudentManagement() {
   if (!activeManageStudentCode || !sheetWebAppUrl) return;
 
-  const student = teacherRosterData.find(s => String(s.code) === String(activeManageStudentCode));
+  const student = teacherRosterData.find(s => s.code === activeManageStudentCode);
   if (!student) return;
 
   const newXP = Math.max(0, (student.xp || 0) + xpChangeVal);
@@ -1052,20 +1085,4 @@ async function processStudentManagement() {
   } catch (e) {
     alert("Network error updating student details.");
   }
-}
-
-function openSampleQuestionModal(typeKey, titleText) {
-  activeSampleTopicKey = typeKey;
-  document.getElementById('sampleModalTitle').innerText = titleText.replace('👁️', '') + ' - Teaching Sample';
-  document.getElementById('sampleQuestionModal').classList.remove('hidden');
-  generateSampleQuestion(typeKey);
-}
-
-function generateSampleQuestion(typeKey) {
-  const sampleQ = getQuestionByType(typeKey);
-  if (!sampleQ) return;
-
-  document.getElementById('sampleQPrompt').innerHTML = sampleQ.prompt;
-  const ws = document.getElementById('sampleQWorkspace');
-  renderQuestion(sampleQ, ws);
 }
