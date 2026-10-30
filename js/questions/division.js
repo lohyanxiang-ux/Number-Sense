@@ -20,7 +20,6 @@ const divisionModule = {
     const a = b * target; // Dividend (total items)
 
     const item = funObjects[Math.floor(Math.random() * funObjects.length)];
-    const exprStr = `${a} ÷ ${b}`;
 
     return {
       type: 'division',
@@ -29,9 +28,9 @@ const divisionModule = {
       target: target,
       itemEmoji: item.emoji,
       itemName: item.name,
-      exprStr: exprStr,
-      prompt: `Evaluate <strong>${exprStr}</strong>. Set to <strong>${b} groups</strong>, divide the <strong>${a} ${item.emoji}</strong> equally into each group, then key in your final answer:`,
-      explanation: `<strong>${exprStr}</strong> means sharing <strong>${a} ${item.emoji}</strong> equally into <strong>${b} groups</strong>.<br>Each group gets <strong>${target} ${item.emoji}</strong>.`
+      exprStr: `${a} ÷ ${b}`,
+      prompt: `Evaluate <strong>${a} divide ${b} by dividing into equal groups</strong>:`,
+      explanation: `<strong>${a} ÷ ${b}</strong> means dividing <strong>${a} ${item.emoji}</strong> equally into <strong>${b} groups</strong>.<br>Each group gets <strong>${target} ${item.emoji}</strong>.`
     };
   },
 
@@ -123,24 +122,6 @@ const divisionModule = {
           </div>
         </div>
 
-        <!-- REPEATED / EQUAL DIVISION LIVE TRACKER -->
-        <div style="
-          background: rgba(79, 70, 229, 0.08); 
-          border: 2px solid var(--accent); 
-          border-radius: 12px; 
-          padding: 10px 18px; 
-          display: inline-block; 
-          margin-bottom: 20px;
-          font-size: 1.2rem;
-          font-weight: 800;
-          color: var(--accent);
-        ">
-          <span style="font-size: 0.8rem; display: block; color: var(--text-muted); margin-bottom: 2px; font-weight: 700; text-transform: uppercase;">
-            Sharing View
-          </span>
-          <span id="divAddSentence">Select groups to begin</span>
-        </div>
-
         <!-- EQUATION INPUT & ENLARGED TOUCH KEYPAD -->
         <div style="
           background: var(--bg-primary); 
@@ -152,7 +133,7 @@ const divisionModule = {
           box-shadow: var(--shadow);
         ">
           <div style="font-size: 1.6rem; font-weight: 800; margin-bottom: 14px;">
-            ${q.exprStr} = <span id="ansDisplay" style="
+            ${q.a} ÷ ${q.b} = <span id="ansDisplay" style="
               color: var(--accent); 
               border-bottom: 3.5px solid var(--accent); 
               padding: 0 12px;
@@ -196,7 +177,6 @@ const divisionModule = {
     const poolEl = container.querySelector('#itemPool');
     const poolBadge = container.querySelector('#poolCountBadge');
     const traysContainer = container.querySelector('#divTraysContainer');
-    const sentenceEl = container.querySelector('#divAddSentence');
     const ansDisplay = container.querySelector('#ansDisplay');
 
     const renderPool = () => {
@@ -265,36 +245,12 @@ const divisionModule = {
       });
     };
 
-    const updateSentenceDisplay = () => {
-      if (selectedGroupCount === 0) {
-        sentenceEl.innerText = 'Select groups to begin';
-        return;
-      }
-
-      const totalAllocated = q.a - unallocatedCount;
-      const allEqual = groupCounts.length > 0 && groupCounts.every(val => val === groupCounts[0] && val > 0);
-
-      if (totalAllocated === 0) {
-        sentenceEl.innerText = `${q.a} items to share into ${selectedGroupCount} groups`;
-      } else if (unallocatedCount === 0 && allEqual) {
-        sentenceEl.innerText = `${q.a} ÷ ${selectedGroupCount} = ${groupCounts[0]} in each group`;
-      } else if (allEqual) {
-        sentenceEl.innerText = `${totalAllocated} shared equally (${groupCounts[0]} per group)`;
-      } else {
-        sentenceEl.innerText = `Divide items equally into all ${selectedGroupCount} groups`;
-      }
-
-      container.setAttribute('data-selected-groups', selectedGroupCount);
-      container.setAttribute('data-group-counts', JSON.stringify(groupCounts));
-    };
-
     const allocateToGroup = (gIdx) => {
       if (unallocatedCount > 0) {
         unallocatedCount--;
         groupCounts[gIdx]++;
         renderPool();
         renderTrays();
-        updateSentenceDisplay();
       }
     };
 
@@ -304,12 +260,25 @@ const divisionModule = {
         unallocatedCount++;
         renderPool();
         renderTrays();
-        updateSentenceDisplay();
       }
     };
 
     const renderTrays = () => {
       if (selectedGroupCount === 0) return;
+
+      container.setAttribute('data-selected-groups', selectedGroupCount);
+      container.setAttribute('data-group-counts', JSON.stringify(groupCounts));
+
+      // CHECK IF ALL ITEMS ARE DIVIDED EQUALLY
+      const isAllDivided = (unallocatedCount === 0);
+      const isAllEqual = groupCounts.length > 0 && groupCounts.every(val => val === groupCounts[0] && val > 0);
+      const isFullyEqual = isAllDivided && isAllEqual;
+
+      // COLOR THEME: GREEN IF EQUAL & COMPLETE, RED IF NOT EQUAL
+      const trayBorderColor = isFullyEqual ? '#10b981' : '#ef4444';
+      const trayBg = isFullyEqual ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.06)';
+      const badgeBg = isFullyEqual ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+      const badgeColor = isFullyEqual ? '#10b981' : '#ef4444';
 
       let traysHtml = '';
       for (let g = 0; g < selectedGroupCount; g++) {
@@ -321,11 +290,11 @@ const divisionModule = {
 
         traysHtml += `
           <div class="div-tray-card" data-gidx="${g}" style="
-            background: var(--bg-card);
-            border: 2px solid var(--accent);
+            background: ${trayBg};
+            border: 2px solid ${trayBorderColor};
             border-radius: 14px;
             padding: 10px;
-            min-width: 90px;
+            min-width: 95px;
             min-height: 110px;
             display: flex;
             flex-direction: column;
@@ -333,7 +302,7 @@ const divisionModule = {
             justify-content: space-between;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            transition: transform 0.15s ease;
+            transition: all 0.2s ease;
           ">
             <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
               Group ${g + 1}
@@ -353,8 +322,8 @@ const divisionModule = {
             <span style="
               font-size: 0.85rem;
               font-weight: 800;
-              color: var(--accent);
-              background: rgba(79, 70, 229, 0.1);
+              color: ${badgeColor};
+              background: ${badgeBg};
               padding: 2px 8px;
               border-radius: 8px;
             ">${cnt} items</span>
@@ -397,7 +366,6 @@ const divisionModule = {
 
         renderPool();
         renderTrays();
-        updateSentenceDisplay();
       };
     });
 
@@ -419,7 +387,6 @@ const divisionModule = {
     };
 
     renderPool();
-    updateSentenceDisplay();
   },
 
   evaluate(q) {
