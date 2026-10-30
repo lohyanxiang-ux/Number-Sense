@@ -95,9 +95,21 @@ function setupKeypad() {
 }
 
 function setupEventHandlers() {
-  document.getElementById('loginBtn').onclick = handleLogin;
-  document.getElementById('submitBtn').onclick = handleAnswerSubmit;
-  document.getElementById('nextBtn').onclick = handleNextQuestion;
+  const bindClick = (id, handler) => {
+    const el = document.getElementById(id);
+    if (el) el.onclick = handler;
+  };
+
+  bindClick('loginBtn', handleLogin);
+  bindClick('submitBtn', handleAnswerSubmit);
+  bindClick('nextBtn', handleNextQuestion);
+  bindClick('startExtraBtn', startExtraPracticeSession);
+  bindClick('extraSubmitBtn', handleExtraAnswerSubmit);
+  bindClick('extraNextBtn', handleExtraNextQuestion);
+  bindClick('saveSheetBtn', saveSheetUrl);
+  bindClick('refreshTeacherDataBtn', fetchTeacherDashboardData);
+  bindClick('logoutBtn', logout);
+  bindClick('teacherLogoutBtn', logout);
 
   // Extra Practice Handlers
   document.getElementById('startExtraBtn').onclick = startExtraPracticeSession;
