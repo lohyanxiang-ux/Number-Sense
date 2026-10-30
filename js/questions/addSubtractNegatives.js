@@ -2,54 +2,44 @@ import { registerQuestionType, formatMath } from './registry.js';
 
 const addSubtractNegativesModule = {
   generate() {
-    let a, op, b, netShift, target;
+    let a, op, b, target;
 
-    // Generate valid numbers until target falls strictly within [-10, 10]
+    // Keep numbers within range [-10, 10]
     do {
-      a = Math.floor(Math.random() * 15) - 7; // -7 to +7
+      a = Math.floor(Math.random() * 13) - 6; // -6 to +6
       op = Math.random() < 0.5 ? '+' : '-';
       
-      const bMag = Math.floor(Math.random() * 6) + 1; // 1 to 6
+      const bMag = Math.floor(Math.random() * 5) + 1; // 1 to 5
       const bSign = Math.random() < 0.5 ? 1 : -1;
       b = bMag * bSign;
 
-      netShift = op === '+' ? b : -b;
+      const netShift = op === '+' ? b : -b;
       target = a + netShift;
     } while (target < -10 || target > 10);
 
-    const bStr = b < 0 ? `(${b})` : `${b}`;
-    const exprStr = `${a} ${op} ${bStr}`;
+    const bFormatted = b < 0 ? `(${b})` : `${b}`;
+    const exprStr = `${a} ${op} ${bFormatted}`;
 
-    const moveDirection = netShift > 0 ? 'RIGHT ➔' : 'LEFT ⬅';
-    const steps = Math.abs(netShift);
-    let ruleText = '';
-
+    let explanationText = '';
     if (op === '+' && b > 0) {
-      ruleText = `Adding positive ${b} moves ${steps} steps RIGHT.`;
+      explanationText = `Add (+) means move RIGHT (Blue arrow) by ${b} steps from ${a} to land on ${target}.`;
     } else if (op === '+' && b < 0) {
-      ruleText = `Adding negative (${b}) is equivalent to moving ${steps} steps LEFT.`;
+      explanationText = `Add (+) starts moving RIGHT (Blue arrow) by ${Math.abs(b)} steps to ${a + Math.abs(b)}. Tapping FLIP mirrors it about ${a} into a RED arrow pointing LEFT to land on ${target}.`;
     } else if (op === '-' && b > 0) {
-      ruleText = `Subtracting positive ${b} moves ${steps} steps LEFT.`;
-    } else if (op === '-' && b < 0) {
-      ruleText = `Subtracting negative (${b}) is equivalent to moving ${steps} steps RIGHT (double negative becomes positive).`;
+      explanationText = `Subtract (-) means move LEFT (Green arrow) by ${b} steps from ${a} to land on ${target}.`;
+    } else {
+      explanationText = `Subtract (-) starts moving LEFT (Green arrow) by ${Math.abs(b)} steps to ${a - Math.abs(b)}. Tapping FLIP mirrors it about ${a} into a RED arrow pointing RIGHT to land on ${target}.`;
     }
-
-    const explanation = `
-      <strong>Conceptual Rule:</strong> ${ruleText}<br>
-      Start at <strong>${a}</strong> and move <strong>${steps} steps ${moveDirection}</strong> to land on <strong>${target}</strong>.<br>
-      Therefore, <strong>${exprStr} = ${target}</strong>.
-    `;
 
     return {
       type: 'add_subtract_negatives',
       a: a,
       op: op,
       b: b,
-      netShift: netShift,
       target: target,
       exprStr: exprStr,
-      prompt: `Evaluate <strong>${formatMath(exprStr)}</strong> by dragging the arrow tip to the correct answer on the number line:`,
-      explanation: formatMath(explanation)
+      prompt: `Use the number line and flip tool to solve <strong>${formatMath(exprStr)}</strong>, then key in your final answer:`,
+      explanation: formatMath(explanationText)
     };
   },
 
@@ -58,6 +48,7 @@ const addSubtractNegativesModule = {
     const maxVal = 10;
     const totalRange = maxVal - minVal;
 
+    // Ticks generation
     let ticksHtml = '';
     for (let v = minVal; v <= maxVal; v++) {
       const posPct = ((v - minVal) / totalRange) * 100;
@@ -95,76 +86,55 @@ const addSubtractNegativesModule = {
     let html = `
       <div style="max-width: 550px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
         
-        <!-- Live Readout Box -->
-        <div style="
-          background: var(--bg-primary); 
-          border: 2px solid var(--border-color); 
-          padding: 12px 20px; 
-          border-radius: var(--radius); 
-          display: inline-flex; 
-          align-items: center; 
-          gap: 16px; 
-          margin-bottom: 20px;
-        ">
-          <span style="font-size: 1.4rem; font-weight: 800; color: var(--text-main);">${q.exprStr} = </span>
-          <span id="endPosDisplay" style="font-size: 2rem; font-weight: 800; color: var(--accent);">0</span>
-          <span id="stepCountDisplay" style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); padding-left: 10px; border-left: 1px solid var(--border-color);">
-            Movement: 0 steps
-          </span>
-        </div>
-
-        <!-- NUMBER LINE CANVAS TRACK -->
-        <div style="position: relative; height: 110px; margin: 20px 20px 10px 20px; padding: 0 10px;">
-          
+        <!-- NUMBER LINE TRACK -->
+        <div style="position: relative; height: 110px; margin: 25px 20px 10px 20px; padding: 0 10px;">
           <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 40px; touch-action: none;">
             ${ticksHtml}
 
-            <!-- Fixed Start Marker -->
+            <!-- Pivot Point Dot (Start) -->
             <div style="
               position: absolute;
-              top: -28px;
+              top: -26px;
               left: ${startPct}%;
               transform: translateX(-50%);
-              background: #64748b;
+              background: var(--text-main);
               color: white;
               font-weight: 800;
               font-size: 0.75rem;
               padding: 2px 8px;
               border-radius: 10px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.15);
               z-index: 2;
             ">Start (${q.a})</div>
 
             <div style="
               position: absolute;
-              top: -6px;
+              top: -5px;
               left: ${startPct}%;
-              width: 8px;
-              height: 8px;
+              width: 10px;
+              height: 10px;
               border-radius: 50%;
-              background: #64748b;
+              background: var(--text-main);
               transform: translateX(-50%);
-              z-index: 2;
+              z-index: 3;
             "></div>
 
-            <!-- Dynamic Vector Movement Bar -->
-            <div id="vectorLine" style="
+            <!-- Dynamic Vector Arrow Bar -->
+            <div id="vectorBar" style="
               position: absolute;
               top: -3px;
-              height: 4px;
-              background: var(--accent);
-              border-radius: 2px;
+              height: 6px;
+              border-radius: 3px;
               z-index: 2;
               pointer-events: none;
+              transition: background 0.2s ease;
             "></div>
 
-            <!-- Draggable Vector End Handle -->
-            <div id="vectorEndPin" data-val="0" style="
+            <!-- Draggable Arrow Head Handle -->
+            <div id="arrowHead" data-val="${q.a}" style="
               position: absolute;
               top: -28px;
-              left: 50%;
+              left: ${startPct}%;
               transform: translateX(-50%);
-              background: var(--accent);
               color: white;
               font-weight: 800;
               font-size: 0.85rem;
@@ -173,9 +143,68 @@ const addSubtractNegativesModule = {
               box-shadow: 0 3px 6px rgba(0,0,0,0.25);
               cursor: grab;
               touch-action: none;
-              z-index: 3;
-            ">End</div>
+              z-index: 4;
+              transition: background 0.2s ease;
+            ">Tip</div>
 
+          </div>
+        </div>
+
+        <!-- FLIP ACTION BUTTON & COLOR LEGEND -->
+        <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin: 15px 0 20px 0;">
+          <button id="flipBtn" style="
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            transition: transform 0.1s ease;
+          ">🔄 Flip Arrow</button>
+
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-align: left; line-height: 1.3;">
+            <span style="color: #3b82f6;">■ Blue: Add (+)</span> | 
+            <span style="color: #10b981;">■ Green: Subtract (-)</span><br>
+            <span style="color: #ef4444;">■ Red: Flipped (Negative)</span>
+          </div>
+        </div>
+
+        <!-- EQUATION INPUT & KEYPAD -->
+        <div style="
+          background: var(--bg-primary); 
+          border: 2px solid var(--border-color); 
+          border-radius: var(--radius); 
+          padding: 16px; 
+          max-width: 320px; 
+          margin: 0 auto;
+        ">
+          <div style="font-size: 1.3rem; font-weight: 800; margin-bottom: 10px;">
+            ${q.exprStr} = <span id="ansDisplay" style="
+              color: var(--accent); 
+              border-bottom: 3px solid var(--accent); 
+              padding: 0 10px;
+              min-width: 50px;
+              display: inline-block;
+            ">?</span>
+          </div>
+
+          <!-- KEYPAD -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <button class="asn-key" data-k="1">1</button>
+            <button class="asn-key" data-k="2">2</button>
+            <button class="asn-key" data-k="3">3</button>
+            <button class="asn-key" data-k="4">4</button>
+            <button class="asn-key" data-k="5">5</button>
+            <button class="asn-key" data-k="6">6</button>
+            <button class="asn-key" data-k="7">7</button>
+            <button class="asn-key" data-k="8">8</button>
+            <button class="asn-key" data-k="9">9</button>
+            <button class="asn-key" data-k="-" style="background: rgba(79,70,229,0.1); color: var(--accent); font-weight: 800;">-</button>
+            <button class="asn-key" data-k="0">0</button>
+            <button class="asn-key" id="asnClear" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); font-weight: 700;">C</button>
           </div>
         </div>
 
@@ -184,78 +213,127 @@ const addSubtractNegativesModule = {
 
     container.innerHTML = html;
 
+    // STATE VARIABLES
+    let isFlipped = false;
+    let currentRawVal = q.a; // Snapped position on line
+    let typedAnswer = '';
+
     const track = container.querySelector('#asnTrack');
-    const endPin = container.querySelector('#vectorEndPin');
-    const vectorLine = container.querySelector('#vectorLine');
-    const endPosDisplay = container.querySelector('#endPosDisplay');
-    const stepCountDisplay = container.querySelector('#stepCountDisplay');
+    const arrowHead = container.querySelector('#arrowHead');
+    const vectorBar = container.querySelector('#vectorBar');
+    const flipBtn = container.querySelector('#flipBtn');
+    const ansDisplay = container.querySelector('#ansDisplay');
 
-    let isDragging = false;
+    // Get color based on direction and flipped state
+    const getArrowColor = () => {
+      if (isFlipped) return '#ef4444'; // Red
+      return q.op === '+' ? '#3b82f6' : '#10b981'; // Blue for +, Green for -
+    };
 
-    const updateVectorUI = (val) => {
-      endPin.setAttribute('data-val', val);
-      endPosDisplay.innerText = val > 0 ? '+' + val : val;
+    const updateArrowUI = () => {
+      const color = getArrowColor();
+      arrowHead.style.background = color;
+      vectorBar.style.background = color;
 
-      const steps = val - q.a;
-      if (steps === 0) {
-        stepCountDisplay.innerText = 'Movement: 0 steps';
-      } else if (steps > 0) {
-        stepCountDisplay.innerText = `Movement: ${steps} steps RIGHT ➔`;
-      } else {
-        stepCountDisplay.innerText = `Movement: ${Math.abs(steps)} steps LEFT ⬅`;
-      }
-
-      const currentPct = ((val - minVal) / totalRange) * 100;
-      endPin.style.left = `${currentPct}%`;
+      const currentPct = ((currentRawVal - minVal) / totalRange) * 100;
+      arrowHead.style.left = `${currentPct}%`;
 
       const leftPct = Math.min(startPct, currentPct);
       const widthPct = Math.abs(currentPct - startPct);
 
-      vectorLine.style.left = `${leftPct}%`;
-      vectorLine.style.width = `${widthPct}%`;
+      vectorBar.style.left = `${leftPct}%`;
+      vectorBar.style.width = `${widthPct}%`;
+
+      arrowHead.setAttribute('data-val', currentRawVal);
+      arrowHead.setAttribute('data-flipped', isFlipped ? 'true' : 'false');
     };
 
-    const updatePositionFromPointer = (e) => {
+    // POINTER DRAG LOGIC
+    let isDragging = false;
+
+    const updateFromPointer = (e) => {
       const rect = track.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const ratio = Math.max(0, Math.min(1, x / rect.width));
 
       const rawVal = minVal + ratio * totalRange;
-      const snappedVal = Math.round(rawVal);
-
-      updateVectorUI(snappedVal);
+      currentRawVal = Math.round(rawVal);
+      updateArrowUI();
     };
 
-    endPin.onpointerdown = (e) => {
+    arrowHead.onpointerdown = (e) => {
       isDragging = true;
-      endPin.style.cursor = 'grabbing';
-      endPin.setPointerCapture(e.pointerId);
-      updatePositionFromPointer(e);
+      arrowHead.style.cursor = 'grabbing';
+      arrowHead.setPointerCapture(e.pointerId);
+      updateFromPointer(e);
     };
 
-    endPin.onpointermove = (e) => {
+    arrowHead.onpointermove = (e) => {
       if (!isDragging) return;
-      updatePositionFromPointer(e);
+      updateFromPointer(e);
     };
 
-    endPin.onpointerup = (e) => {
+    arrowHead.onpointerup = (e) => {
       if (isDragging) {
         isDragging = false;
-        endPin.style.cursor = 'grab';
-        endPin.releasePointerCapture(e.pointerId);
+        arrowHead.style.cursor = 'grab';
+        arrowHead.releasePointerCapture(e.pointerId);
       }
     };
 
-    // Start handle at 0 by default
-    updateVectorUI(0);
+    // FLIP BUTTON LOGIC
+    flipBtn.onclick = () => {
+      isFlipped = !isFlipped;
+      
+      // Mirror position about start pivot 'a'
+      const distFromStart = currentRawVal - q.a;
+      currentRawVal = q.a - distFromStart;
+
+      updateArrowUI();
+    };
+
+    // KEYPAD LOGIC
+    container.querySelectorAll('.asn-key[data-k]').forEach(btn => {
+      btn.onclick = () => {
+        const k = btn.getAttribute('data-k');
+        if (k === '-' && typedAnswer.length === 0) {
+          typedAnswer = '-';
+        } else if (k !== '-') {
+          if (typedAnswer === '0') typedAnswer = k;
+          else typedAnswer += k;
+        }
+        ansDisplay.innerText = typedAnswer || '?';
+        ansDisplay.setAttribute('data-typed', typedAnswer);
+      };
+    });
+
+    document.getElementById('asnClear').onclick = () => {
+      typedAnswer = '';
+      ansDisplay.innerText = '?';
+      ansDisplay.removeAttribute('data-typed');
+    };
+
+    // Initial render setup
+    updateArrowUI();
   },
 
   evaluate(q) {
-    const endPin = document.getElementById('vectorEndPin');
-    if (!endPin) return false;
+    const arrowHead = document.getElementById('arrowHead');
+    const ansDisplay = document.getElementById('ansDisplay');
 
-    const userVal = parseInt(endPin.getAttribute('data-val'), 10);
-    return userVal === q.target;
+    if (!arrowHead || !ansDisplay) return false;
+
+    const userLineVal = parseInt(arrowHead.getAttribute('data-val'), 10);
+    const userFlipped = arrowHead.getAttribute('data-flipped') === 'true';
+    const userTypedVal = parseInt(ansDisplay.getAttribute('data-typed'), 10);
+
+    const requiredFlip = q.b < 0;
+
+    // Must correctly evaluate:
+    // 1. Numeric answer typed in keypad matches target
+    // 2. Arrow tip position on line matches target
+    // 3. Flipped state matches sign of b (flipped if b < 0)
+    return userTypedVal === q.target && userLineVal === q.target && userFlipped === requiredFlip;
   }
 };
 
