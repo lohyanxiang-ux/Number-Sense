@@ -6,6 +6,7 @@ import './questions/placeValue.js';
 import './questions/negativeNumbers.js';
 import './questions/addSubtractNegatives.js';
 import './questions/multiplication.js';
+import './questions/division.js';
 
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || '';
@@ -49,6 +50,7 @@ const ALL_TOPICS = [
   { key: 'negative_numbers', name: '➖ Negative Numbers' },
   { key: 'add_subtract_negatives', name: '➕➖ Adding & Subtracting Integers' },
   { key: 'multiplication', name: '✖️ Multiplication' }
+  { key: 'division', name: '➗ Division' }
 ];
 
 function getTodayDateString() {
