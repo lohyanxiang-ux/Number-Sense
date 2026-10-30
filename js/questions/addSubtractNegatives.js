@@ -24,11 +24,11 @@ const addSubtractNegativesModule = {
     if (op === '+' && b > 0) {
       explanationText = `Add (+) means move RIGHT (Blue arrow) by ${b} steps from ${a} to land on ${target}.`;
     } else if (op === '+' && b < 0) {
-      explanationText = `Add (+) starts moving RIGHT (Blue arrow) by ${Math.abs(b)} steps to ${a + Math.abs(b)}. Tapping FLIP mirrors it about ${a} into a RED arrow pointing LEFT to land on ${target}.`;
+      explanationText = `Add (+) starts moving RIGHT (Blue arrow) by ${Math.abs(b)} steps. Tapping 'Flip negative number' mirrors it about ${a} into a RED arrow pointing LEFT to land on ${target}.`;
     } else if (op === '-' && b > 0) {
       explanationText = `Subtract (-) means move LEFT (Green arrow) by ${b} steps from ${a} to land on ${target}.`;
     } else {
-      explanationText = `Subtract (-) starts moving LEFT (Green arrow) by ${Math.abs(b)} steps to ${a - Math.abs(b)}. Tapping FLIP mirrors it about ${a} into a RED arrow pointing RIGHT to land on ${target}.`;
+      explanationText = `Subtract (-) starts moving LEFT (Green arrow) by ${Math.abs(b)} steps. Tapping 'Flip negative number' mirrors it about ${a} into a RED arrow pointing RIGHT to land on ${target}.`;
     }
 
     return {
@@ -38,7 +38,7 @@ const addSubtractNegativesModule = {
       b: b,
       target: target,
       exprStr: exprStr,
-      prompt: `Use the number line and flip tool to solve <strong>${formatMath(exprStr)}</strong>, then key in your final answer:`,
+      prompt: `Evaluate <strong>${formatMath(exprStr)}</strong> using the number line and flip tool, then key in your final answer:`,
       explanation: formatMath(explanationText)
     };
   },
@@ -129,7 +129,7 @@ const addSubtractNegativesModule = {
               transition: background 0.2s ease;
             "></div>
 
-            <!-- Draggable Arrow Head Handle -->
+            <!-- Draggable Arrow Tip Handle -->
             <div id="arrowHead" data-val="${q.a}" style="
               position: absolute;
               top: -28px;
@@ -137,39 +137,33 @@ const addSubtractNegativesModule = {
               transform: translateX(-50%);
               color: white;
               font-weight: 800;
-              font-size: 0.85rem;
-              padding: 4px 10px;
+              font-size: 1rem;
+              padding: 2px 8px;
               border-radius: 14px;
               box-shadow: 0 3px 6px rgba(0,0,0,0.25);
               cursor: grab;
               touch-action: none;
               z-index: 4;
               transition: background 0.2s ease;
-            ">Tip</div>
+            ">➔</div>
 
           </div>
         </div>
 
-        <!-- FLIP ACTION BUTTON & COLOR LEGEND -->
-        <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin: 15px 0 20px 0;">
+        <!-- FLIP ACTION BUTTON -->
+        <div style="display: flex; justify-content: center; margin: 15px 0 20px 0;">
           <button id="flipBtn" style="
             background: #ef4444;
             color: white;
             border: none;
-            padding: 8px 18px;
+            padding: 10px 22px;
             border-radius: 8px;
             font-weight: 800;
             font-size: 0.95rem;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.15);
             transition: transform 0.1s ease;
-          ">🔄 Flip Arrow</button>
-
-          <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-align: left; line-height: 1.3;">
-            <span style="color: #3b82f6;">■ Blue: Add (+)</span> | 
-            <span style="color: #10b981;">■ Green: Subtract (-)</span><br>
-            <span style="color: #ef4444;">■ Red: Flipped (Negative)</span>
-          </div>
+          ">🔄 Flip negative number</button>
         </div>
 
         <!-- EQUATION INPUT & KEYPAD -->
@@ -215,7 +209,7 @@ const addSubtractNegativesModule = {
 
     // STATE VARIABLES
     let isFlipped = false;
-    let currentRawVal = q.a; // Snapped position on line
+    let currentRawVal = q.a; // Position on line
     let typedAnswer = '';
 
     const track = container.querySelector('#asnTrack');
@@ -224,16 +218,35 @@ const addSubtractNegativesModule = {
     const flipBtn = container.querySelector('#flipBtn');
     const ansDisplay = container.querySelector('#ansDisplay');
 
-    // Get color based on direction and flipped state
-    const getArrowColor = () => {
-      if (isFlipped) return '#ef4444'; // Red
-      return q.op === '+' ? '#3b82f6' : '#10b981'; // Blue for +, Green for -
+    // Automatic color and arrow tip symbol based on direction & flip state
+    const getArrowDetails = () => {
+      let color = '#3b82f6';
+      let symbol = '➔';
+
+      if (isFlipped) {
+        color = '#ef4444'; // Red when flipped
+        symbol = currentRawVal >= q.a ? '➔' : '⬅';
+      } else {
+        if (currentRawVal > q.a) {
+          color = '#3b82f6'; // Blue when right of start
+          symbol = '➔';
+        } else if (currentRawVal < q.a) {
+          color = '#10b981'; // Green when left of start
+          symbol = '⬅';
+        } else {
+          color = q.op === '+' ? '#3b82f6' : '#10b981';
+          symbol = q.op === '+' ? '➔' : '⬅';
+        }
+      }
+      return { color, symbol };
     };
 
     const updateArrowUI = () => {
-      const color = getArrowColor();
+      const { color, symbol } = getArrowDetails();
+      
       arrowHead.style.background = color;
       vectorBar.style.background = color;
+      arrowHead.innerText = symbol;
 
       const currentPct = ((currentRawVal - minVal) / totalRange) * 100;
       arrowHead.style.left = `${currentPct}%`;
@@ -329,10 +342,6 @@ const addSubtractNegativesModule = {
 
     const requiredFlip = q.b < 0;
 
-    // Must correctly evaluate:
-    // 1. Numeric answer typed in keypad matches target
-    // 2. Arrow tip position on line matches target
-    // 3. Flipped state matches sign of b (flipped if b < 0)
     return userTypedVal === q.target && userLineVal === q.target && userFlipped === requiredFlip;
   }
 };
