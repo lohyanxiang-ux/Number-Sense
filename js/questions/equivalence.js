@@ -1,4 +1,4 @@
-import { registerQuestionType, formatMath } from './registry.js';
+import { registerQuestionType } from './registry.js';
 
 // Renders 1 single shape cut into equal contiguous parts
 function createSingleShapeSVG(numerator, denominator) {
@@ -24,12 +24,32 @@ function createSingleShapeSVG(numerator, denominator) {
   `;
 }
 
+// Renders inline HTML fraction stack without LaTeX reliance
+function renderHtmlFraction(num, den, fontSize = '1.6rem') {
+  return `
+    <div style="
+      display: inline-flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      font-size: ${fontSize}; 
+      font-weight: 800; 
+      line-height: 1.1; 
+      vertical-align: middle;
+      padding: 0 4px;
+    ">
+      <span style="border-bottom: 2.5px solid var(--text-main, #1e293b); padding: 0 6px; width: 100%; text-align: center;">${num}</span>
+      <span style="padding: 0 6px; width: 100%; text-align: center;">${den}</span>
+    </div>
+  `;
+}
+
 function renderRepresentation(type, num, den) {
   const val = num / den;
   if (type === 'area_model') {
     return createSingleShapeSVG(num, den);
   } else if (type === 'fraction') {
-    return `<span style="font-size: 1.6rem; font-weight: 800;">${formatMath(`\\frac{${num}}{${den}}`)}</span>`;
+    return renderHtmlFraction(num, den, '1.6rem');
   } else if (type === 'decimal') {
     return `<span style="font-size: 1.6rem; font-weight: 800;">${val}</span>`;
   } else if (type === 'percent') {
@@ -87,6 +107,7 @@ const equivalenceModule = {
 
     const val = targetFrac.num / targetFrac.den;
     const targetHTML = renderRepresentation(targetType, targetFrac.num, targetFrac.den);
+    const inlineFracHtml = renderHtmlFraction(targetFrac.num, targetFrac.den, '1rem');
 
     return {
       type: 'equivalence',
@@ -94,7 +115,7 @@ const equivalenceModule = {
       options: options,
       targetFrac: targetFrac,
       prompt: `Select the representation below that is <strong>equivalent</strong> to the target:`,
-      explanation: `The target represents <strong>${formatMath(`\\frac{${targetFrac.num}}{${targetFrac.den}}`)}</strong> (which is <strong>${val}</strong> or <strong>${Math.round(val * 100)}%</strong>).`
+      explanation: `The target represents ${inlineFracHtml} (which is <strong>${val}</strong> or <strong>${Math.round(val * 100)}%</strong>).`
     };
   },
 
