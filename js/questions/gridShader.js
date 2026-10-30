@@ -1,116 +1,100 @@
 import { registerQuestionType, formatMath } from './registry.js';
 
+// Calculate balanced grid dimensions for square shapes
+function getSquareGridDimensions(parts) {
+  if (parts === 4) return { rows: 2, cols: 2 };
+  if (parts === 6) return { rows: 2, cols: 3 };
+  if (parts === 8) return { rows: 2, cols: 4 };
+  if (parts === 9) return { rows: 3, cols: 3 };
+  if (parts === 10) return { rows: 2, cols: 5 };
+  if (parts === 12) return { rows: 3, cols: 4 };
+  if (parts === 100) return { rows: 10, cols: 10 };
+  return { rows: 1, cols: parts }; // Fallback for 2, 3, 5, etc.
+}
+
 const gridShaderModule = {
   generate() {
     const templates = [
       // Fractions
-      { type: 'frac', targetStr: '1/2', ratio: 0.5, exp: '1/2 means half of the shape. On 2 parts shade 1, on 4 shade 2, on 10 shade 5, or on 100 shade 50.' },
-      { type: 'frac', targetStr: '3/4', ratio: 0.75, exp: '3/4 means 3 out of 4 parts (or 75 out of 100 parts).' },
-      { type: 'frac', targetStr: '2/5', ratio: 0.4, exp: '2/5 means 2 out of 5 parts (or 4 out of 10 parts, or 40 out of 100).' },
-      { type: 'frac', targetStr: '1/3', ratio: 1/3, exp: '1/3 means 1 out of 3 equal parts.' },
+      { targetStr: '1/2', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], exp: '1/2 means half of the shape. On 6 parts you shade 3, on 8 you shade 4, or on 12 you shade 6.' },
+      { targetStr: '3/4', ratio: 0.75, partitions: [4, 8, 12], exp: '3/4 is equivalent to 6/8 or 9/12.' },
+      { targetStr: '1/3', ratio: 1/3, partitions: [3, 6, 9, 12], exp: '1/3 is equivalent to 2/6, 3/9, or 4/12.' },
+      { targetStr: '2/3', ratio: 2/3, partitions: [3, 6, 9, 12], exp: '2/3 is equivalent to 4/6, 6/9, or 8/12.' },
+      { targetStr: '2/5', ratio: 0.4, partitions: [5, 10], exp: '2/5 is equivalent to 4/10.' },
+      { targetStr: '3/5', ratio: 0.6, partitions: [5, 10], exp: '3/5 is equivalent to 6/10.' },
 
       // Decimals
-      { type: 'dec', targetStr: '0.3', ratio: 0.3, exp: '0.3 is equal to 3/10 or 30/100 of the total area.' },
-      { type: 'dec', targetStr: '0.6', ratio: 0.6, exp: '0.6 is equivalent to 3/5, 6/10, or 60/100.' },
-      { type: 'dec', targetStr: '0.8', ratio: 0.8, exp: '0.8 is equivalent to 4/5, 8/10, or 80/100.' },
+      { targetStr: '0.5', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], exp: '0.5 is equal to 1/2. On an 8-part shape, shade 4 parts.' },
+      { targetStr: '0.25', ratio: 0.25, partitions: [4, 8, 12], exp: '0.25 is equal to 1/4. On an 8-part shape, shade 2 parts.' },
+      { targetStr: '0.4', ratio: 0.4, partitions: [5, 10], exp: '0.4 is equal to 2/5 or 4/10.' },
+      { targetStr: '0.6', ratio: 0.6, partitions: [5, 10], exp: '0.6 is equal to 3/5 or 6/10.' },
 
       // Percentages
-      { type: 'pct', targetStr: '50%', ratio: 0.5, exp: '50% represents exactly half of the total area.' },
-      { type: 'pct', targetStr: '20%', ratio: 0.2, exp: '20% means 1 out of 5 parts (or 2 out of 10 parts, or 20 out of 100).' },
-      { type: 'pct', targetStr: '70%', ratio: 0.7, exp: '70% means 7 out of 10 parts (or 70 out of 100).' }
+      { targetStr: '50%', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], exp: '50% represents half of the total shape.' },
+      { targetStr: '25%', ratio: 0.25, partitions: [4, 8, 12], exp: '25% is 1/4. On 8 parts, shade 2 parts.' },
+      { targetStr: '20%', ratio: 0.2, partitions: [5, 10], exp: '20% is 1/5. On 10 parts, shade 2 parts.' },
+      { targetStr: '75%', ratio: 0.75, partitions: [4, 8, 12], exp: '75% is 3/4. On 8 parts, shade 6 parts.' }
     ];
 
     const t = templates[Math.floor(Math.random() * templates.length)];
+    const randomPartition = t.partitions[Math.floor(Math.random() * t.partitions.length)];
     const randomShape = Math.random() < 0.5 ? 'square' : 'circle';
 
     return {
       type: 'grid_shader',
       prompt: `Shade <strong>${formatMath(t.targetStr)}</strong> of the shape below:`,
       targetRatio: t.ratio,
+      partition: randomPartition,
       shape: randomShape,
       explanation: formatMath(t.exp)
     };
   },
 
   render(q, container) {
-    const allowedPartitions = [2, 3, 4, 5, 10, 100];
-    let currentPartition = 10;
+    let html = `
+      <!-- FIXED 300px x 300px CONTAINER -->
+      <div class="fixed-area-box" id="touchGrid" style="
+        width: 300px;
+        height: 300px;
+        margin: 20px auto 10px auto;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+      ">
+    `;
 
-    const renderLayout = () => {
-      let html = `
-        <div style="text-align: center; margin-bottom: 12px;">
-          <p style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
-            Choose how many parts to cut the shape into:
-          </p>
-          <div class="partition-btn-group" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
-      `;
+    if (q.shape === 'square') {
+      const { rows, cols } = getSquareGridDimensions(q.partition);
 
-      allowedPartitions.forEach(p => {
-        const activeClass = p === currentPartition ? 'btn-partition-active' : '';
-        html += `<button class="btn-partition ${activeClass}" data-parts="${p}">${p} parts</button>`;
-      });
-
-      html += `
-          </div>
-        </div>
-
-        <!-- FIXED 300px x 300px CONTAINER -->
-        <div class="fixed-area-box" id="touchGrid" style="
-          width: 300px;
-          height: 300px;
-          margin: 0 auto;
-          touch-action: none;
-          user-select: none;
-          -webkit-user-select: none;
-        ">
-      `;
-
-      if (q.shape === 'square') {
-        let rows = 1, cols = currentPartition;
-        if (currentPartition === 4) { rows = 2; cols = 2; }
-        else if (currentPartition === 10) { rows = 2; cols = 5; }
-        else if (currentPartition === 100) { rows = 10; cols = 10; }
-
-        html += `<div style="
-          display: grid;
-          width: 300px;
-          height: 300px;
-          grid-template-columns: repeat(${cols}, 1fr);
-          grid-template-rows: repeat(${rows}, 1fr);
-          gap: ${currentPartition === 100 ? '1px' : '3px'};
-          background: var(--border-color);
-          padding: 4px;
-          border-radius: 8px;
-          box-sizing: border-box;
-        ">`;
-        for (let i = 0; i < currentPartition; i++) {
-          html += `<div class="grid-cell" data-idx="${i}"></div>`;
-        }
-        html += `</div>`;
-      } else {
-        html += generateCircleSVG(currentPartition);
+      html += `<div style="
+        display: grid;
+        width: 300px;
+        height: 300px;
+        grid-template-columns: repeat(${cols}, 1fr);
+        grid-template-rows: repeat(${rows}, 1fr);
+        gap: ${q.partition === 100 ? '1px' : '3px'};
+        background: var(--border-color);
+        padding: 4px;
+        border-radius: 8px;
+        box-sizing: border-box;
+      ">`;
+      for (let i = 0; i < q.partition; i++) {
+        html += `<div class="grid-cell" data-idx="${i}"></div>`;
       }
+      html += `</div>`;
+    } else {
+      html += generateCircleSVG(q.partition);
+    }
 
-      html += `
-        </div>
-        <p style="text-align: center; font-weight: 700; margin-top: 14px; font-size: 1.1rem;">
-          Shaded: <span id="cellCount" style="color: var(--accent);">0</span> / ${currentPartition} parts
-        </p>
-      `;
+    html += `
+      </div>
+      <p style="text-align: center; font-weight: 700; margin-top: 14px; font-size: 1.1rem;">
+        Shaded: <span id="cellCount" style="color: var(--accent);">0</span> / ${q.partition} parts
+      </p>
+    `;
 
-      container.innerHTML = html;
-
-      container.querySelectorAll('.btn-partition').forEach(btn => {
-        btn.onclick = () => {
-          currentPartition = parseInt(btn.getAttribute('data-parts'));
-          renderLayout();
-        };
-      });
-
-      setupDragToShade(container);
-    };
-
-    renderLayout();
+    container.innerHTML = html;
+    setupDragToShade(container);
   },
 
   evaluate(q) {
