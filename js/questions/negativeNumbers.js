@@ -2,181 +2,285 @@ import { registerQuestionType, formatMath } from './registry.js';
 
 const negativeNumbersModule = {
   generate() {
-    const questionTypes = ['scenario', 'compare', 'opposite'];
-    const selectedType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
+    // 1. Generate 2 distinct numbers (Num A is always negative, Num B can be positive/negative)
+    const numA = -(Math.floor(Math.random() * 9) + 1); // -1 to -9
+    
+    let numB;
+    do {
+      numB = Math.floor(Math.random() * 19) - 9; // -9 to +9
+    } while (numB === numA);
 
-    if (selectedType === 'scenario') {
-      const scenarios = [
-        { text: 'A submarine is swimming <strong>6 metres below sea level</strong>. What number represents its depth?', target: -6, unit: 'm' },
-        { text: 'The temperature in a freezer is <strong>4°C below freezing (0°C)</strong>. What is the temperature?', target: -4, unit: '°C' },
-        { text: 'A basement car park is <strong>2 floors below the ground floor (Level 0)</strong>. What floor is it on?', target: -2, unit: 'Level' },
-        { text: 'A bank balance has a <strong>$9 debt (overdrawn)</strong>. What number represents this balance?', target: -9, unit: '$' },
-        { text: 'A bird is flying <strong>5 metres above sea level</strong>. What number represents its height?', target: 5, unit: 'm' }
-      ];
-      const s = scenarios[Math.floor(Math.random() * scenarios.length)];
-      return {
-        type: 'negative_numbers',
-        subType: 'scenario',
-        prompt: s.text,
-        targetVal: s.target,
-        unit: s.unit,
-        explanation: `${s.target < 0 ? 'Below' : 'Above'} zero is represented by the signed integer <strong>${s.target}</strong>.`
-      };
-    }
+    // 2. Correct inequality comparison symbol
+    const correctSymbol = numA > numB ? '>' : '<';
 
-    if (selectedType === 'compare') {
-      const pairs = [
-        { a: -7, b: -2, question: 'Which temperature is <strong>COLDER (lower)</strong>?', target: -7 },
-        { a: -5, b: -8, question: 'Which bank balance represents a <strong>GREATER DEBT</strong> (smaller value)?', target: -8 },
-        { a: -3, b: -1, question: 'Which depth is <strong>CLOSER to sea level (greater value)</strong>?', target: -1 },
-        { a: -6, b: 2, question: 'Which number is <strong>GREATER</strong>?', target: 2 }
-      ];
-      const p = pairs[Math.floor(Math.random() * pairs.length)];
-      return {
-        type: 'negative_numbers',
-        subType: 'compare',
-        prompt: p.question,
-        options: [p.a, p.b].sort(() => Math.random() - 0.5),
-        targetVal: p.target,
-        explanation: `On a number line, numbers further to the left (or lower down) are smaller. Therefore, <strong>${p.target}</strong> is the correct answer.`
-      };
-    }
+    // 3. Alternate orientation randomly between horizontal & vertical
+    const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
 
-    // Opposite recognition
-    const num = (Math.floor(Math.random() * 8) + 1) * (Math.random() < 0.5 ? 1 : -1);
-    const targetOpp = -num;
     return {
       type: 'negative_numbers',
-      subType: 'opposite',
-      prompt: `What is the <strong>exact opposite</strong> of <strong>${num > 0 ? '+' + num : num}</strong> across zero?`,
-      targetVal: targetOpp,
-      explanation: `The opposite of ${num} is <strong>${targetOpp}</strong> because both are exactly ${Math.abs(num)} units away from 0 in opposite directions.`
+      numA: numA,
+      numB: numB,
+      correctSymbol: correctSymbol,
+      orientation: orientation,
+      prompt: `Place <strong><span style="color:var(--accent);">${numA}</span></strong> and <strong><span style="color:#d97706;">${numB > 0 ? '+' + numB : numB}</span></strong> on the ${orientation} number line, then complete the statement:`,
+      explanation: `On a ${orientation} number line, numbers further ${orientation === 'horizontal' ? 'right' : 'up'} are greater. Since <strong>${numA}</strong> is ${numA > numB ? (orientation === 'horizontal' ? 'to the right of' : 'above') : (orientation === 'horizontal' ? 'to the left of' : 'below')} <strong>${numB}</strong>, <strong>${numA} ${correctSymbol} ${numB}</strong>.`
     };
   },
 
   render(q, container) {
-    if (q.subType === 'scenario' || q.subType === 'opposite') {
-      const minVal = -10;
-      const maxVal = 10;
+    const minVal = -10;
+    const maxVal = 10;
+    const totalRange = maxVal - minVal;
 
-      let html = `
-        <div style="text-align: center; margin: 20px 0;">
-          <div style="
-            display: inline-flex;
-            gap: 4px;
-            overflow-x: auto;
-            max-width: 100%;
-            padding: 16px;
-            background: var(--bg-primary);
-            border-radius: var(--radius);
-            border: 2px solid var(--border-color);
-          ">
-      `;
+    let html = `
+      <div style="max-width: 550px; margin: 0 auto; text-align: center;">
+        
+        <!-- DUAL MARKER SLIDERS -->
+        <div style="background: var(--bg-primary); padding: 14px; border-radius: var(--radius); border: 1px solid var(--border-color); margin-bottom: 20px;">
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; align-items: center;">
+            
+            <!-- Marker A Control -->
+            <div style="flex: 1; min-width: 200px; text-align: left;">
+              <label style="font-size: 0.85rem; font-weight: 700; color: var(--accent); display: block; margin-bottom: 4px;">
+                Marker A Target: ${q.numA} (Current: <span id="valADisplay" style="font-size: 1rem; font-weight: 800;">0</span>)
+              </label>
+              <input type="range" id="sliderA" min="${minVal}" max="${maxVal}" step="1" value="0" style="width: 100%; cursor: pointer;">
+            </div>
 
-      for (let v = minVal; v <= maxVal; v++) {
-        const isZero = v === 0;
-        const btnStyle = isZero 
-          ? 'background: var(--accent); color: white; border-color: var(--accent);' 
-          : 'background: var(--bg-card); color: var(--text-main); border-color: var(--border-color);';
+            <!-- Marker B Control -->
+            <div style="flex: 1; min-width: 200px; text-align: left;">
+              <label style="font-size: 0.85rem; font-weight: 700; color: #d97706; display: block; margin-bottom: 4px;">
+                Marker B Target: ${q.numB > 0 ? '+' + q.numB : q.numB} (Current: <span id="valBDisplay" style="font-size: 1rem; font-weight: 800;">0</span>)
+              </label>
+              <input type="range" id="sliderB" min="${minVal}" max="${maxVal}" step="1" value="0" style="width: 100%; cursor: pointer;">
+            </div>
 
-        html += `
-          <button class="neg-num-card" data-val="${v}" style="
-            min-width: 42px;
-            height: 50px;
-            border: 2px solid;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-            transition: all 0.15s ease;
-            ${btnStyle}
-          ">${v > 0 ? '+' + v : v}</button>
+          </div>
+        </div>
+
+        <!-- VISUAL NUMBER LINE -->
+    `;
+
+    if (q.orientation === 'horizontal') {
+      // HORIZONTAL NUMBER LINE
+      let ticksHtml = '';
+      for (let v = minVal; v <= maxVal; v += 2) {
+        const posPct = ((v - minVal) / totalRange) * 100;
+        ticksHtml += `
+          <div style="position: absolute; left: ${posPct}%; top: -6px; width: 2px; height: 18px; background: var(--text-muted); transform: translateX(-50%);"></div>
+          <span style="position: absolute; left: ${posPct}%; top: 16px; transform: translateX(-50%); font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">${v}</span>
         `;
       }
 
       html += `
+        <div style="position: relative; height: 75px; margin: 30px 20px 20px 20px; padding: 0 10px;">
+          <div style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 15px;">
+            ${ticksHtml}
+
+            <!-- Live Pin A -->
+            <div id="pinA" style="
+              position: absolute;
+              top: -22px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: var(--accent);
+              color: white;
+              font-weight: 800;
+              font-size: 0.75rem;
+              padding: 2px 6px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+              transition: left 0.1s ease;
+              pointer-events: none;
+              z-index: 2;
+            ">A</div>
+
+            <!-- Live Pin B -->
+            <div id="pinB" style="
+              position: absolute;
+              top: 14px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #d97706;
+              color: white;
+              font-weight: 800;
+              font-size: 0.75rem;
+              padding: 2px 6px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+              transition: left 0.1s ease;
+              pointer-events: none;
+              z-index: 2;
+            ">B</div>
           </div>
-          <p style="margin-top: 16px; font-weight: 700; font-size: 1.1rem; color: var(--text-muted);">
-            Selected Number: <span id="selectedNegNum" style="color: var(--accent); font-size: 1.4rem;">--</span>
-          </p>
         </div>
       `;
 
-      container.innerHTML = html;
-
-      container.querySelectorAll('.neg-num-card').forEach(btn => {
-        btn.onclick = () => {
-          container.querySelectorAll('.neg-num-card').forEach(b => {
-            const isZ = b.getAttribute('data-val') === '0';
-            b.style.borderColor = isZ ? 'var(--accent)' : 'var(--border-color)';
-            b.style.background = isZ ? 'var(--accent)' : 'var(--bg-card)';
-            b.style.color = isZ ? 'white' : 'var(--text-main)';
-            b.classList.remove('selected');
-          });
-
-          btn.style.borderColor = 'var(--accent)';
-          btn.style.background = 'var(--accent)';
-          btn.style.color = 'white';
-          btn.classList.add('selected');
-
-          document.getElementById('selectedNegNum').innerText = btn.getAttribute('data-val');
-        };
-      });
-
-    } else if (q.subType === 'compare') {
-      let html = `
-        <div style="display: flex; gap: 20px; justify-content: center; margin: 30px 0;">
-      `;
-
-      q.options.forEach(opt => {
-        html += `
-          <div class="neg-compare-card" data-val="${opt}" style="
-            background: var(--bg-primary);
-            border: 3px solid var(--border-color);
-            border-radius: var(--radius);
-            width: 130px;
-            height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: 800;
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-            transition: all 0.15s ease;
-          ">
-            ${opt > 0 ? '+' + opt : opt}
-          </div>
+    } else {
+      // VERTICAL NUMBER LINE
+      let ticksHtml = '';
+      for (let v = maxVal; v >= minVal; v -= 2) {
+        const posPct = ((v - minVal) / totalRange) * 100;
+        ticksHtml += `
+          <div style="position: absolute; bottom: ${posPct}%; right: -6px; width: 18px; height: 2px; background: var(--text-muted); transform: translateY(50%);"></div>
+          <span style="position: absolute; bottom: ${posPct}%; right: 18px; transform: translateY(50%); font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">${v}</span>
         `;
-      });
+      }
 
-      html += `</div>`;
-      container.innerHTML = html;
+      html += `
+        <div style="display: flex; justify-content: center; margin: 20px 0 30px 0;">
+          <div style="position: relative; width: 60px; height: 280px;">
+            <div style="position: absolute; left: 30px; top: 0; bottom: 0; width: 6px; background: var(--border-color); border-radius: 3px;">
+              ${ticksHtml}
 
-      container.querySelectorAll('.neg-compare-card').forEach(card => {
-        card.onclick = () => {
-          container.querySelectorAll('.neg-compare-card').forEach(c => {
-            c.style.borderColor = 'var(--border-color)';
-            c.style.background = 'var(--bg-primary)';
-            c.classList.remove('selected');
-          });
+              <!-- Live Pin A -->
+              <div id="pinA" style="
+                position: absolute;
+                bottom: 50%;
+                left: -32px;
+                transform: translateY(50%);
+                background: var(--accent);
+                color: white;
+                font-weight: 800;
+                font-size: 0.75rem;
+                padding: 2px 6px;
+                border-radius: 12px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                transition: bottom 0.1s ease;
+                pointer-events: none;
+                z-index: 2;
+              ">A</div>
 
-          card.style.borderColor = 'var(--accent)';
-          card.style.background = 'rgba(79, 70, 229, 0.12)';
-          card.classList.add('selected');
-        };
-      });
+              <!-- Live Pin B -->
+              <div id="pinB" style="
+                position: absolute;
+                bottom: 50%;
+                right: -32px;
+                transform: translateY(50%);
+                background: #d97706;
+                color: white;
+                font-weight: 800;
+                font-size: 0.75rem;
+                padding: 2px 6px;
+                border-radius: 12px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                transition: bottom 0.1s ease;
+                pointer-events: none;
+                z-index: 2;
+              ">B</div>
+            </div>
+          </div>
+        </div>
+      `;
     }
+
+    // COMPARISON INEQUALITY STATEMENT
+    html += `
+        <div style="
+          background: var(--bg-primary);
+          border: 2px solid var(--border-color);
+          border-radius: var(--radius);
+          padding: 16px;
+          display: inline-flex;
+          align-items: center;
+          gap: 16px;
+          margin-top: 10px;
+        ">
+          <span style="font-size: 1.8rem; font-weight: 800; color: var(--accent);">${q.numA}</span>
+          
+          <div style="display: flex; gap: 8px;">
+            <button class="symbol-btn" data-symbol=">" style="
+              padding: 8px 18px;
+              font-size: 1.4rem;
+              font-weight: 800;
+              background: var(--bg-card);
+              border: 2px solid var(--border-color);
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.15s ease;
+            ">></button>
+            <button class="symbol-btn" data-symbol="<" style="
+              padding: 8px 18px;
+              font-size: 1.4rem;
+              font-weight: 800;
+              background: var(--bg-card);
+              border: 2px solid var(--border-color);
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.15s ease;
+            "><</button>
+          </div>
+
+          <span style="font-size: 1.8rem; font-weight: 800; color: #d97706;">${q.numB > 0 ? '+' + q.numB : q.numB}</span>
+        </div>
+
+      </div>
+    `;
+
+    container.innerHTML = html;
+
+    // EVENT LISTENERS
+    const sliderA = container.querySelector('#sliderA');
+    const sliderB = container.querySelector('#sliderB');
+    const valADisplay = container.querySelector('#valADisplay');
+    const valBDisplay = container.querySelector('#valBDisplay');
+    const pinA = container.querySelector('#pinA');
+    const pinB = container.querySelector('#pinB');
+
+    const updateVisuals = () => {
+      const valA = parseInt(sliderA.value, 10);
+      const valB = parseInt(sliderB.value, 10);
+
+      valADisplay.innerText = valA > 0 ? '+' + valA : valA;
+      valBDisplay.innerText = valB > 0 ? '+' + valB : valB;
+
+      const pctA = ((valA - minVal) / totalRange) * 100;
+      const pctB = ((valB - minVal) / totalRange) * 100;
+
+      if (q.orientation === 'horizontal') {
+        pinA.style.left = `${pctA}%`;
+        pinB.style.left = `${pctB}%`;
+      } else {
+        pinA.style.bottom = `${pctA}%`;
+        pinB.style.bottom = `${pctB}%`;
+      }
+    };
+
+    sliderA.oninput = updateVisuals;
+    sliderB.oninput = updateVisuals;
+    updateVisuals();
+
+    // Toggle Inequality Buttons
+    container.querySelectorAll('.symbol-btn').forEach(btn => {
+      btn.onclick = () => {
+        container.querySelectorAll('.symbol-btn').forEach(b => {
+          b.style.borderColor = 'var(--border-color)';
+          b.style.background = 'var(--bg-card)';
+          b.style.color = 'var(--text-main)';
+          b.classList.remove('selected');
+        });
+
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.background = 'var(--accent)';
+        btn.style.color = 'white';
+        btn.classList.add('selected');
+      };
+    });
   },
 
   evaluate(q) {
-    const selected = document.querySelector('.neg-num-card.selected, .neg-compare-card.selected');
-    if (!selected) return false;
-    const userVal = parseInt(selected.getAttribute('data-val'), 10);
-    return userVal === q.targetVal;
+    const sliderA = document.getElementById('sliderA');
+    const sliderB = document.getElementById('sliderB');
+    if (!sliderA || !sliderB) return false;
+
+    const valA = parseInt(sliderA.value, 10);
+    const valB = parseInt(sliderB.value, 10);
+    
+    const selectedSymbolBtn = document.querySelector('.symbol-btn.selected');
+    const selectedSymbol = selectedSymbolBtn ? selectedSymbolBtn.getAttribute('data-symbol') : null;
+
+    // Correct if both sliders match exact positions AND the inequality symbol is correct
+    return valA === q.numA && valB === q.numB && selectedSymbol === q.correctSymbol;
   }
 };
 
