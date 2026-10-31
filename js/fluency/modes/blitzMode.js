@@ -156,17 +156,23 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
               <div style="width: 70px; height: 20px; background: #54320c; border-radius: 4px; border: 2px solid #3b2207; margin-top: -2px;"></div>
             </div>
 
-            <!-- ANIMATING FLYING SHURIKEN SPRITE -->
+<!-- ANIMATING FLYING SHURIKEN SPRITE (SVG THROWING STAR) -->
             <div id="shurikenSprite" style="
               position: absolute;
               bottom: 20px;
               left: 50%;
-              font-size: 3rem;
+              width: 42px;
+              height: 42px;
               opacity: 0;
               pointer-events: none;
               z-index: 10;
               filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.8));
-            ">🥷</div>
+            ">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="#cbd5e1" stroke="#334155" stroke-width="1.5">
+                <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+                <circle cx="12" cy="12" r="2.5" fill="#1e293b"/>
+              </svg>
+            </div>
 
             <!-- IMPACT SPARK / MISS DUST EFFECT -->
             <div id="blitzImpactEffect" style="
@@ -356,15 +362,21 @@ function triggerShurikenFlight(isCorrect, streak) {
           setTimeout(() => { impactEffect.style.opacity = '0'; }, 250);
         }
 
-        // Add a small stuck shuriken pin on the wooden dummy torso
+// Add a small stuck shuriken pin on the wooden dummy torso
         if (stuckContainer) {
-          const pin = document.createElement('span');
-          pin.innerText = '🥷';
+          const pin = document.createElement('div');
           pin.style.position = 'absolute';
-          pin.style.fontSize = '1rem';
-          pin.style.left = `${Math.floor(Math.random() * 24 + 6)}px`;
+          pin.style.width = '18px';
+          pin.style.height = '18px';
+          pin.style.left = `${Math.floor(Math.random() * 20 + 8)}px`;
           pin.style.top = `${Math.floor(Math.random() * 60 + 15)}px`;
           pin.style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
+          pin.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#94a3b8" stroke="#1e293b" stroke-width="2">
+              <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+              <circle cx="12" cy="12" r="3" fill="#0f172a"/>
+            </svg>
+          `;
           stuckContainer.appendChild(pin);
 
           // Limit stuck pins to 8 max to keep canvas clean
