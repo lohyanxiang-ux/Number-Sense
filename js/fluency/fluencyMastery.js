@@ -1,44 +1,54 @@
+export const BELT_TIERS = {
+  1: { name: 'White Belt', badge: '⚪', tier: 1 },
+  2: { name: 'Yellow Belt', badge: '🟡', tier: 2 },
+  3: { name: 'Orange Belt', badge: '🟠', tier: 3 },
+  4: { name: 'Green Belt', badge: '🟢', tier: 4 },
+  5: { name: 'Blue Belt', badge: '🔵', tier: 5 },
+  6: { name: 'Purple Belt', badge: '🟣', tier: 6 },
+  7: { name: 'Red Belt', badge: '🔴', tier: 7 },
+  8: { name: 'Brown Belt', badge: '🟤', tier: 8 },
+  9: { name: 'Black Belt', badge: '⬛', tier: 9 },
+  10: { name: 'Grandmaster', badge: '🥋', tier: 10 }
+};
+
 export function getStudentFluencyData(currentUser) {
-  if (!currentUser.fluency) {
-    currentUser.fluency = {
-      level: 1,
-      xp: 0,
-      recentHistory: []
-    };
-  }
-  return currentUser.fluency;
+  if (!currentUser.proficiency) currentUser.proficiency = {};
+
+  // Prof_fluency stores [level, lastAvgSpeed, lastAccuracy] in Google Sheet Col I
+  const rawHistory = currentUser.proficiency['fluency'] || [1, 0, 0];
+
+  return {
+    level: Number(rawHistory[0]) || 1,
+    lastSpeed: Number(rawHistory[1]) || 0,
+    lastAccuracy: Number(rawHistory[2]) || 0
+  };
 }
 
 export function evaluateLevelProgression(currentUser, sessionResults) {
-  const data = getStudentFluencyData(currentUser);
-  
-  // Store session performance metrics
-  data.recentHistory.push({
-    accuracy: sessionResults.accuracy,
-    avgSpeed: Number(sessionResults.avgSpeed)
-  });
-  data.recentHistory = data.recentHistory.slice(-5); // Keep last 5 sessions
-
+  const currentData = getStudentFluencyData(currentUser);
+  let currentLevel = currentData.level;
   let message = "";
   let leveledUp = false;
 
-  // Level Up Criteria: 5+ questions answered, >= 90% accuracy, and average speed under 2.5s per question
-  if (sessionResults.totalQuestions >= 5 && sessionResults.accuracy >= 90 && Number(sessionResults.avgSpeed) <= 2.5) {
-    if (data.level < 10) {
-      data.level += 1;
+  const meetsAccuracy = sessionResults.accuracy >= 90;
+  const meetsSpeed = Number(sessionResults.avgSpeed) <= 2.5 && Number(sessionResults.avgSpeed) > 0;
+  const meetsQuestions = sessionResults.totalQuestions >= 5;
+
+  if (meetsAccuracy && meetsSpeed && meetsQuestions) {
+    if (currentLevel < 10) {
+      currentLevel += 1;
       leveledUp = true;
-      message = `🎉 Level Up! You advanced to Level ${data.level}!`;
+      const newBelt = BELT_TIERS[currentLevel];
+      message = `🎉 BELT PROMOTION! You unlocked the ${newBelt.badge} ${newBelt.name}!`;
     } else {
-      message = `🔥 Level 10 Mastered! Outstanding speed!`;
+      message = `🥋 GRANDMASTER STATUS! Top speed and accuracy maintained!`;
     }
-  } else if (sessionResults.accuracy < 50 && data.recentHistory.length >= 3) {
-    // Drop level if struggling consistently
-    const recentAcc = data.recentHistory.reduce((a, b) => a + b.accuracy, 0) / data.recentHistory.length;
-    if (recentAcc < 50 && data.level > 1) {
-      data.level -= 1;
-      message = `⚠️ Difficulty adjusted down to Level ${data.level} for practice.`;
-    }
+  } else {
+    message = `Keep training! Target: ≥ 90% accuracy and < 2.5s / question.`;
   }
 
-  return { currentLevel: data.level, leveledUp, message };
+  // Save latest metrics directly into proficiency map for Google Sheet sync (Col I)
+  currentUser.proficiency['fluency'] = [currentLevel, sessionResults.avgSpeed, sessionResults.accuracy];
+
+  return { currentLevel, leveledUp, message };
 }
