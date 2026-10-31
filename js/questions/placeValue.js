@@ -14,7 +14,6 @@ const placeValueModule = {
     const mode = Math.floor(Math.random() * 3);
 
     if (mode === 0) {
-      // --- MODE 0: TRADITIONAL PLACE VALUE NAMES ---
       const whole = Math.floor(Math.random() * 9000) + 1000; // 1000-9999
       const dec = Math.floor(Math.random() * 900) + 100; // 100-999
       const numStr = `${whole}.${dec}`;
@@ -43,7 +42,6 @@ const placeValueModule = {
       };
 
     } else if (mode === 1) {
-      // --- MODE 1: DECIMAL PLACES ---
       const whole = Math.floor(Math.random() * 50);
       const decCount = Math.floor(Math.random() * 3) + 4; // 4 to 6 decimal places
       let decStr = '';
@@ -69,7 +67,6 @@ const placeValueModule = {
       };
 
     } else {
-      // --- MODE 2: SIGNIFICANT FIGURES / VALUES ---
       const zeroCount = Math.floor(Math.random() * 3) + 2; // 2 to 4 leading zeros after point
       let zeros = '';
       for (let i = 0; i < zeroCount; i++) zeros += '0';
@@ -90,7 +87,6 @@ const placeValueModule = {
         numStr = `${whole}.${remainingDigits}`;
       }
 
-      // Identify all valid significant figure indices
       const sigFigIndices = [];
       let foundFirstNonZero = false;
 
@@ -126,59 +122,88 @@ const placeValueModule = {
   },
 
   render(q, container) {
-    q.userSelectedIdx = null;
+    const renderUI = () => {
+      let digitsHtml = '';
+      for (let i = 0; i < q.numStr.length; i++) {
+        const char = q.numStr[i];
+        const isSelected = q.userSelectedIdx === i;
 
-    let digitsHtml = '';
-    for (let i = 0; i < q.numStr.length; i++) {
-      const char = q.numStr[i];
-      if (char === '.') {
-        digitsHtml += `<span style="font-size: 2.2rem; font-weight: 800; margin: 0 2px; align-self: flex-end; color: var(--text-main);">.</span>`;
-      } else {
-        digitsHtml += `
-          <button class="pv-digit-btn" data-idx="${i}" style="
-            font-size: 1.8rem;
-            font-weight: 800;
-            width: 48px;
-            height: 58px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-card);
-            color: var(--text-main);
-            cursor: pointer;
-            touch-action: manipulation;
-            transition: all 0.15s ease;
-          ">${char}</button>
-        `;
+        if (char === '.') {
+          digitsHtml += `<span style="font-size: 2rem; font-weight: 800; margin: 0 2px; align-self: flex-end; color: var(--text-main);">.</span>`;
+        } else {
+          digitsHtml += `
+            <button class="pv-digit-btn" data-idx="${i}" style="
+              font-size: 1.6rem;
+              font-weight: 800;
+              width: 44px;
+              height: 54px;
+              border: 2px solid ${isSelected ? 'var(--accent)' : 'var(--border-color)'};
+              border-radius: 8px;
+              background: ${isSelected ? 'var(--accent)' : 'var(--bg-card)'};
+              color: ${isSelected ? '#ffffff' : 'var(--text-main)'};
+              cursor: pointer;
+              touch-action: manipulation;
+              transition: all 0.15s ease;
+            ">${char}</button>
+          `;
+        }
       }
-    }
 
-    const html = `
-      <div style="max-width: 520px; margin: 0 auto; text-align: center; user-select: none;">
-        <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin: 20px 0; flex-wrap: wrap;">
-          ${digitsHtml}
+      const selectedChar = q.userSelectedIdx !== null && q.userSelectedIdx !== undefined ? q.numStr[q.userSelectedIdx] : '?';
+
+      const html = `
+        <div class="ipad-responsive-grid" style="user-select: none;">
+          
+          <!-- LEFT COLUMN: DIGITS BUTTONS -->
+          <div class="ipad-left-pane">
+            <div style="
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              gap: 4px;
+              flex-wrap: wrap;
+              background: var(--bg-primary);
+              border: 2px solid var(--border-color);
+              border-radius: 14px;
+              padding: 16px;
+            ">
+              ${digitsHtml}
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: SELECTED DIGIT PREVIEW -->
+          <div class="ipad-right-pane" style="text-align: center;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+              Selected Digit:
+            </div>
+            
+            <div style="
+              font-size: 2.2rem;
+              font-weight: 900;
+              color: var(--accent);
+              border-bottom: 3px solid var(--accent);
+              display: inline-block;
+              padding: 0 12px;
+              min-width: 50px;
+            ">
+              ${selectedChar}
+            </div>
+          </div>
+
         </div>
-      </div>
-    `;
+      `;
 
-    container.innerHTML = html;
+      container.innerHTML = html;
 
-    container.querySelectorAll('.pv-digit-btn').forEach(btn => {
-      btn.onclick = () => {
-        container.querySelectorAll('.pv-digit-btn').forEach(b => {
-          b.style.borderColor = 'var(--border-color)';
-          b.style.background = 'var(--bg-card)';
-          b.style.color = 'var(--text-main)';
-          b.classList.remove('selected');
-        });
+      container.querySelectorAll('.pv-digit-btn').forEach(btn => {
+        btn.onclick = () => {
+          q.userSelectedIdx = parseInt(btn.getAttribute('data-idx'), 10);
+          renderUI();
+        };
+      });
+    };
 
-        btn.style.borderColor = 'var(--accent)';
-        btn.style.background = 'var(--accent)';
-        btn.style.color = 'white';
-        btn.classList.add('selected');
-
-        q.userSelectedIdx = parseInt(btn.getAttribute('data-idx'), 10);
-      };
-    });
+    renderUI();
   },
 
   evaluate(q) {
