@@ -44,7 +44,7 @@ let isNegativeSign = false;
 let currentDigits = '0';
 
 const ALL_TOPICS = [
-  { key: 'grid_shader', name: '📐 Grid Shader (Fractions / % / Dec)' },
+  { key: 'grid_shader', name: '📐 Grid Shader' },
   { key: 'number_line', name: '📏 Number Line' },
   { key: 'equivalence', name: '🃏 Equivalence Matching' },
   { key: 'place_value', name: '🔢 Place Value' },
