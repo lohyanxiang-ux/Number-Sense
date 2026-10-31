@@ -431,7 +431,7 @@ function handleAnswerSubmit() {
 
   const topicObj = ALL_TOPICS.find(t => t.key === qType);
   const topicName = topicObj ? topicObj.name : qType;
-  syncQuestionProgressToSheet(topicName, xpEarned, 0, true);
+  syncQuestionProgressToSheet(topicName, xpEarned, 0, false);
 }
 
 function handleNextQuestion() {
@@ -466,6 +466,7 @@ async function finishDailySession() {
   currentUser.dailyDoneToday = true;
   
   const todayStr = getTodayDateString();
+  currentUser.lastDailyCompleted = todayStr;
   localStorage.setItem(`NUMSENSE_DAILY_DONE_${currentUser.code}`, todayStr);
   updateHeader();
 
@@ -611,6 +612,8 @@ function handleExtraAnswerSubmit() {
 
   document.getElementById('extraVisualExp').innerHTML = currentExtraQuestion.explanation;
   document.getElementById('extraSubmitBtn').classList.add('hidden');
+
+  currentUser.lastActive = new Date().toISOString();
 
   const topicLabel = activeExtraTopicKey === 'random' ? 'Random Mix' : activeExtraTopicKey;
   syncQuestionProgressToSheet(`Extra Practice (${topicLabel})`, xpEarned, 0, false);
