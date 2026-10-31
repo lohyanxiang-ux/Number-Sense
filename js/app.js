@@ -355,14 +355,13 @@ function switchTab(tabKey, targetBtn) {
 
   if (tabKey === 'extra') {
     if (selectedExtraTopics.length === 0) {
-      selectedExtraTopics = ALL_TOPICS.map(t => t.key); // Default all topics selected
+      selectedExtraTopics = ALL_TOPICS.map(t => t.key);
     }
     renderExtraTopicSelector();
     setupExtraPracticeEventHandlers();
   } else if (tabKey === 'progress') {
     renderStudentProgressTab();
   }
-}
 }
 
 function logout() {
@@ -739,7 +738,6 @@ function handleExtraAnswerSubmit() {
   document.getElementById('extraVisualExp').innerHTML = currentExtraQuestion.explanation;
   document.getElementById('extraSubmitBtn').classList.add('hidden');
 
-  // Update activity timestamp immediately on every completed extra question
   currentUser.lastActive = new Date().toISOString();
 
   const topicLabel = selectedExtraTopics.length === 1 ? selectedExtraTopics[0] : `${selectedExtraTopics.length} Selected Topics`;
@@ -821,10 +819,10 @@ function renderStudentProgressTab() {
     let accuracyPct = 0;
     let badgeHtml = `<span style="background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.85rem;">⚪ Untried</span>`;
 
-if (attemptsCount > 0) {
-  const score = numHistory.reduce((a, b) => a + b, 0);
-  const acc = score / 10;
-  accuracyPct = Math.round(acc * 100);
+    if (attemptsCount > 0) {
+      const score = numHistory.reduce((a, b) => a + b, 0);
+      const acc = score / 10;
+      accuracyPct = Math.round(acc * 100);
 
       if (acc > 0.80) {
         badgeHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">🟢 Mastered (${accuracyPct}%)</span>`;
@@ -864,9 +862,9 @@ if (attemptsCount > 0) {
         </div>
 
         <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 4px;">
-        <button class="btn btn-practice-topic" data-key="${topic.key}" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--accent);">
-        ⚡ Practice Topic Now
-        </button>
+          <button class="btn btn-practice-topic" data-key="${topic.key}" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--accent);">
+            ⚡ Practice Topic Now
+          </button>
         </div>
       </div>
     `;
@@ -874,7 +872,7 @@ if (attemptsCount > 0) {
 
   container.innerHTML = html;
 
-container.querySelectorAll('.btn-practice-topic').forEach(btn => {
+  container.querySelectorAll('.btn-practice-topic').forEach(btn => {
     btn.onclick = () => {
       const topicKey = btn.getAttribute('data-key');
       selectedExtraTopics = [topicKey];
@@ -1110,7 +1108,6 @@ function renderRosterTable(students) {
 
   tbody.innerHTML = html;
 
-  // RE-BIND STUDENT NAME CLICK TO OPEN MANAGEMENT MODAL
   tbody.querySelectorAll('.student-name-link').forEach(el => {
     el.onclick = () => {
       const code = el.getAttribute('data-code');
@@ -1167,7 +1164,6 @@ function generateSampleQuestion(typeKey) {
   renderQuestion(q, ws);
 }
 
-// OPEN STUDENT MANAGEMENT MODAL (XP & TOKENS ADJUSTMENT)
 function openStudentManageModal(studentCode) {
   const student = teacherRosterData.find(s => String(s.code) === String(studentCode));
   if (!student) return;
