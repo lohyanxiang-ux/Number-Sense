@@ -53,7 +53,7 @@ const ALL_TOPICS = [
   { key: 'multiplication', name: '✖️ Multiplication' },
   { key: 'division', name: '➗ Division' },
   { key: 'order_of_operations', name: '🔢 Order of Operations' },
-  { key: 'factors', name: '🔐 Factors' }
+  { key: 'factors', name: '🔐 Factors (Safe-Cracker)' }
 ];
 
 function getTodayDateString() {
@@ -429,7 +429,6 @@ function handleAnswerSubmit() {
   document.getElementById('visualExp').innerHTML = currentQuestion.explanation;
   document.getElementById('submitBtn').classList.add('hidden');
 
-  // WRITE IMMEDIATELY TO GOOGLE SHEETS
   const topicObj = ALL_TOPICS.find(t => t.key === qType);
   const topicName = topicObj ? topicObj.name : qType;
   syncQuestionProgressToSheet(topicName, xpEarned, 0, true);
@@ -613,7 +612,6 @@ function handleExtraAnswerSubmit() {
   document.getElementById('extraVisualExp').innerHTML = currentExtraQuestion.explanation;
   document.getElementById('extraSubmitBtn').classList.add('hidden');
 
-  // WRITE IMMEDIATELY TO GOOGLE SHEETS
   const topicLabel = activeExtraTopicKey === 'random' ? 'Random Mix' : activeExtraTopicKey;
   syncQuestionProgressToSheet(`Extra Practice (${topicLabel})`, xpEarned, 0, false);
 }
@@ -752,7 +750,6 @@ function renderStudentProgressTab() {
       const extraSelect = document.getElementById('extraTopicSelect');
       if (extraSelect) extraSelect.value = topicKey;
 
-      // DEFAULT QUESTION COUNT TO 3
       const extraCount = document.getElementById('extraCountSelect');
       if (extraCount) extraCount.value = '3';
 
@@ -948,7 +945,7 @@ function renderRosterTable(students) {
   if (!tbody) return;
 
   if (!students || students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="15" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
@@ -986,6 +983,7 @@ function renderRosterTable(students) {
 
   tbody.innerHTML = html;
 
+  // RE-BIND STUDENT NAME CLICK TO OPEN MANAGEMENT MODAL
   tbody.querySelectorAll('.student-name-link').forEach(el => {
     el.onclick = () => {
       const code = el.getAttribute('data-code');
@@ -1042,11 +1040,12 @@ function generateSampleQuestion(typeKey) {
   renderQuestion(q, ws);
 }
 
+// OPEN STUDENT MANAGEMENT MODAL (XP & TOKENS ADJUSTMENT)
 function openStudentManageModal(studentCode) {
-  const student = teacherRosterData.find(s => s.code === studentCode);
+  const student = teacherRosterData.find(s => String(s.code) === String(studentCode));
   if (!student) return;
 
-  activeManageStudentCode = studentCode;
+  activeManageStudentCode = student.code;
   document.getElementById('mStudentName').innerText = student.name;
   document.getElementById('mStudentClass').innerText = student.className;
   document.getElementById('mStudentCode').innerText = student.code;
@@ -1100,7 +1099,7 @@ function updateManageKeypadDisplay() {
 async function processStudentManagement() {
   if (!activeManageStudentCode || !sheetWebAppUrl) return;
 
-  const student = teacherRosterData.find(s => s.code === activeManageStudentCode);
+  const student = teacherRosterData.find(s => String(s.code) === String(activeManageStudentCode));
   if (!student) return;
 
   const newXP = Math.max(0, (student.xp || 0) + xpChangeVal);
