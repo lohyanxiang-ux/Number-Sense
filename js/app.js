@@ -27,7 +27,7 @@ let extraQIndex = 0;
 let extraSessionScore = 0;
 let extraTotalQuestions = 5;
 let currentExtraQuestion = null;
-let activeExtraTopicKey = 'random';
+let selectedExtraTopics = [];
 
 // Teacher Dashboard State
 let teacherRosterData = [];
@@ -353,9 +353,16 @@ function switchTab(tabKey, targetBtn) {
   const activeTabEl = document.getElementById(`tab${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`);
   if (activeTabEl) activeTabEl.classList.remove('hidden');
 
-  if (tabKey === 'progress') {
+  if (tabKey === 'extra') {
+    if (selectedExtraTopics.length === 0) {
+      selectedExtraTopics = ALL_TOPICS.map(t => t.key); // Default all topics selected
+    }
+    renderExtraTopicSelector();
+    setupExtraPracticeEventHandlers();
+  } else if (tabKey === 'progress') {
     renderStudentProgressTab();
   }
+}
 }
 
 function logout() {
@@ -550,19 +557,138 @@ function exitExtraPractice() {
   document.getElementById('extraSetupCard').classList.remove('hidden');
 }
 
+function renderExtraTopicSelector() {
+  const container = document.getElementById('extraTopicsList');
+  if (!container || !currentUser) return;
+
+  let html = '';
+  ALL_TOPICS.forEach(topic => {
+    let history = (currentUser.proficiency && currentUser.proficiency[topic.key]) || [];
+    if (topic.key === 'place_value' && history.length === 0 && currentUser.proficiency) {
+      history = currentUser.proficiency['placeValue'] || [];
+    }
+
+    const numHistory = history.map(v => Number(v));
+    const attemptsCount = numHistory.length;
+    
+    let accuracyPct = 0;
+    let badgeBg = 'var(--bg-primary)';
+    let badgeColor = 'var(--text-muted)';
+    let badgeText = '⚪ Untried';
+
+    if (attemptsCount > 0) {
+      const score = numHistory.reduce((a, b) => a + b, 0);
+      accuracyPct = Math.round((score / 10) * 100);
+
+      if (accuracyPct >= 80) {
+        badgeBg = 'rgba(16, 185, 129, 0.15)';
+        badgeColor = '#10b981';
+        badgeText = `🟢 ${accuracyPct}%`;
+      } else if (accuracyPct >= 50) {
+        badgeBg = 'rgba(245, 158, 11, 0.15)';
+        badgeColor = '#d97706';
+        badgeText = `🟡 ${accuracyPct}%`;
+      } else {
+        badgeBg = 'rgba(239, 68, 68, 0.15)';
+        badgeColor = '#ef4444';
+        badgeText = `🔴 ${accuracyPct}%`;
+      }
+    }
+
+    const isSelected = selectedExtraTopics.includes(topic.key);
+
+    html += `
+      <div class="extra-topic-card" data-key="${topic.key}" style="
+        background: ${isSelected ? 'rgba(79, 70, 229, 0.1)' : 'var(--bg-card)'};
+        border: 2px solid ${isSelected ? 'var(--accent)' : 'var(--border-color)'};
+        border-radius: 10px;
+        padding: 8px 10px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+        user-select: none;
+        transition: all 0.15s ease;
+      ">
+        <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); line-height: 1.2;">
+          ${topic.name}
+        </span>
+        <span style="background: ${badgeBg}; color: ${badgeColor}; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 6px; white-space: nowrap;">
+          ${badgeText}
+        </span>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('.extra-topic-card').forEach(card => {
+    card.onclick = () => {
+      const key = card.getAttribute('data-key');
+      if (selectedExtraTopics.includes(key)) {
+        selectedExtraTopics = selectedExtraTopics.filter(k => k !== key);
+      } else {
+        selectedExtraTopics.push(key);
+      }
+      renderExtraTopicSelector();
+    };
+  });
+
+  updateExtraSummaryText();
+}
+
+function updateExtraSummaryText() {
+  const summaryEl = document.getElementById('extraSelectedCountText');
+  if (!summaryEl) return;
+  const count = selectedExtraTopics.length;
+  summaryEl.innerText = count === 0 ? '0 topics (Select at least 1)' : `${count} topic${count > 1 ? 's' : ''} selected`;
+}
+
+function setupExtraPracticeEventHandlers() {
+  document.querySelectorAll('.extra-count-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.extra-count-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'var(--bg-card)';
+        b.style.color = 'var(--text-main)';
+        b.style.borderColor = 'var(--border-color)';
+      });
+      btn.classList.add('active');
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--accent)';
+
+      extraTotalQuestions = parseInt(btn.getAttribute('data-val'), 10);
+    };
+  });
+
+  const toggleBtn = document.getElementById('toggleAllExtraTopicsBtn');
+  if (toggleBtn) {
+    toggleBtn.onclick = () => {
+      if (selectedExtraTopics.length === ALL_TOPICS.length) {
+        selectedExtraTopics = [];
+      } else {
+        selectedExtraTopics = ALL_TOPICS.map(t => t.key);
+      }
+      renderExtraTopicSelector();
+    };
+  }
+}
+
 function startExtraPracticeSession() {
-  activeExtraTopicKey = document.getElementById('extraTopicSelect').value;
-  extraTotalQuestions = parseInt(document.getElementById('extraCountSelect').value, 10);
+  if (selectedExtraTopics.length === 0) {
+    alert('Please tap to select at least one topic to practice!');
+    return;
+  }
+
   extraQIndex = 0;
   extraSessionScore = 0;
-
   extraQuestions = [];
+
   for (let i = 0; i < extraTotalQuestions; i++) {
-    if (activeExtraTopicKey === 'random') {
-      extraQuestions.push(getAdaptiveQuestion(currentUser.proficiency));
-    } else {
-      extraQuestions.push(getQuestionByType(activeExtraTopicKey));
-    }
+    const randomTopicKey = selectedExtraTopics[Math.floor(Math.random() * selectedExtraTopics.length)];
+    extraQuestions.push(getQuestionByType(randomTopicKey));
   }
 
   document.getElementById('extraSetupCard').classList.add('hidden');
@@ -613,9 +739,10 @@ function handleExtraAnswerSubmit() {
   document.getElementById('extraVisualExp').innerHTML = currentExtraQuestion.explanation;
   document.getElementById('extraSubmitBtn').classList.add('hidden');
 
+  // Update activity timestamp immediately on every completed extra question
   currentUser.lastActive = new Date().toISOString();
 
-  const topicLabel = activeExtraTopicKey === 'random' ? 'Random Mix' : activeExtraTopicKey;
+  const topicLabel = selectedExtraTopics.length === 1 ? selectedExtraTopics[0] : `${selectedExtraTopics.length} Selected Topics`;
   syncQuestionProgressToSheet(`Extra Practice (${topicLabel})`, xpEarned, 0, false);
 }
 
@@ -632,7 +759,7 @@ async function finishExtraPracticeSession() {
   const accuracy = Math.round((extraSessionScore / extraTotalQuestions) * 100);
   const totalXPEarned = extraSessionScore * 2;
 
-  const topicLabel = activeExtraTopicKey === 'random' ? 'Random Mix' : activeExtraTopicKey;
+  const topicLabel = selectedExtraTopics.length === 1 ? selectedExtraTopics[0] : `${selectedExtraTopics.length} Selected Topics`;
 
   document.getElementById('extraActiveCard').innerHTML = `
     <div style="text-align: center; padding: 20px 0;">
@@ -747,14 +874,11 @@ if (attemptsCount > 0) {
 
   container.innerHTML = html;
 
-  container.querySelectorAll('.btn-practice-topic').forEach(btn => {
+container.querySelectorAll('.btn-practice-topic').forEach(btn => {
     btn.onclick = () => {
       const topicKey = btn.getAttribute('data-key');
-      const extraSelect = document.getElementById('extraTopicSelect');
-      if (extraSelect) extraSelect.value = topicKey;
-
-      const extraCount = document.getElementById('extraCountSelect');
-      if (extraCount) extraCount.value = '3';
+      selectedExtraTopics = [topicKey];
+      extraTotalQuestions = 3;
 
       resetExtraPracticeUI();
       const extraTabBtn = document.querySelector('.tab-btn[data-tab="extra"]');
