@@ -53,7 +53,7 @@ const ALL_TOPICS = [
   { key: 'multiplication', name: '✖️ Multiplication' },
   { key: 'division', name: '➗ Division' },
   { key: 'order_of_operations', name: '🔢 Order of Operations' },
-  { key: 'factors', name: '🔐 Factors (Safe-Cracker)' }
+  { key: 'factors', name: '🔐 Factors' }
 ];
 
 function getTodayDateString() {
