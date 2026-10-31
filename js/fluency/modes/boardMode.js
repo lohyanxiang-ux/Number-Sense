@@ -113,7 +113,7 @@ export function mountBoardMode(container, currentUser, onFinishCallback) {
     <div class="card" style="width: 100%; max-width: 1100px; margin: 0 auto; padding: 20px;">
       <div class="board-arena-grid">
         
-        <!-- LEFT COLUMN: DOJO BOARD BREAK ARENA (DYNAMIC THEME SWITCHING) -->
+        <!-- LEFT COLUMN: DOJO BOARD BREAK ARENA (DYNAMIC BACKGROUND THEME) -->
         <div id="boardArenaLeftCol" class="arena-theme-normal" style="
           border-radius: 16px; 
           padding: 20px; 
@@ -276,7 +276,7 @@ function renderFullPhysicalStack(remaining, streak) {
 
   if (countEl) countEl.innerText = remaining;
 
-  // DYNAMIC THEME & COLOUR SWITCHING OF ENTIRE LEFT COLUMN
+  // DYNAMIC BACKGROUND THEME & LIGHTING FOR ENTIRE LEFT COLUMN
   if (leftCol && streakBadge && powerText) {
     leftCol.classList.remove('arena-theme-normal', 'arena-theme-blue', 'arena-theme-fire');
 
@@ -310,7 +310,7 @@ function renderFullPhysicalStack(remaining, streak) {
   if (!container) return;
   container.innerHTML = '';
 
-  // RENDER ALL 20 PHYSICAL BOARDS IN THE STACK
+  // RENDER ALL 20 PHYSICAL BOARDS WITH NATURAL WOOD COLOURING
   for (let i = 0; i < remaining; i++) {
     const board = document.createElement('div');
     board.className = 'board-item-row';
@@ -320,22 +320,19 @@ function renderFullPhysicalStack(remaining, streak) {
     board.style.borderRadius = '3px';
     board.style.position = 'relative';
     board.style.display = 'flex';
-    board.style.justifyConstraint = 'center';
     board.style.overflow = 'visible';
     board.style.boxSizing = 'border-box';
 
-    // Board styling based on active streak mode
+    // Board background remains consistent natural wood grain across all modes
+    board.style.background = 'linear-gradient(90deg, #78350f 0%, #b45309 50%, #78350f 100%)';
+    board.style.border = '1px solid #451a03';
+
+    // Ambient aura glow around the physical stack during active streaks
     if (streak >= 5) {
-      board.style.background = 'linear-gradient(90deg, #ea580c 0%, #fb923c 50%, #ea580c 100%)';
-      board.style.border = '1px solid #7c2d12';
-      board.style.boxShadow = '0 0 8px rgba(249, 115, 22, 0.6)';
+      board.style.boxShadow = '0 0 6px rgba(249, 115, 22, 0.5)';
     } else if (streak >= 3) {
-      board.style.background = 'linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #0284c7 100%)';
-      board.style.border = '1px solid #0c4a6e';
-      board.style.boxShadow = '0 0 8px rgba(56, 189, 248, 0.6)';
+      board.style.boxShadow = '0 0 6px rgba(56, 189, 248, 0.5)';
     } else {
-      board.style.background = 'linear-gradient(90deg, #78350f 0%, #b45309 50%, #78350f 100%)';
-      board.style.border = '1px solid #451a03';
       board.style.boxShadow = '0 1px 3px rgba(0,0,0,0.5)';
     }
 
@@ -449,7 +446,7 @@ function triggerStrikeAnimation(isCorrect, boardsBroken, streak) {
     // 2. SHATTER TOP N PHYSICAL BOARDS FROM STACK
     if (container) {
       const boardRows = Array.from(container.children);
-      const targetRows = boardRows.slice(-boardsBroken); // Top N boards in stack
+      const targetRows = boardRows.slice(-boardsBroken);
 
       targetRows.forEach(row => {
         const leftHalf = row.querySelector('.board-half-left');
