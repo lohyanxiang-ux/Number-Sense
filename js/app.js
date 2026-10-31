@@ -554,6 +554,7 @@ function exitExtraPractice() {
   resetExtraPracticeUI();
   document.getElementById('extraActiveCard').classList.add('hidden');
   document.getElementById('extraSetupCard').classList.remove('hidden');
+  renderExtraTopicSelector(); // Re-render topic badges with latest proficiency data
 }
 
 function renderExtraTopicSelector() {
@@ -771,10 +772,11 @@ async function finishExtraPracticeSession() {
     </div>
   `;
 
-  document.getElementById('btnRestartExtra').onclick = () => {
+document.getElementById('btnRestartExtra').onclick = () => {
     resetExtraPracticeUI();
     document.getElementById('extraActiveCard').classList.add('hidden');
     document.getElementById('extraSetupCard').classList.remove('hidden');
+    renderExtraTopicSelector(); // Re-render topic badges with latest proficiency data
   };
 
   if (sheetWebAppUrl) {
