@@ -19,13 +19,15 @@ const gridShaderModule = {
       // 1. 100-Grid Percentage (e.g. 12%)
       () => {
         const targetCount = Math.floor(Math.random() * 92) + 3;
+        const targetStr = `${targetCount}%`;
+        const partition = 100;
         return {
           type: 'grid_shader',
-          prompt: `Shade <strong>${formatMath(targetCount + '%')}</strong> of the 100-grid below:`,
-          targetRatio: targetCount / 100,
-          partition: 100,
+          prompt: `Represent <strong>${formatMath(targetStr)}</strong> by shading the shape below:`,
+          targetRatio: targetCount / partition,
+          partition: partition,
           shape: 'square',
-          explanation: formatMath(`${targetCount}% means exactly ${targetCount} parts shaded out of 100 (${targetCount}/100).`)
+          explanation: formatMath(`${targetStr} = ${targetCount}/${partition}. Shade ${targetCount} out of ${partition} equal parts.`)
         };
       },
 
@@ -33,58 +35,63 @@ const gridShaderModule = {
       () => {
         const targetCount = Math.floor(Math.random() * 92) + 3;
         const decStr = (targetCount / 100).toFixed(2);
+        const partition = 100;
         return {
           type: 'grid_shader',
-          prompt: `Shade <strong>${formatMath(decStr)}</strong> of the 100-grid below:`,
-          targetRatio: targetCount / 100,
-          partition: 100,
+          prompt: `Represent <strong>${formatMath(decStr)}</strong> by shading the shape below:`,
+          targetRatio: targetCount / partition,
+          partition: partition,
           shape: 'square',
-          explanation: formatMath(`${decStr} is equal to ${targetCount}/100 or ${targetCount}%, which means ${targetCount} shaded squares out of 100.`)
+          explanation: formatMath(`${decStr} = ${targetCount}/${partition}. Shade ${targetCount} out of ${partition} equal parts.`)
         };
       },
 
       // 3. 100-Grid Fraction (e.g. 12/100)
       () => {
         const targetCount = Math.floor(Math.random() * 92) + 3;
+        const fracStr = `${targetCount}/100`;
+        const partition = 100;
         return {
           type: 'grid_shader',
-          prompt: `Shade <strong>${formatMath(targetCount + '/100')}</strong> of the 100-grid below:`,
-          targetRatio: targetCount / 100,
-          partition: 100,
+          prompt: `Represent <strong>${formatMath(fracStr)}</strong> by shading the shape below:`,
+          targetRatio: targetCount / partition,
+          partition: partition,
           shape: 'square',
-          explanation: formatMath(`${targetCount}/100 means ${targetCount} shaded squares out of a total of 100 squares.`)
+          explanation: formatMath(`${fracStr} = ${targetCount}/${partition}. Shade ${targetCount} out of ${partition} equal parts.`)
         };
       },
 
       // 4–15. Standard Multi-Partition Templates
       ...[
         // Fractions
-        { targetStr: '1/2', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], exp: '1/2 means half of the shape. On 6 parts shade 3, on 8 shade 4, or on 12 shade 6.' },
-        { targetStr: '3/4', ratio: 0.75, partitions: [4, 8, 12], exp: '3/4 is equivalent to 6/8 or 9/12.' },
-        { targetStr: '1/3', ratio: 1/3, partitions: [3, 6, 9, 12], exp: '1/3 is equivalent to 2/6, 3/9, or 4/12.' },
-        { targetStr: '2/3', ratio: 2/3, partitions: [3, 6, 9, 12], exp: '2/3 is equivalent to 4/6, 6/9, or 8/12.' },
-        { targetStr: '2/5', ratio: 0.4, partitions: [5, 10], exp: '2/5 is equivalent to 4/10.' },
-        { targetStr: '3/5', ratio: 0.6, partitions: [5, 10], exp: '3/5 is equivalent to 6/10.' },
+        { targetStr: '1/2', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12] },
+        { targetStr: '3/4', ratio: 0.75, partitions: [4, 8, 12] },
+        { targetStr: '1/3', ratio: 1/3, partitions: [3, 6, 9, 12] },
+        { targetStr: '2/3', ratio: 2/3, partitions: [3, 6, 9, 12] },
+        { targetStr: '2/5', ratio: 0.4, partitions: [5, 10] },
+        { targetStr: '3/5', ratio: 0.6, partitions: [5, 10] },
 
         // Decimals
-        { targetStr: '0.5', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], exp: '0.5 is equal to 1/2. On an 8-part shape, shade 4 parts.' },
-        { targetStr: '0.25', ratio: 0.25, partitions: [4, 8, 12], exp: '0.25 is equal to 1/4. On an 8-part shape, shade 2 parts.' },
-        { targetStr: '0.4', ratio: 0.4, partitions: [5, 10], exp: '0.4 is equal to 2/5 or 4/10.' },
+        { targetStr: '0.5', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12] },
+        { targetStr: '0.25', ratio: 0.25, partitions: [4, 8, 12] },
+        { targetStr: '0.4', ratio: 0.4, partitions: [5, 10] },
 
         // Percentages
-        { targetStr: '50%', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], exp: '50% represents half of the total shape.' },
-        { targetStr: '25%', ratio: 0.25, partitions: [4, 8, 12], exp: '25% is 1/4. On 8 parts, shade 2 parts.' },
-        { targetStr: '20%', ratio: 0.2, partitions: [5, 10], exp: '20% is 1/5. On 10 parts, shade 2 parts.' }
+        { targetStr: '50%', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12] },
+        { targetStr: '25%', ratio: 0.25, partitions: [4, 8, 12] },
+        { targetStr: '20%', ratio: 0.2, partitions: [5, 10] }
       ].map(t => () => {
         const randomPartition = t.partitions[Math.floor(Math.random() * t.partitions.length)];
         const randomShape = Math.random() < 0.5 ? 'square' : 'circle';
+        const shadedCount = Math.round(t.ratio * randomPartition);
+
         return {
           type: 'grid_shader',
           prompt: `Represent <strong>${formatMath(t.targetStr)}</strong> by shading the shape below:`,
           targetRatio: t.ratio,
           partition: randomPartition,
           shape: randomShape,
-          explanation: formatMath(t.exp)
+          explanation: formatMath(`${t.targetStr} = ${shadedCount}/${randomPartition}. Shade ${shadedCount} out of ${randomPartition} equal parts.`)
         };
       })
     ];
@@ -107,9 +114,9 @@ const gridShaderModule = {
         grid-template-columns: repeat(${cols}, 1fr);
         grid-template-rows: repeat(${rows}, 1fr);
         gap: ${q.partition === 100 ? '1px' : '3px'};
-        background: var(--border-color);
+        background: var(--border-color, #cbd5e1);
         padding: 4px;
-        border-radius: 8px;
+        border-radius: 12px;
         box-sizing: border-box;
       ">`;
       for (let i = 0; i < q.partition; i++) {
@@ -121,7 +128,23 @@ const gridShaderModule = {
     }
 
     const html = `
-      <div class="ipad-responsive-grid" style="user-select: none;">
+      <style>
+        .grid-cell {
+          background-color: #ffffff !important;
+          fill: #ffffff !important;
+          stroke: #334155 !important;
+          stroke-width: 2px !important;
+          cursor: pointer;
+          transition: background-color 0.15s ease, fill 0.15s ease;
+          touch-action: none;
+        }
+        .grid-cell.active {
+          background-color: var(--accent, #4f46e5) !important;
+          fill: var(--accent, #4f46e5) !important;
+        }
+      </style>
+
+      <div class="ipad-responsive-grid" style="user-select: none; -webkit-user-select: none;">
         
         <!-- LEFT COLUMN: INTERACTIVE SHAPED GRID -->
         <div class="ipad-left-pane">
@@ -190,6 +213,7 @@ function setupDragToShade(container) {
   const grid = container.querySelector('#touchGrid');
   let isDragging = false;
   let targetState = true;
+  let lastProcessedCell = null;
 
   const updateCount = () => {
     const active = grid.querySelectorAll('.grid-cell.active').length;
@@ -198,28 +222,37 @@ function setupDragToShade(container) {
   };
 
   const processCell = (cell) => {
-    if (cell && cell.classList.contains('grid-cell')) {
+    if (cell && cell.classList.contains('grid-cell') && cell !== lastProcessedCell) {
+      lastProcessedCell = cell;
       cell.classList.toggle('active', targetState);
       updateCount();
     }
   };
 
+  const getCellFromPoint = (x, y) => {
+    const elem = document.elementFromPoint(x, y);
+    return elem && elem.classList.contains('grid-cell') ? elem : null;
+  };
+
   grid.onpointerdown = (e) => {
-    if (!e.target.classList.contains('grid-cell')) return;
+    const cell = getCellFromPoint(e.clientX, e.clientY);
+    if (!cell) return;
     isDragging = true;
-    targetState = !e.target.classList.contains('active');
-    processCell(e.target);
+    lastProcessedCell = null;
+    targetState = !cell.classList.contains('active');
+    processCell(cell);
   };
 
-  grid.ontouchmove = (e) => {
+  grid.onpointermove = (e) => {
     if (!isDragging) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-    processCell(elem);
+    const cell = getCellFromPoint(e.clientX, e.clientY);
+    processCell(cell);
   };
 
-  window.onpointerup = () => { isDragging = false; };
+  window.onpointerup = () => {
+    isDragging = false;
+    lastProcessedCell = null;
+  };
 }
 
 registerQuestionType('grid_shader', gridShaderModule);
