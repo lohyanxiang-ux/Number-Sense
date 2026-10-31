@@ -4,10 +4,11 @@ const numberLineModule = {
   generate() {
     const questionPool = [
       // ==========================================
-      // 1. DECIMALS FROM 0 TO 1 (TICKS EVERY 0.1, LABELS AT 0, 0.5, 1.0)
+      // 1. DECIMALS FROM 0 TO 1 (UNLABELLED TENTHS)
       // ==========================================
       () => {
         const ticks = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+        // Major labels only at 0, 0.5, and 1.0
         const tickLabels = ticks.map(v => (v === 0 || v === 0.5 || v === 1.0 ? `${v}` : ''));
         const targetOptions = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9];
         const val = targetOptions[Math.floor(Math.random() * targetOptions.length)];
@@ -16,7 +17,7 @@ const numberLineModule = {
           val: val,
           ticks: ticks,
           tickLabels: tickLabels,
-          exp: `${val} is located ${Math.round(val * 10)} tick mark(s) past 0 on a decimal number line with labels at 0, 0.5, and 1.`
+          exp: `${val} is located ${Math.round(val * 10)} tick mark(s) past 0 on a line with major labels at 0, 0.5, and 1.`
         };
       },
       () => {
@@ -42,7 +43,7 @@ const numberLineModule = {
           val: val,
           ticks: ticks,
           tickLabels: null,
-          exp: `${val} is located at tick mark index ${ticks.indexOf(val)} on a 5-part decimal line.`
+          exp: `${val} is located at tick mark index ${ticks.indexOf(val)} on a 5-part decimal number line.`
         };
       },
 
@@ -98,7 +99,7 @@ const numberLineModule = {
       // 3. NON-UNIT SCALE & UNLABELLED INTERMEDIATE TICKS
       // ==========================================
       () => {
-        // 0 to 20: Ticks count by 1, but labels appear every 2 units
+        // 0 to 20: Ticks count by 1, labels every 2 units (allows target like 3, 7, 15)
         const ticks = [];
         const tickLabels = [];
         for (let i = 0; i <= 20; i++) {
@@ -167,6 +168,7 @@ const numberLineModule = {
       const hasCustomLabel = q.tickLabels && q.tickLabels[idx] !== undefined;
       const isMajor = !hasCustomLabel || q.tickLabels[idx] !== '';
 
+      // Ticks: Major ticks are 20px tall, minor/unlabelled ticks are 12px tall
       tickMarksHtml += `
         <div style="
           position: absolute; 
@@ -208,7 +210,7 @@ const numberLineModule = {
         <!-- LEFT COLUMN: NUMBER LINE VISUAL TRACK -->
         <div class="ipad-left-pane">
           <div style="position: relative; height: 110px; margin: 20px 10px 10px 10px; padding: 0 10px;">
-            <div id="nlTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 45px;">
+            <div id="nlTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 45px; cursor: pointer;">
               ${tickMarksHtml}
 
               <!-- POSITION INDICATOR PIN -->
@@ -242,6 +244,7 @@ const numberLineModule = {
                 transform: translateX(-50%);
                 transition: left 0.1s ease;
                 z-index: 4;
+                pointer-events: none;
               "></div>
 
               <div style="position: relative; width: 100%; height: 24px; top: 22px;">
@@ -273,6 +276,7 @@ const numberLineModule = {
     const pin = container.querySelector('#nlPin');
     const dot = container.querySelector('#nlDot');
     const currentValEl = container.querySelector('#nlCurrentVal');
+    const track = container.querySelector('#nlTrack');
 
     const updateSliderUI = () => {
       const idx = parseInt(slider.value, 10);
@@ -287,6 +291,18 @@ const numberLineModule = {
     };
 
     slider.oninput = updateSliderUI;
+
+    // Allow direct tapping on the track to snap the slider position
+    if (track) {
+      track.onclick = (e) => {
+        const rect = track.getBoundingClientRect();
+        const tapX = e.clientX - rect.left;
+        const ratio = Math.max(0, Math.min(1, tapX / rect.width));
+        const nearestIndex = Math.round(ratio * (numTicks - 1));
+        slider.value = nearestIndex;
+        updateSliderUI();
+      };
+    }
   },
 
   evaluate(q) {
