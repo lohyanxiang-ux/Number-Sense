@@ -1,21 +1,22 @@
-import { registerQuestionType, formatMath } from './registry.js';
+import { registerQuestionType } from './registry.js';
 
 const numberLineModule = {
   generate() {
     const questionPool = [
       // ==========================================
-      // 1. DECIMALS FROM 0 TO 1 (NO FRACTIONS / PERCENTAGES)
+      // 1. DECIMALS FROM 0 TO 1 (TICKS EVERY 0.1, LABELS AT 0, 0.5, 1.0)
       // ==========================================
       () => {
-        // Tenths (0, 0.1, 0.2, ... 1.0)
-        const decs = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
-        const val = decs[Math.floor(Math.random() * decs.length)];
         const ticks = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+        const tickLabels = ticks.map(v => (v === 0 || v === 0.5 || v === 1.0 ? `${v}` : ''));
+        const targetOptions = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9];
+        const val = targetOptions[Math.floor(Math.random() * targetOptions.length)];
         return {
           label: `${val}`,
           val: val,
           ticks: ticks,
-          exp: `${val} is located ${Math.round(val * 10)} tick mark(s) past 0 on a decimal line split into tenths.`
+          tickLabels: tickLabels,
+          exp: `${val} is located ${Math.round(val * 10)} tick mark(s) past 0 on a decimal number line with labels at 0, 0.5, and 1.`
         };
       },
       () => {
@@ -27,7 +28,8 @@ const numberLineModule = {
           label: `${val}`,
           val: val,
           ticks: ticks,
-          exp: `${val} is located at tick index ${ticks.indexOf(val)} on a 4-part decimal number line.`
+          tickLabels: null,
+          exp: `${val} is located at tick mark index ${ticks.indexOf(val)} on a 4-part decimal number line.`
         };
       },
       () => {
@@ -39,15 +41,16 @@ const numberLineModule = {
           label: `${val}`,
           val: val,
           ticks: ticks,
-          exp: `${val} is located at tick index ${ticks.indexOf(val)} on a 5-part decimal line.`
+          tickLabels: null,
+          exp: `${val} is located at tick mark index ${ticks.indexOf(val)} on a 5-part decimal line.`
         };
       },
 
       // ==========================================
-      // 2. NEGATIVE NUMBERS
+      // 2. NEGATIVE NUMBERS & UNLABELLED TICKS
       // ==========================================
       () => {
-        // Range -5 to 5 (interval 1)
+        // Range -5 to 5 (interval 1, all labelled)
         const possible = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
         const val = possible[Math.floor(Math.random() * possible.length)];
         const ticks = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
@@ -55,19 +58,26 @@ const numberLineModule = {
           label: `${val}`,
           val: val,
           ticks: ticks,
+          tickLabels: null,
           exp: `${val} is located ${Math.abs(val)} unit(s) to the ${val < 0 ? 'left' : 'right'} of 0.`
         };
       },
       () => {
-        // Range -10 to 10 (interval 2)
-        const possible = [-10, -8, -6, -4, -2, 2, 4, 6, 8, 10];
-        const val = possible[Math.floor(Math.random() * possible.length)];
-        const ticks = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10];
+        // Range -10 to 10 (ticks every 1 unit, labels every 2 units)
+        const ticks = [];
+        const tickLabels = [];
+        for (let i = -10; i <= 10; i++) {
+          ticks.push(i);
+          tickLabels.push(i % 2 === 0 ? `${i}` : '');
+        }
+        const possibleTargets = [-9, -7, -5, -3, -1, 1, 3, 5, 7, 9];
+        const val = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
         return {
           label: `${val}`,
           val: val,
           ticks: ticks,
-          exp: `${val} is located to the ${val < 0 ? 'left' : 'right'} of 0 on a number line with interval step 2.`
+          tickLabels: tickLabels,
+          exp: `${val} is located at the unlabelled tick mark halfway between ${val - 1} and ${val + 1}.`
         };
       },
       () => {
@@ -79,27 +89,34 @@ const numberLineModule = {
           label: `${val}`,
           val: val,
           ticks: ticks,
+          tickLabels: null,
           exp: `${val} is located on the number line with step interval 5.`
         };
       },
 
       // ==========================================
-      // 3. NON-UNIT SCALE (INTERVALS 2, 5, 10)
+      // 3. NON-UNIT SCALE & UNLABELLED INTERMEDIATE TICKS
       // ==========================================
       () => {
-        // Interval of 2 (e.g. 0 to 20)
-        const possible = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
-        const val = possible[Math.floor(Math.random() * possible.length)];
-        const ticks = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
+        // 0 to 20: Ticks count by 1, but labels appear every 2 units
+        const ticks = [];
+        const tickLabels = [];
+        for (let i = 0; i <= 20; i++) {
+          ticks.push(i);
+          tickLabels.push(i % 2 === 0 ? `${i}` : '');
+        }
+        const possibleTargets = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
+        const val = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
         return {
           label: `${val}`,
           val: val,
           ticks: ticks,
-          exp: `Each tick mark represents 2 units. ${val} is at tick mark ${val / 2}.`
+          tickLabels: tickLabels,
+          exp: `Labels appear every 2 units, but tick marks count by 1. ${val} is at the unlabelled tick mark between ${val - 1} and ${val + 1}.`
         };
       },
       () => {
-        // Interval of 5 (e.g. represent 15)
+        // Interval of 5 (0 to 50, all ticks labelled)
         const possible = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
         const val = possible[Math.floor(Math.random() * possible.length)];
         const ticks = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
@@ -107,11 +124,12 @@ const numberLineModule = {
           label: `${val}`,
           val: val,
           ticks: ticks,
+          tickLabels: null,
           exp: `Each tick mark represents 5 units. ${val} is ${val / 5} tick mark(s) away from 0.`
         };
       },
       () => {
-        // Interval of 10 with sub-ticks at 5 (e.g. represent 5 or 25 on a 10-interval labeled line)
+        // 0 to 60: Ticks every 5 units, major labels every 10 units
         const possible = [5, 15, 25, 35, 45, 55];
         const val = possible[Math.floor(Math.random() * possible.length)];
         const ticks = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
@@ -121,7 +139,7 @@ const numberLineModule = {
           val: val,
           ticks: ticks,
           tickLabels: tickLabels,
-          exp: `Major labels are every 10 units with tick marks every 5 units. ${val} lies halfway between ${val - 5} and ${val + 5}.`
+          exp: `Major labels are every 10 units with tick marks every 5 units. ${val} lies at the unlabelled tick mark halfway between ${val - 5} and ${val + 5}.`
         };
       }
     ];
@@ -131,11 +149,11 @@ const numberLineModule = {
 
     return {
       type: 'number_line',
-      prompt: `Drag the marker to place <strong>${formatMath(t.label)}</strong> on the number line:`,
+      prompt: `Drag the slider to place <strong>${t.label}</strong> on the number line:`,
       targetVal: t.val,
       ticks: t.ticks,
       tickLabels: t.tickLabels || null,
-      explanation: formatMath(t.exp)
+      explanation: t.exp
     };
   },
 
@@ -146,23 +164,23 @@ const numberLineModule = {
 
     q.ticks.forEach((tickVal, idx) => {
       const posPct = ((idx / (numTicks - 1)) * 100).toFixed(2);
-      const isMajor = !q.tickLabels || q.tickLabels[idx] !== '';
+      const hasCustomLabel = q.tickLabels && q.tickLabels[idx] !== undefined;
+      const isMajor = !hasCustomLabel || q.tickLabels[idx] !== '';
 
       tickMarksHtml += `
         <div style="
           position: absolute; 
           left: ${posPct}%; 
-          top: ${isMajor ? '-8px' : '-4px'}; 
+          top: ${isMajor ? '-6px' : '-2px'}; 
           width: 2px; 
-          height: ${isMajor ? '24px' : '16px'}; 
+          height: ${isMajor ? '20px' : '12px'}; 
           background: ${tickVal === 0 ? 'var(--accent)' : 'var(--text-muted)'}; 
           transform: translateX(-50%);
-          pointer-events: none;
         "></div>
       `;
 
       let labelText = '';
-      if (q.tickLabels && q.tickLabels[idx] !== undefined) {
+      if (hasCustomLabel) {
         labelText = q.tickLabels[idx];
       } else {
         labelText = tickVal % 1 === 0 ? tickVal.toFixed(0) : tickVal.toFixed(2).replace(/\.?0+$/, '');
@@ -175,119 +193,109 @@ const numberLineModule = {
             left: ${posPct}%; 
             transform: translateX(-50%); 
             font-weight: ${tickVal === 0 ? '800' : '600'}; 
-            font-size: 0.9rem; 
+            font-size: 0.8rem; 
             color: ${tickVal === 0 ? 'var(--accent)' : 'var(--text-muted)'};
-            pointer-events: none;
           ">${labelText}</span>
         `;
       }
     });
 
+    const initialValText = q.ticks[0] % 1 === 0 ? q.ticks[0].toFixed(0) : q.ticks[0].toFixed(2).replace(/\.?0+$/, '');
+
     const html = `
-      <div style="max-width: 650px; margin: 20px auto; padding: 10px 20px; user-select: none; -webkit-user-select: none;">
-        <div style="position: relative; height: 110px; margin: 30px 10px;">
-          
-          <!-- NUMBER LINE TRACK -->
-          <div id="nlTrack" style="
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 8px;
-            background: var(--border-color, #cbd5e1);
-            border-radius: 4px;
-            top: 45px;
-            cursor: pointer;
-            touch-action: none;
-          ">
-            ${tickMarksHtml}
+      <div class="ipad-responsive-grid" style="user-select: none; -webkit-user-select: none;">
+        
+        <!-- LEFT COLUMN: NUMBER LINE VISUAL TRACK -->
+        <div class="ipad-left-pane">
+          <div style="position: relative; height: 110px; margin: 20px 10px 10px 10px; padding: 0 10px;">
+            <div id="nlTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 45px;">
+              ${tickMarksHtml}
 
-            <!-- LARGE DRAGGABLE MARKER PIN -->
-            <div id="nlMarker" data-idx="0" style="
-              position: absolute;
-              top: 50%;
-              left: 0%;
-              transform: translate(-50%, -50%);
-              width: 36px;
-              height: 36px;
-              border-radius: 50%;
-              background: var(--accent, #4f46e5);
-              border: 4px solid #ffffff;
-              box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-              cursor: grab;
-              touch-action: none;
-              z-index: 10;
-              transition: transform 0.1s ease, background 0.15s ease;
-            "></div>
+              <!-- POSITION INDICATOR PIN -->
+              <div id="nlPin" style="
+                position: absolute;
+                top: -34px;
+                left: 0%;
+                transform: translateX(-50%);
+                background: var(--accent);
+                color: white;
+                font-weight: 800;
+                font-size: 0.85rem;
+                padding: 3px 10px;
+                border-radius: 12px;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+                pointer-events: none;
+                transition: left 0.1s ease;
+                white-space: nowrap;
+                z-index: 5;
+              ">${initialValText}</div>
 
-            <!-- TICK LABELS ROW BELOW -->
-            <div style="position: absolute; top: 28px; left: 0; right: 0; height: 30px; pointer-events: none;">
-              ${tickLabelsHtml}
+              <!-- ANCHOR DOT ON LINE -->
+              <div id="nlDot" style="
+                position: absolute;
+                top: -4px;
+                left: 0%;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: var(--accent);
+                transform: translateX(-50%);
+                transition: left 0.1s ease;
+                z-index: 4;
+              "></div>
+
+              <div style="position: relative; width: 100%; height: 24px; top: 22px;">
+                ${tickLabelsHtml}
+              </div>
             </div>
-
           </div>
         </div>
+
+        <!-- RIGHT COLUMN: SLIDER CONTROL & VALUE DISPLAY -->
+        <div class="ipad-right-pane" style="text-align: center;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
+            Adjust Slider Position:
+          </div>
+
+          <div style="font-size: 1.8rem; font-weight: 900; color: var(--accent); margin-bottom: 14px;">
+            Value: <span id="nlCurrentVal">${initialValText}</span>
+          </div>
+
+          <input type="range" min="0" max="${numTicks - 1}" step="1" value="0" class="nl-slider" id="nlSlider" style="width: 100%; cursor: pointer; touch-action: manipulation;">
+        </div>
+
       </div>
     `;
 
     container.innerHTML = html;
 
-    const track = container.querySelector('#nlTrack');
-    const marker = container.querySelector('#nlMarker');
+    const slider = container.querySelector('#nlSlider');
+    const pin = container.querySelector('#nlPin');
+    const dot = container.querySelector('#nlDot');
+    const currentValEl = container.querySelector('#nlCurrentVal');
 
-    let isDragging = false;
+    const updateSliderUI = () => {
+      const idx = parseInt(slider.value, 10);
+      const posPct = ((idx / (numTicks - 1)) * 100).toFixed(2);
+      const tickVal = q.ticks[idx];
+      const valText = tickVal % 1 === 0 ? tickVal.toFixed(0) : tickVal.toFixed(2).replace(/\.?0+$/, '');
 
-    const updatePosition = (clientX) => {
-      const rect = track.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const ratio = Math.max(0, Math.min(1, x / rect.width));
-
-      // Snap to nearest tick index
-      const snappedIdx = Math.round(ratio * (numTicks - 1));
-      const posPct = ((snappedIdx / (numTicks - 1)) * 100).toFixed(2);
-
-      marker.style.left = `${posPct}%`;
-      marker.setAttribute('data-idx', snappedIdx);
+      pin.style.left = `${posPct}%`;
+      dot.style.left = `${posPct}%`;
+      pin.innerText = valText;
+      currentValEl.innerText = valText;
     };
 
-    track.onpointerdown = (e) => {
-      isDragging = true;
-      marker.style.cursor = 'grabbing';
-      marker.style.transform = 'translate(-50%, -50%) scale(1.15)';
-      track.setPointerCapture(e.pointerId);
-      updatePosition(e.clientX);
-    };
-
-    track.onpointermove = (e) => {
-      if (!isDragging) return;
-      updatePosition(e.clientX);
-    };
-
-    track.onpointerup = (e) => {
-      if (isDragging) {
-        isDragging = false;
-        marker.style.cursor = 'grab';
-        marker.style.transform = 'translate(-50%, -50%) scale(1)';
-        track.releasePointerCapture(e.pointerId);
-      }
-    };
-
-    track.onpointercancel = (e) => {
-      if (isDragging) {
-        isDragging = false;
-        marker.style.cursor = 'grab';
-        marker.style.transform = 'translate(-50%, -50%) scale(1)';
-      }
-    };
+    slider.oninput = updateSliderUI;
   },
 
   evaluate(q) {
-    const marker = document.getElementById('nlMarker');
-    if (!marker) return false;
+    const slider = document.getElementById('nlSlider');
+    if (!slider) return false;
 
-    const selectedIndex = parseInt(marker.getAttribute('data-idx'), 10);
-    if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= q.ticks.length) return false;
-
+    const selectedIndex = parseInt(slider.value, 10);
     const userVal = q.ticks[selectedIndex];
+
     return Math.abs(userVal - q.targetVal) < 0.001;
   }
 };
