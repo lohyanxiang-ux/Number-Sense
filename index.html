@@ -400,6 +400,26 @@
     </div>
   </div>
 
+  <!-- STREAK RECOVERY MODAL -->
+  <div id="streakRecoveryModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 400px; text-align: center; padding: 24px; user-select: none;">
+      <div style="font-size: 3rem; margin-bottom: 8px;">💔</div>
+      <h3 style="margin-bottom: 8px; font-size: 1.3rem; color: var(--text-main);">Streak Broken!</h3>
+      <p id="streakBreakMsg" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px; line-height: 1.4;">
+        Your streak was broken because you missed a daily warm-up.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn" id="btnRepairStreak" style="background: var(--accent); font-weight: 800; padding: 12px; font-size: 0.95rem;">
+          🛡️ Keep Streak (🎟️ 20 Tokens)
+        </button>
+        <button class="btn" id="btnAcceptReset" style="background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color); font-weight: 700; padding: 10px; font-size: 0.9rem;">
+          ❌ Reset Streak to 0
+        </button>
+      </div>
+    </div>
+  </div>
+  
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
