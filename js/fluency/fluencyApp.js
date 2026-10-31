@@ -1,5 +1,6 @@
 import { BELT_TIERS, getStudentFluencyData, evaluateLevelProgression } from './fluencyMastery.js';
 import { mountSummitMode } from './modes/summitMode.js';
+import { mountBlitzMode } from './modes/blitzMode.js';
 
 let currentUserRef = null;
 let syncCallbackRef = null;
@@ -27,7 +28,7 @@ export function renderFluencyMenu() {
         <div>
           <h2 style="margin: 0;">⚡ Speed Fluency Arena</h2>
           <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.95rem;">
-            Test your numerical fluency across belt tiers!
+            Select a mode to test your speed and unlock martial arts belts!
           </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
@@ -61,20 +62,41 @@ export function renderFluencyMenu() {
         </div>
       </div>
 
-      <!-- MODE SELECTION MENU -->
-      <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
-        <div style="border: 2px solid var(--accent); border-radius: 12px; padding: 18px; background: rgba(79, 70, 229, 0.04);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <h3 style="margin: 0; color: var(--text-main);">🏔️ Summit Quest</h3>
-            <span style="font-size: 0.8rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 8px; border-radius: 6px;">AVAILABLE</span>
+      <!-- MODE SELECTION GRID -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        
+        <!-- SUMMIT QUEST CARD -->
+        <div style="border: 2px solid var(--accent); border-radius: 12px; padding: 18px; background: rgba(79, 70, 229, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h3 style="margin: 0; color: var(--text-main);">🏔️ Summit Quest</h3>
+              <span style="font-size: 0.75rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 8px; border-radius: 6px;">PRECISION CLIMB</span>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0 0 14px 0;">
+              Scale 10 mountain ledges. +1 step on correct, -1 on wrong. 10s idle timer!
+            </p>
           </div>
-          <p style="font-size: 0.95rem; color: var(--text-muted); margin: 0 0 14px 0;">
-            Climb 10 ledges to reach the mountain peak! (+1 step correct, -1 step slip).
-          </p>
           <button class="btn" id="startSummitBtn" style="background: var(--accent); font-weight: 800; width: 100%; padding: 12px;">
-            🚀 Start Summit Quest (${currentBelt.badge} Tier ${currentBelt.tier})
+            🚀 Climb Summit
           </button>
         </div>
+
+        <!-- LIGHTNING SHURIKEN BLITZ CARD -->
+        <div style="border: 2px solid #6366f1; border-radius: 12px; padding: 18px; background: rgba(99, 102, 241, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h3 style="margin: 0; color: var(--text-main);">⚡ Shuriken Blitz</h3>
+              <span style="font-size: 0.75rem; font-weight: 800; color: #6366f1; background: rgba(99, 102, 241, 0.15); padding: 2px 8px; border-radius: 6px;">30s TIME ATTACK</span>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0 0 14px 0;">
+              Rapid fire! Answer as many questions as possible in 30 seconds to build high streaks.
+            </p>
+          </div>
+          <button class="btn" id="startBlitzBtn" style="background: #6366f1; color: white; font-weight: 800; width: 100%; padding: 12px;">
+            ⚡ Start Shuriken Blitz
+          </button>
+        </div>
+
       </div>
     </div>
 
@@ -82,7 +104,7 @@ export function renderFluencyMenu() {
 
     <!-- SUMMARY CARD -->
     <div id="fluencySummaryCard" class="card hidden" style="text-align: center; max-width: 520px; margin: 0 auto;">
-      <h2 id="summaryResultHeader" style="color: var(--accent); font-size: 2rem; margin-bottom: 8px;">🏔️ Quest Complete!</h2>
+      <h2 id="summaryResultHeader" style="color: var(--accent); font-size: 2rem; margin-bottom: 8px;">⚡ Challenge Complete!</h2>
       <div id="fluencyLevelMsg" style="font-weight: 800; font-size: 1.05rem; margin-bottom: 20px;"></div>
 
       <div style="background: var(--bg-primary); border-radius: 12px; padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; text-align: left; border: 1px solid var(--border-color);">
@@ -104,6 +126,12 @@ export function renderFluencyMenu() {
     mountSummitMode(activeBox, currentUserRef, handleSessionComplete);
   };
 
+  document.getElementById('startBlitzBtn').onclick = () => {
+    document.getElementById('fluencySetupCard').classList.add('hidden');
+    const activeBox = document.getElementById('fluencyActiveContainer');
+    mountBlitzMode(activeBox, currentUserRef, handleSessionComplete);
+  };
+
   document.getElementById('btnRestartFluency').onclick = renderFluencyMenu;
 }
 
@@ -113,10 +141,10 @@ function handleSessionComplete(results) {
 
   const headerEl = document.getElementById('summaryResultHeader');
   if (results.victory) {
-    headerEl.innerText = '🏆 SUMMIT REACHED!';
+    headerEl.innerText = '🏆 TRIAL COMPLETE!';
     headerEl.style.color = '#10b981';
   } else {
-    headerEl.innerText = '🌊 FELL OFF BASE CAMP!';
+    headerEl.innerText = '⏱️ TIME EXPIRED!';
     headerEl.style.color = '#ef4444';
   }
 
