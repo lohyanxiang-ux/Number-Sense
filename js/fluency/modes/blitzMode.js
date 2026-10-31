@@ -28,9 +28,26 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         .blitz-arena-grid { grid-template-columns: 1fr; }
       }
 
-      /* --- SHURIKEN & DUMMY TRAJECTORY ANIMATIONS --- */
-      
-      /* HIT: Flies from bottom-center directly into the dummy's chest */
+      /* --- HAND THROW & SHURIKEN TRAJECTORY ANIMATIONS --- */
+      @keyframes handThrow {
+        0% {
+          transform: translate(-50%, 80px) rotate(-25deg);
+          opacity: 0;
+        }
+        30% {
+          transform: translate(-50%, 10px) rotate(10deg);
+          opacity: 1;
+        }
+        60% {
+          transform: translate(-50%, -10px) rotate(30deg);
+          opacity: 1;
+        }
+        100% {
+          transform: translate(-50%, 90px) rotate(35deg);
+          opacity: 0;
+        }
+      }
+
       @keyframes shurikenHitTrajectory {
         0% {
           transform: translate(-50%, 120px) scale(0.4) rotate(0deg);
@@ -43,7 +60,6 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         }
       }
 
-      /* MISS: Whizzes past the dummy to the upper right off-target */
       @keyframes shurikenMissTrajectory {
         0% {
           transform: translate(-50%, 120px) scale(0.4) rotate(0deg);
@@ -56,17 +72,19 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         }
       }
 
-      /* DUMMY IMPACT WOBBLE */
       @keyframes dummyHitWobble {
         0%, 100% { transform: scale(1) rotate(0deg); }
         25% { transform: scale(1.08) rotate(-8deg); }
         75% { transform: scale(1.08) rotate(8deg); }
       }
 
-      /* DUMMY MISS DODGE */
       @keyframes dummyMissDodge {
         0%, 100% { transform: translateX(0); }
         30% { transform: translateX(-18px) rotate(-6deg); }
+      }
+
+      .animate-hand-throw {
+        animation: handThrow 0.45s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
       }
 
       .animate-shuriken-hit {
@@ -131,7 +149,7 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
           <!-- CENTER ARENA: MARTIAL ARTS WOODEN DUMMY & SHURIKEN LAYER -->
           <div style="position: relative; height: 280px; display: flex; justify-content: center; align-items: center; z-index: 3; width: 100%;">
             
-            <!-- MARTIAL ARTS TRAINING DUMMY (SVG WOODEN POST & ARMS) -->
+            <!-- MARTIAL ARTS TRAINING DUMMY -->
             <div id="trainingDummy" style="position: relative; width: 140px; height: 220px; display: flex; flex-direction: column; align-items: center; transition: transform 0.15s ease;">
               <!-- DUMMY HEAD & HEADBAND -->
               <div style="width: 56px; height: 56px; background: #854d0e; border-radius: 50%; border: 3px solid #713f12; position: relative; display: flex; justify-content: center; align-items: center;">
@@ -148,7 +166,7 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
                 <!-- MIDDLE ARM -->
                 <div style="position: absolute; top: 60px; left: -22px; width: 26px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px;"></div>
                 
-                <!-- EMBEDDED SHURIKENS CONTAINER (Landed hits accumulate here) -->
+                <!-- EMBEDDED SHURIKENS CONTAINER -->
                 <div id="stuckShurikens" style="position: absolute; inset: 0; pointer-events: none;"></div>
               </div>
 
@@ -156,10 +174,22 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
               <div style="width: 70px; height: 20px; background: #54320c; border-radius: 4px; border: 2px solid #3b2207; margin-top: -2px;"></div>
             </div>
 
-<!-- ANIMATING FLYING SHURIKEN SPRITE (SVG THROWING STAR) -->
+            <!-- ANIMATING THROWING HAND -->
+            <div id="handSprite" style="
+              position: absolute;
+              bottom: 10px;
+              left: 50%;
+              font-size: 3.5rem;
+              opacity: 0;
+              pointer-events: none;
+              z-index: 11;
+              filter: drop-shadow(0 6px 10px rgba(0,0,0,0.6));
+            ">🤚</div>
+
+            <!-- ANIMATING FLYING SHURIKEN SPRITE (SVG THROWING STAR) -->
             <div id="shurikenSprite" style="
               position: absolute;
-              bottom: 20px;
+              bottom: 30px;
               left: 50%;
               width: 42px;
               height: 42px;
@@ -317,6 +347,7 @@ function submitAnswer(currentUser, onFinishCallback) {
 
 function triggerShurikenFlight(isCorrect, streak) {
   const dummy = document.getElementById('trainingDummy');
+  const hand = document.getElementById('handSprite');
   const shuriken = document.getElementById('shurikenSprite');
   const impactEffect = document.getElementById('blitzImpactEffect');
   const stuckContainer = document.getElementById('stuckShurikens');
@@ -337,15 +368,22 @@ function triggerShurikenFlight(isCorrect, streak) {
     setTimeout(() => { badge.style.visibility = 'hidden'; }, 450);
   }
 
+  // 1. ANIMATE HAND THROW & RETRACT
+  if (hand) {
+    hand.classList.remove('animate-hand-throw');
+    void hand.offsetWidth;
+    hand.classList.add('animate-hand-throw');
+  }
+
+  // 2. ANIMATE SHURIKEN TRAJECTORY (HIT OR MISS)
   if (shuriken) {
     shuriken.classList.remove('animate-shuriken-hit', 'animate-shuriken-miss');
     void shuriken.offsetWidth;
 
     if (isCorrect) {
-      // 1. FLY DIRECTLY TO DUMMY
       shuriken.classList.add('animate-shuriken-hit');
 
-      // 2. DUMMY WOBBLES ON IMPACT
+      // DUMMY IMPACT & EMBEDDED STAR
       setTimeout(() => {
         if (dummy) {
           dummy.classList.remove('animate-dummy-hit', 'animate-dummy-miss');
@@ -362,7 +400,6 @@ function triggerShurikenFlight(isCorrect, streak) {
           setTimeout(() => { impactEffect.style.opacity = '0'; }, 250);
         }
 
-// Add a small stuck shuriken pin on the wooden dummy torso
         if (stuckContainer) {
           const pin = document.createElement('div');
           pin.style.position = 'absolute';
@@ -379,7 +416,6 @@ function triggerShurikenFlight(isCorrect, streak) {
           `;
           stuckContainer.appendChild(pin);
 
-          // Limit stuck pins to 8 max to keep canvas clean
           if (stuckContainer.children.length > 8) {
             stuckContainer.removeChild(stuckContainer.firstChild);
           }
@@ -387,10 +423,9 @@ function triggerShurikenFlight(isCorrect, streak) {
       }, 260);
 
     } else {
-      // 1. FLY PAST DUMMY INTO WALL
       shuriken.classList.add('animate-shuriken-miss');
 
-      // 2. DUMMY DODGES SLIGHTLY
+      // DUMMY DODGE & MISS SPARK
       setTimeout(() => {
         if (dummy) {
           dummy.classList.remove('animate-dummy-hit', 'animate-dummy-miss');
