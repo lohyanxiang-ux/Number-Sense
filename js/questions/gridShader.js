@@ -1,4 +1,12 @@
-import { registerQuestionType, formatMath } from './registry.js';
+import { registerQuestionType } from './registry.js';
+
+// Renders clean, vertically-stacked HTML fractions with a horizontal bar
+function renderFrac(num, den) {
+  return `<span style="display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.1; font-weight: 800; padding: 0 4px;">` +
+         `<span style="border-bottom: 2px solid currentColor; padding: 0 4px; display: block;">${num}</span>` +
+         `<span style="padding: 0 4px; display: block;">${den}</span>` +
+         `</span>`;
+}
 
 // Calculate balanced grid dimensions for square shapes
 function getSquareGridDimensions(parts) {
@@ -14,20 +22,19 @@ function getSquareGridDimensions(parts) {
 
 const gridShaderModule = {
   generate() {
-    // Flat pool where every single question type has an equal probability
     const questionPool = [
       // 1. 100-Grid Percentage (e.g. 12%)
       () => {
         const targetCount = Math.floor(Math.random() * 92) + 3;
-        const targetStr = `${targetCount}%`;
+        const pctStr = `${targetCount}%`;
         const partition = 100;
         return {
           type: 'grid_shader',
-          prompt: `Represent <strong>${formatMath(targetStr)}</strong> by shading the shape below:`,
+          prompt: `Represent <strong>${pctStr}</strong> by shading the shape below:`,
           targetRatio: targetCount / partition,
           partition: partition,
           shape: 'square',
-          explanation: formatMath(`${targetStr} = ${targetCount}/${partition}. Shade ${targetCount} out of ${partition} equal parts.`)
+          explanation: `${pctStr} = ${renderFrac(targetCount, partition)}. Shade ${targetCount} out of ${partition} equal parts.`
         };
       },
 
@@ -38,65 +45,98 @@ const gridShaderModule = {
         const partition = 100;
         return {
           type: 'grid_shader',
-          prompt: `Represent <strong>${formatMath(decStr)}</strong> by shading the shape below:`,
+          prompt: `Represent <strong>${decStr}</strong> by shading the shape below:`,
           targetRatio: targetCount / partition,
           partition: partition,
           shape: 'square',
-          explanation: formatMath(`${decStr} = ${targetCount}/${partition}. Shade ${targetCount} out of ${partition} equal parts.`)
+          explanation: `${decStr} = ${renderFrac(targetCount, partition)}. Shade ${targetCount} out of ${partition} equal parts.`
         };
       },
 
       // 3. 100-Grid Fraction (e.g. 12/100)
       () => {
         const targetCount = Math.floor(Math.random() * 92) + 3;
-        const fracStr = `${targetCount}/100`;
         const partition = 100;
+        const fracHtml = renderFrac(targetCount, partition);
         return {
           type: 'grid_shader',
-          prompt: `Represent <strong>${formatMath(fracStr)}</strong> by shading the shape below:`,
+          prompt: `Represent <strong>${fracHtml}</strong> by shading the shape below:`,
           targetRatio: targetCount / partition,
           partition: partition,
           shape: 'square',
-          explanation: formatMath(`${fracStr} = ${targetCount}/${partition}. Shade ${targetCount} out of ${partition} equal parts.`)
+          explanation: `${fracHtml}. Shade ${targetCount} out of ${partition} equal parts.`
         };
       },
 
-      // 4–15. Standard Multi-Partition Templates
+      // 4–16. Standard Multi-Partition Templates
       ...[
         // Fractions
-        { targetStr: '1/2', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12] },
-        { targetStr: '3/4', ratio: 0.75, partitions: [4, 8, 12] },
-        { targetStr: '1/3', ratio: 1/3, partitions: [3, 6, 9, 12] },
-        { targetStr: '2/3', ratio: 2/3, partitions: [3, 6, 9, 12] },
-        { targetStr: '2/5', ratio: 0.4, partitions: [5, 10] },
-        { targetStr: '3/5', ratio: 0.6, partitions: [5, 10] },
+        { num: 1, den: 2, ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], type: 'frac' },
+        { num: 3, den: 4, ratio: 0.75, partitions: [4, 8, 12], type: 'frac' },
+        { num: 1, den: 3, ratio: 1/3, partitions: [3, 6, 9, 12], type: 'frac' },
+        { num: 2, den: 3, ratio: 2/3, partitions: [3, 6, 9, 12], type: 'frac' },
+        { num: 2, den: 5, ratio: 0.4, partitions: [5, 10], type: 'frac' },
+        { num: 3, den: 5, ratio: 0.6, partitions: [5, 10], type: 'frac' },
 
         // Decimals
-        { targetStr: '0.5', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12] },
-        { targetStr: '0.25', ratio: 0.25, partitions: [4, 8, 12] },
-        { targetStr: '0.4', ratio: 0.4, partitions: [5, 10] },
+        { valStr: '0.5', baseNum: 5, baseDen: 10, ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], type: 'dec' },
+        { valStr: '0.25', baseNum: 25, baseDen: 100, ratio: 0.25, partitions: [4, 8, 12], type: 'dec' },
+        { valStr: '0.2', baseNum: 2, baseDen: 10, ratio: 0.2, partitions: [5, 10], type: 'dec' },
+        { valStr: '0.4', baseNum: 4, baseDen: 10, ratio: 0.4, partitions: [5, 10], type: 'dec' },
 
         // Percentages
-        { targetStr: '50%', ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12] },
-        { targetStr: '25%', ratio: 0.25, partitions: [4, 8, 12] },
-        { targetStr: '20%', ratio: 0.2, partitions: [5, 10] }
+        { valStr: '50%', baseNum: 50, baseDen: 100, ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], type: 'pct' },
+        { valStr: '25%', baseNum: 25, baseDen: 100, ratio: 0.25, partitions: [4, 8, 12], type: 'pct' },
+        { valStr: '20%', baseNum: 20, baseDen: 100, ratio: 0.2, partitions: [5, 10], type: 'pct' }
       ].map(t => () => {
         const randomPartition = t.partitions[Math.floor(Math.random() * t.partitions.length)];
         const randomShape = Math.random() < 0.5 ? 'square' : 'circle';
         const shadedCount = Math.round(t.ratio * randomPartition);
 
+        let promptHtml = '';
+        let explanationText = '';
+
+        if (t.type === 'frac') {
+          const targetFracHtml = renderFrac(t.num, t.den);
+          promptHtml = `Represent <strong>${targetFracHtml}</strong> by shading the shape below:`;
+          
+          if (t.den === randomPartition) {
+            explanationText = `${targetFracHtml}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
+          } else {
+            explanationText = `${targetFracHtml} = ${renderFrac(shadedCount, randomPartition)}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
+          }
+        } else if (t.type === 'dec') {
+          promptHtml = `Represent <strong>${t.valStr}</strong> by shading the shape below:`;
+          const baseFracHtml = renderFrac(t.baseNum, t.baseDen);
+          
+          if (t.baseDen === randomPartition) {
+            explanationText = `${t.valStr} = ${baseFracHtml}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
+          } else {
+            explanationText = `${t.valStr} = ${baseFracHtml} = ${renderFrac(shadedCount, randomPartition)}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
+          }
+        } else if (t.type === 'pct') {
+          promptHtml = `Represent <strong>${t.valStr}</strong> by shading the shape below:`;
+          const baseFracHtml = renderFrac(t.baseNum, t.baseDen);
+          
+          if (t.baseDen === randomPartition) {
+            explanationText = `${t.valStr} = ${baseFracHtml}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
+          } else {
+            explanationText = `${t.valStr} = ${baseFracHtml} = ${renderFrac(shadedCount, randomPartition)}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
+          }
+        }
+
         return {
           type: 'grid_shader',
-          prompt: `Represent <strong>${formatMath(t.targetStr)}</strong> by shading the shape below:`,
+          prompt: promptHtml,
           targetRatio: t.ratio,
           partition: randomPartition,
           shape: randomShape,
-          explanation: formatMath(`${t.targetStr} = ${shadedCount}/${randomPartition}. Shade ${shadedCount} out of ${randomPartition} equal parts.`)
+          explanation: explanationText
         };
       })
     ];
 
-    // Pick uniformly across all 15 question types
+    // Pick uniformly across all question types
     const selectedGenerator = questionPool[Math.floor(Math.random() * questionPool.length)];
     return selectedGenerator();
   },
