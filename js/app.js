@@ -241,6 +241,34 @@ async function syncQuestionProgressToSheet(topicLabel, xpEarned, tokensEarned, i
   }
 }
 
+// SYNC STREAK & TOKEN UPDATES DIRECTLY TO GOOGLE SHEET
+async function syncStreakAndTokensToSheet(reasonLabel) {
+  if (!sheetWebAppUrl || !currentUser) return;
+  try {
+    await fetch(sheetWebAppUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'saveProgress',
+        studentCode: currentUser.code,
+        studentName: currentUser.name,
+        totalQuestions: 0,
+        accuracy: 100,
+        topic: reasonLabel || 'Streak Sync',
+        tokensEarned: 0,
+        xpEarned: 0,
+        newTotalXP: currentUser.xp,
+        newStreak: currentUser.streak,
+        newTokens: currentUser.tokens,
+        lastDailyCompleted: currentUser.lastDailyCompleted || '',
+        isDailyWarmup: false,
+        proficiency: currentUser.proficiency
+      })
+    });
+  } catch (e) {
+    console.error("Error syncing streak update to Google Sheet:", e);
+  }
+}
+
 async function handleLogin() {
   const errEl = document.getElementById('loginError');
   if (errEl) errEl.classList.add('hidden');
@@ -319,33 +347,67 @@ function startStudentSession() {
   document.getElementById('appContainer').classList.remove('hidden');
   document.getElementById('userStatsHeader').classList.remove('hidden');
 
-  // Validate if streak was broken before today (allowing weekend grace days)
-  if (currentUser.lastDailyCompleted) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const savedStreak = currentUser.streak || 0;
+  let isStreakBroken = false;
 
-    const lastDate = new Date(currentUser.lastDailyCompleted);
-    lastDate.setHours(0, 0, 0, 0);
+  // Check if student missed a weekday since last daily completion
+  if (savedStreak > 0) {
+    if (!currentUser.lastDailyCompleted) {
+      isStreakBroken = true;
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    let missedWeekday = false;
-    let checkDate = new Date(lastDate);
-    checkDate.setDate(checkDate.getDate() + 1);
+      const lastDate = new Date(currentUser.lastDailyCompleted);
+      lastDate.setHours(0, 0, 0, 0);
 
-    // Check all days between last completed date and today (exclusive)
-    while (checkDate < today) {
-      const dayOfWeek = checkDate.getDay(); // 0 = Sun, 6 = Sat
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        missedWeekday = true;
-        break;
-      }
+      let checkDate = new Date(lastDate);
       checkDate.setDate(checkDate.getDate() + 1);
-    }
 
-    if (missedWeekday) {
-      currentUser.streak = 0;
+      while (checkDate < today) {
+        const dayOfWeek = checkDate.getDay(); // 0 = Sun, 6 = Sat
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          isStreakBroken = true;
+          break;
+        }
+        checkDate.setDate(checkDate.getDate() + 1);
+      }
     }
-  } else {
-    currentUser.streak = 0;
+  }
+
+  // Handle broken streak notification & token repair prompt
+  if (isStreakBroken) {
+    const modal = document.getElementById('streakRecoveryModal');
+    const msgEl = document.getElementById('streakBreakMsg');
+    const repairBtn = document.getElementById('btnRepairStreak');
+    const resetBtn = document.getElementById('btnAcceptReset');
+
+    if (modal && msgEl && repairBtn && resetBtn) {
+      if (currentUser.tokens >= 20) {
+        msgEl.innerHTML = `Your <strong>🔥 ${savedStreak}-day streak</strong> was broken because you missed a daily warm-up!<br><br>Would you like to exchange <strong>🎟️ 20 Tokens</strong> to keep your streak? (Tokens left: 🎟️ ${currentUser.tokens})`;
+        repairBtn.style.display = 'block';
+        
+        repairBtn.onclick = async () => {
+          currentUser.tokens -= 20;
+          currentUser.streak = savedStreak; // Keep existing streak
+          updateHeader();
+          modal.classList.add('hidden');
+          await syncStreakAndTokensToSheet('Streak Repaired (20 Tokens)');
+        };
+      } else {
+        msgEl.innerHTML = `Your <strong>🔥 ${savedStreak}-day streak</strong> was broken! You need 🎟️ 20 Tokens to repair it, but you only have 🎟️ ${currentUser.tokens} tokens.<br><br>Your streak will reset to 0.`;
+        repairBtn.style.display = 'none';
+      }
+
+      resetBtn.onclick = async () => {
+        currentUser.streak = 0; // Reset streak to 0
+        updateHeader();
+        modal.classList.add('hidden');
+        await syncStreakAndTokensToSheet('Streak Reset to 0');
+      };
+
+      modal.classList.remove('hidden');
+    }
   }
 
   document.getElementById('hdrStudentName').innerText = currentUser.name;
@@ -362,7 +424,6 @@ function startStudentSession() {
     startDailySession();
   }
 }
-
 function updateHeader() {
   if (!currentUser) return;
   const streakEl = document.getElementById('hdrStreak');
@@ -550,7 +611,7 @@ async function finishDailySession() {
     if (extraTabBtn) switchTab('extra', extraTabBtn);
   };
 
-  if (sheetWebAppUrl) {
+if (sheetWebAppUrl) {
     try {
       await fetch(sheetWebAppUrl, {
         method: 'POST',
@@ -566,6 +627,7 @@ async function finishDailySession() {
           newTotalXP: currentUser.xp,
           newStreak: currentUser.streak,
           newTokens: currentUser.tokens,
+          lastDailyCompleted: todayStr, // Ensure last completion date is saved to Google Sheet
           isDailyWarmup: true,
           proficiency: currentUser.proficiency
         })
