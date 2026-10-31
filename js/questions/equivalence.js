@@ -127,12 +127,12 @@ const equivalenceModule = {
           background: var(--bg-card);
           border: 2px solid var(--border-color);
           border-radius: var(--radius);
-          padding: 18px 12px;
+          padding: 16px 10px;
           display: flex;
           justify-content: center;
           align-items: center;
           cursor: pointer;
-          min-height: 90px;
+          min-height: 80px;
           transition: all 0.15s ease;
           touch-action: manipulation;
         ">
@@ -142,31 +142,34 @@ const equivalenceModule = {
     });
 
     const html = `
-      <div style="max-width: 520px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
+      <div class="ipad-responsive-grid" style="user-select: none; -webkit-user-select: none;">
         
-        <!-- TARGET CARD DISPLAY -->
-        <div style="
-          background: var(--bg-primary);
-          border: 2px solid var(--accent);
-          border-radius: var(--radius);
-          padding: 16px;
-          display: inline-flex;
-          flex-direction: column;
-          align-items: center;
-          margin-bottom: 24px;
-          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
-        ">
-          <span style="font-size: 0.8rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Target</span>
-          ${q.targetHTML}
+        <!-- LEFT COLUMN: TARGET CARD DISPLAY -->
+        <div class="ipad-left-pane" style="text-align: center;">
+          <div style="
+            background: var(--bg-primary);
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
+          ">
+            <span style="font-size: 0.8rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Target</span>
+            ${q.targetHTML}
+          </div>
         </div>
 
-        <!-- 2x2 SELECTION OPTIONS GRID -->
-        <div style="
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 14px;
-        ">
-          ${optionsHtml}
+        <!-- RIGHT COLUMN: 2x2 SELECTION OPTIONS GRID -->
+        <div class="ipad-right-pane">
+          <div style="
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+          ">
+            ${optionsHtml}
+          </div>
         </div>
 
       </div>
