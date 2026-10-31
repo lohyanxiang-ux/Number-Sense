@@ -101,11 +101,11 @@ const addSubtractNegativesModule = {
         <!-- LEFT COLUMN: NUMBER LINE TRACK & ACTION BUTTONS -->
         <div class="ipad-left-pane">
           <!-- NUMBER LINE TRACK -->
-          <div style="position: relative; height: 140px; margin: 15px 10px 10px 10px; padding: 0 10px;">
+          <div style="position: relative; height: 130px; margin: 20px 10px 10px 10px; padding: 0 10px;">
             <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 55px; touch-action: none;">
               ${ticksHtml}
 
-              <!-- DRAGGABLE START PIN HANDLE (PURPLE) -->
+              <!-- DRAGGABLE START PIN HANDLE -->
               <div id="startPin" data-val="${initialStart}" style="
                 position: absolute;
                 top: -34px;
@@ -192,15 +192,15 @@ const addSubtractNegativesModule = {
           </div>
 
           <!-- ACTION BUTTONS BAR: MOVE, FLIP & RESET -->
-          <div style="display: flex; justify-content: center; gap: 8px; margin: 10px 0; flex-wrap: wrap;">
+          <div style="display: flex; justify-content: center; gap: 8px; margin: 10px 0 14px 0; flex-wrap: wrap;">
             <button id="moveBtn" style="
               background: #3b82f6;
               color: white;
               border: none;
-              padding: 8px 14px;
+              padding: 9px 14px;
               border-radius: 10px;
               font-weight: 800;
-              font-size: 0.9rem;
+              font-size: 0.88rem;
               cursor: pointer;
               box-shadow: 0 3px 6px rgba(0,0,0,0.15);
               transition: transform 0.1s ease, background 0.2s ease;
@@ -210,10 +210,10 @@ const addSubtractNegativesModule = {
               background: #ef4444;
               color: white;
               border: none;
-              padding: 8px 14px;
+              padding: 9px 14px;
               border-radius: 10px;
               font-weight: 800;
-              font-size: 0.9rem;
+              font-size: 0.88rem;
               cursor: pointer;
               box-shadow: 0 3px 6px rgba(0,0,0,0.15);
               transition: transform 0.1s ease;
@@ -223,10 +223,10 @@ const addSubtractNegativesModule = {
               background: var(--bg-primary);
               color: var(--text-main);
               border: 2px solid var(--border-color);
-              padding: 8px 14px;
+              padding: 9px 14px;
               border-radius: 10px;
               font-weight: 800;
-              font-size: 0.9rem;
+              font-size: 0.88rem;
               cursor: pointer;
               box-shadow: 0 2px 4px rgba(0,0,0,0.1);
               transition: transform 0.1s ease;
@@ -236,16 +236,18 @@ const addSubtractNegativesModule = {
 
         <!-- RIGHT COLUMN: EQUATION INPUT & KEYPAD -->
         <div class="ipad-right-pane" style="text-align: center;">
+          <!-- EQUATION DISPLAY -->
           <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 12px;">
             ${q.exprStr} = <span id="ansDisplay" style="
               color: var(--accent); 
               border-bottom: 3.5px solid var(--accent); 
               padding: 0 10px;
-              min-width: 60px;
+              min-width: 55px;
               display: inline-block;
-            ">${typedAnswer || '?'}</span>
+            ">?</span>
           </div>
 
+          <!-- KEYPAD GRID -->
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 260px; margin: 0 auto;">
             <button class="asn-key" data-k="1">1</button>
             <button class="asn-key" data-k="2">2</button>
@@ -489,11 +491,14 @@ const addSubtractNegativesModule = {
       };
     });
 
-    document.getElementById('asnClear').onclick = () => {
-      typedAnswer = '';
-      ansDisplay.innerText = '?';
-      ansDisplay.removeAttribute('data-typed');
-    };
+    const clearBtn = container.querySelector('#asnClear');
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        typedAnswer = '';
+        ansDisplay.innerText = '?';
+        ansDisplay.removeAttribute('data-typed');
+      };
+    }
 
     // Initial render setup
     updateUI();
