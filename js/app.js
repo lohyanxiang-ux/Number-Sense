@@ -676,6 +676,7 @@ async function finishExtraPracticeSession() {
 function renderStudentProgressTab() {
   const container = document.getElementById('studentProgressContainer');
   if (!container || !currentUser) return;
+  container.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;';
 
   let html = '';
   ALL_TOPICS.forEach(topic => {
@@ -690,10 +691,10 @@ function renderStudentProgressTab() {
     let accuracyPct = 0;
     let badgeHtml = `<span style="background: var(--bg-primary); color: var(--text-muted); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.85rem;">⚪ Untried</span>`;
 
-    if (attemptsCount > 0) {
-      const score = numHistory.reduce((a, b) => a + b, 0);
-      const acc = score / attemptsCount;
-      accuracyPct = Math.round(acc * 100);
+if (attemptsCount > 0) {
+  const score = numHistory.reduce((a, b) => a + b, 0);
+  const acc = score / 10;
+  accuracyPct = Math.round(acc * 100);
 
       if (acc > 0.80) {
         badgeHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">🟢 Mastered (${accuracyPct}%)</span>`;
@@ -732,11 +733,10 @@ function renderStudentProgressTab() {
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Total Logged: <strong>${attemptsCount} / 10</strong></span>
-          <button class="btn btn-practice-topic" data-key="${topic.key}" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--accent);">
-            ⚡ Practice Topic Now
-          </button>
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 4px;">
+        <button class="btn btn-practice-topic" data-key="${topic.key}" style="width: auto; padding: 6px 14px; font-size: 0.85rem; background: var(--accent);">
+        ⚡ Practice Topic Now
+        </button>
         </div>
       </div>
     `;
