@@ -1,298 +1,284 @@
-import { registerQuestionType } from './registry.js';
+import { registerQuestionType, formatMath } from './registry.js';
 
-// Renders clean, vertically-stacked HTML fractions with a horizontal bar
-function renderFrac(num, den) {
-  return `<span style="display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.1; font-weight: 800; padding: 0 4px;">` +
-         `<span style="border-bottom: 2px solid currentColor; padding: 0 4px; display: block;">${num}</span>` +
-         `<span style="padding: 0 4px; display: block;">${den}</span>` +
-         `</span>`;
-}
-
-// Calculate balanced grid dimensions for square shapes
-function getSquareGridDimensions(parts) {
-  if (parts === 4) return { rows: 2, cols: 2 };
-  if (parts === 6) return { rows: 2, cols: 3 };
-  if (parts === 8) return { rows: 2, cols: 4 };
-  if (parts === 9) return { rows: 3, cols: 3 };
-  if (parts === 10) return { rows: 2, cols: 5 };
-  if (parts === 12) return { rows: 3, cols: 4 };
-  if (parts === 100) return { rows: 10, cols: 10 };
-  return { rows: 1, cols: parts }; // Fallback for 2, 3, 5, etc.
-}
-
-const gridShaderModule = {
+const numberLineModule = {
   generate() {
     const questionPool = [
-      // 1. 100-Grid Percentage (e.g. 12%)
+      // ==========================================
+      // 1. DECIMALS FROM 0 TO 1 (NO FRACTIONS / PERCENTAGES)
+      // ==========================================
       () => {
-        const targetCount = Math.floor(Math.random() * 92) + 3;
-        const pctStr = `${targetCount}%`;
-        const partition = 100;
+        // Tenths (0, 0.1, 0.2, ... 1.0)
+        const decs = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+        const val = decs[Math.floor(Math.random() * decs.length)];
+        const ticks = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
         return {
-          type: 'grid_shader',
-          prompt: `Represent <strong>${pctStr}</strong> by shading the shape below:`,
-          targetRatio: targetCount / partition,
-          partition: partition,
-          shape: 'square',
-          explanation: `${pctStr} = ${renderFrac(targetCount, partition)}. Shade ${targetCount} out of ${partition} equal parts.`
+          label: `${val}`,
+          val: val,
+          ticks: ticks,
+          exp: `${val} is located ${Math.round(val * 10)} tick mark(s) past 0 on a decimal line split into tenths.`
+        };
+      },
+      () => {
+        // Quarters (0, 0.25, 0.5, 0.75, 1.0)
+        const decs = [0.25, 0.5, 0.75];
+        const val = decs[Math.floor(Math.random() * decs.length)];
+        const ticks = [0, 0.25, 0.5, 0.75, 1.0];
+        return {
+          label: `${val}`,
+          val: val,
+          ticks: ticks,
+          exp: `${val} is located at tick index ${ticks.indexOf(val)} on a 4-part decimal number line.`
+        };
+      },
+      () => {
+        // Fifths (0, 0.2, 0.4, 0.6, 0.8, 1.0)
+        const decs = [0.2, 0.4, 0.6, 0.8];
+        const val = decs[Math.floor(Math.random() * decs.length)];
+        const ticks = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+        return {
+          label: `${val}`,
+          val: val,
+          ticks: ticks,
+          exp: `${val} is located at tick index ${ticks.indexOf(val)} on a 5-part decimal line.`
         };
       },
 
-      // 2. 100-Grid Decimal (e.g. 0.12)
+      // ==========================================
+      // 2. NEGATIVE NUMBERS
+      // ==========================================
       () => {
-        const targetCount = Math.floor(Math.random() * 92) + 3;
-        const decStr = (targetCount / 100).toFixed(2);
-        const partition = 100;
+        // Range -5 to 5 (interval 1)
+        const possible = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
+        const val = possible[Math.floor(Math.random() * possible.length)];
+        const ticks = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
         return {
-          type: 'grid_shader',
-          prompt: `Represent <strong>${decStr}</strong> by shading the shape below:`,
-          targetRatio: targetCount / partition,
-          partition: partition,
-          shape: 'square',
-          explanation: `${decStr} = ${renderFrac(targetCount, partition)}. Shade ${targetCount} out of ${partition} equal parts.`
+          label: `${val}`,
+          val: val,
+          ticks: ticks,
+          exp: `${val} is located ${Math.abs(val)} unit(s) to the ${val < 0 ? 'left' : 'right'} of 0.`
+        };
+      },
+      () => {
+        // Range -10 to 10 (interval 2)
+        const possible = [-10, -8, -6, -4, -2, 2, 4, 6, 8, 10];
+        const val = possible[Math.floor(Math.random() * possible.length)];
+        const ticks = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10];
+        return {
+          label: `${val}`,
+          val: val,
+          ticks: ticks,
+          exp: `${val} is located to the ${val < 0 ? 'left' : 'right'} of 0 on a number line with interval step 2.`
+        };
+      },
+      () => {
+        // Range -20 to 20 (interval 5)
+        const possible = [-20, -15, -10, -5, 5, 10, 15, 20];
+        const val = possible[Math.floor(Math.random() * possible.length)];
+        const ticks = [-20, -15, -10, -5, 0, 5, 10, 15, 20];
+        return {
+          label: `${val}`,
+          val: val,
+          ticks: ticks,
+          exp: `${val} is located on the number line with step interval 5.`
         };
       },
 
-      // 3. 100-Grid Fraction (e.g. 12/100)
+      // ==========================================
+      // 3. NON-UNIT SCALE (INTERVALS 2, 5, 10)
+      // ==========================================
       () => {
-        const targetCount = Math.floor(Math.random() * 92) + 3;
-        const partition = 100;
-        const fracHtml = renderFrac(targetCount, partition);
+        // Interval of 2 (e.g. 0 to 20)
+        const possible = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
+        const val = possible[Math.floor(Math.random() * possible.length)];
+        const ticks = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
         return {
-          type: 'grid_shader',
-          prompt: `Represent <strong>${fracHtml}</strong> by shading the shape below:`,
-          targetRatio: targetCount / partition,
-          partition: partition,
-          shape: 'square',
-          explanation: `${fracHtml}. Shade ${targetCount} out of ${partition} equal parts.`
+          label: `${val}`,
+          val: val,
+          ticks: ticks,
+          exp: `Each tick mark represents 2 units. ${val} is at tick mark ${val / 2}.`
         };
       },
-
-      // 4–16. Standard Multi-Partition Templates
-      ...[
-        // Fractions
-        { num: 1, den: 2, ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], type: 'frac' },
-        { num: 3, den: 4, ratio: 0.75, partitions: [4, 8, 12], type: 'frac' },
-        { num: 1, den: 3, ratio: 1/3, partitions: [3, 6, 9, 12], type: 'frac' },
-        { num: 2, den: 3, ratio: 2/3, partitions: [3, 6, 9, 12], type: 'frac' },
-        { num: 2, den: 5, ratio: 0.4, partitions: [5, 10], type: 'frac' },
-        { num: 3, den: 5, ratio: 0.6, partitions: [5, 10], type: 'frac' },
-
-        // Decimals
-        { valStr: '0.5', baseNum: 5, baseDen: 10, ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], type: 'dec' },
-        { valStr: '0.25', baseNum: 25, baseDen: 100, ratio: 0.25, partitions: [4, 8, 12], type: 'dec' },
-        { valStr: '0.2', baseNum: 2, baseDen: 10, ratio: 0.2, partitions: [5, 10], type: 'dec' },
-        { valStr: '0.4', baseNum: 4, baseDen: 10, ratio: 0.4, partitions: [5, 10], type: 'dec' },
-
-        // Percentages
-        { valStr: '50%', baseNum: 50, baseDen: 100, ratio: 0.5, partitions: [2, 4, 6, 8, 10, 12], type: 'pct' },
-        { valStr: '25%', baseNum: 25, baseDen: 100, ratio: 0.25, partitions: [4, 8, 12], type: 'pct' },
-        { valStr: '20%', baseNum: 20, baseDen: 100, ratio: 0.2, partitions: [5, 10], type: 'pct' }
-      ].map(t => () => {
-        const randomPartition = t.partitions[Math.floor(Math.random() * t.partitions.length)];
-        const randomShape = Math.random() < 0.5 ? 'square' : 'circle';
-        const shadedCount = Math.round(t.ratio * randomPartition);
-
-        let promptHtml = '';
-        let explanationText = '';
-
-        if (t.type === 'frac') {
-          const targetFracHtml = renderFrac(t.num, t.den);
-          promptHtml = `Represent <strong>${targetFracHtml}</strong> by shading the shape below:`;
-          
-          if (t.den === randomPartition) {
-            explanationText = `${targetFracHtml}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
-          } else {
-            explanationText = `${targetFracHtml} = ${renderFrac(shadedCount, randomPartition)}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
-          }
-        } else if (t.type === 'dec') {
-          promptHtml = `Represent <strong>${t.valStr}</strong> by shading the shape below:`;
-          const baseFracHtml = renderFrac(t.baseNum, t.baseDen);
-          
-          if (t.baseDen === randomPartition) {
-            explanationText = `${t.valStr} = ${baseFracHtml}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
-          } else {
-            explanationText = `${t.valStr} = ${baseFracHtml} = ${renderFrac(shadedCount, randomPartition)}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
-          }
-        } else if (t.type === 'pct') {
-          promptHtml = `Represent <strong>${t.valStr}</strong> by shading the shape below:`;
-          const baseFracHtml = renderFrac(t.baseNum, t.baseDen);
-          
-          if (t.baseDen === randomPartition) {
-            explanationText = `${t.valStr} = ${baseFracHtml}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
-          } else {
-            explanationText = `${t.valStr} = ${baseFracHtml} = ${renderFrac(shadedCount, randomPartition)}. Shade ${shadedCount} out of ${randomPartition} equal parts.`;
-          }
-        }
-
+      () => {
+        // Interval of 5 (e.g. represent 15)
+        const possible = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+        const val = possible[Math.floor(Math.random() * possible.length)];
+        const ticks = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
         return {
-          type: 'grid_shader',
-          prompt: promptHtml,
-          targetRatio: t.ratio,
-          partition: randomPartition,
-          shape: randomShape,
-          explanation: explanationText
+          label: `${val}`,
+          val: val,
+          ticks: ticks,
+          exp: `Each tick mark represents 5 units. ${val} is ${val / 5} tick mark(s) away from 0.`
         };
-      })
+      },
+      () => {
+        // Interval of 10 with sub-ticks at 5 (e.g. represent 5 or 25 on a 10-interval labeled line)
+        const possible = [5, 15, 25, 35, 45, 55];
+        const val = possible[Math.floor(Math.random() * possible.length)];
+        const ticks = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+        const tickLabels = ticks.map(v => (v % 10 === 0 ? `${v}` : ''));
+        return {
+          label: `${val}`,
+          val: val,
+          ticks: ticks,
+          tickLabels: tickLabels,
+          exp: `Major labels are every 10 units with tick marks every 5 units. ${val} lies halfway between ${val - 5} and ${val + 5}.`
+        };
+      }
     ];
 
-    // Pick uniformly across all question types
-    const selectedGenerator = questionPool[Math.floor(Math.random() * questionPool.length)];
-    return selectedGenerator();
+    const selectedGen = questionPool[Math.floor(Math.random() * questionPool.length)];
+    const t = selectedGen();
+
+    return {
+      type: 'number_line',
+      prompt: `Drag the slider to place <strong>${formatMath(t.label)}</strong> on the number line:`,
+      targetVal: t.val,
+      ticks: t.ticks,
+      tickLabels: t.tickLabels || null,
+      explanation: formatMath(t.exp)
+    };
   },
 
   render(q, container) {
-    let gridInnerHtml = '';
+    let tickMarksHtml = '';
+    let tickLabelsHtml = '';
+    const numTicks = q.ticks.length;
 
-    if (q.shape === 'square') {
-      const { rows, cols } = getSquareGridDimensions(q.partition);
+    q.ticks.forEach((tickVal, idx) => {
+      const posPct = ((idx / (numTicks - 1)) * 100).toFixed(2);
+      const isMajor = !q.tickLabels || q.tickLabels[idx] !== '';
 
-      gridInnerHtml += `<div style="
-        display: grid;
-        width: 300px;
-        height: 300px;
-        grid-template-columns: repeat(${cols}, 1fr);
-        grid-template-rows: repeat(${rows}, 1fr);
-        gap: ${q.partition === 100 ? '1px' : '3px'};
-        background: var(--border-color, #cbd5e1);
-        padding: 4px;
-        border-radius: 12px;
-        box-sizing: border-box;
-      ">`;
-      for (let i = 0; i < q.partition; i++) {
-        gridInnerHtml += `<div class="grid-cell" data-idx="${i}"></div>`;
+      tickMarksHtml += `
+        <div style="
+          position: absolute; 
+          left: ${posPct}%; 
+          top: ${isMajor ? '-6px' : '-2px'}; 
+          width: 2px; 
+          height: ${isMajor ? '20px' : '12px'}; 
+          background: ${tickVal === 0 ? 'var(--accent)' : 'var(--text-muted)'}; 
+          transform: translateX(-50%);
+        "></div>
+      `;
+
+      let labelText = '';
+      if (q.tickLabels && q.tickLabels[idx] !== undefined) {
+        labelText = q.tickLabels[idx];
+      } else {
+        labelText = tickVal % 1 === 0 ? tickVal.toFixed(0) : tickVal.toFixed(2).replace(/\.?0+$/, '');
       }
-      gridInnerHtml += `</div>`;
-    } else {
-      gridInnerHtml += generateCircleSVG(q.partition);
-    }
+
+      if (labelText !== '') {
+        tickLabelsHtml += `
+          <span style="
+            position: absolute; 
+            left: ${posPct}%; 
+            transform: translateX(-50%); 
+            font-weight: ${tickVal === 0 ? '800' : '600'}; 
+            font-size: 0.8rem; 
+            color: ${tickVal === 0 ? 'var(--accent)' : 'var(--text-muted)'};
+          ">${labelText}</span>
+        `;
+      }
+    });
+
+    const initialValText = q.ticks[0] % 1 === 0 ? q.ticks[0].toFixed(0) : q.ticks[0].toFixed(2).replace(/\.?0+$/, '');
 
     const html = `
-      <style>
-        .grid-cell {
-          background-color: #ffffff !important;
-          fill: #ffffff !important;
-          stroke: #334155 !important;
-          stroke-width: 2px !important;
-          cursor: pointer;
-          transition: background-color 0.15s ease, fill 0.15s ease;
-          touch-action: none;
-        }
-        .grid-cell.active {
-          background-color: var(--accent, #4f46e5) !important;
-          fill: var(--accent, #4f46e5) !important;
-        }
-      </style>
-
       <div class="ipad-responsive-grid" style="user-select: none; -webkit-user-select: none;">
         
-        <!-- LEFT COLUMN: INTERACTIVE SHAPED GRID -->
+        <!-- LEFT COLUMN: NUMBER LINE VISUAL TRACK -->
         <div class="ipad-left-pane">
-          <div class="fixed-area-box" id="touchGrid" style="
-            width: 300px;
-            height: 300px;
-            margin: 0 auto;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-          ">
-            ${gridInnerHtml}
+          <div style="position: relative; height: 110px; margin: 20px 10px 10px 10px; padding: 0 10px;">
+            <div id="nlTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 45px;">
+              ${tickMarksHtml}
+
+              <!-- POSITION INDICATOR PIN -->
+              <div id="nlPin" style="
+                position: absolute;
+                top: -34px;
+                left: 0%;
+                transform: translateX(-50%);
+                background: var(--accent);
+                color: white;
+                font-weight: 800;
+                font-size: 0.85rem;
+                padding: 3px 10px;
+                border-radius: 12px;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+                pointer-events: none;
+                transition: left 0.1s ease;
+                white-space: nowrap;
+                z-index: 5;
+              ">${initialValText}</div>
+
+              <!-- ANCHOR DOT ON LINE -->
+              <div id="nlDot" style="
+                position: absolute;
+                top: -4px;
+                left: 0%;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: var(--accent);
+                transform: translateX(-50%);
+                transition: left 0.1s ease;
+                z-index: 4;
+              "></div>
+
+              <div style="position: relative; width: 100%; height: 24px; top: 22px;">
+                ${tickLabelsHtml}
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: SHADED COUNTER & PROGRESS -->
+        <!-- RIGHT COLUMN: SLIDER CONTROL & VALUE DISPLAY -->
         <div class="ipad-right-pane" style="text-align: center;">
-          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
-            Parts Shaded:
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
+            Adjust Slider Position:
           </div>
-          
-          <div style="font-size: 2.2rem; font-weight: 900; color: var(--accent); margin-bottom: 14px;">
-            <span id="cellCount">0</span> / ${q.partition}
+
+          <div style="font-size: 1.8rem; font-weight: 900; color: var(--accent); margin-bottom: 14px;">
+            Value: <span id="nlCurrentVal">${initialValText}</span>
           </div>
+
+          <input type="range" min="0" max="${numTicks - 1}" step="1" value="0" class="nl-slider" id="nlSlider" style="width: 100%; cursor: pointer; touch-action: manipulation;">
         </div>
 
       </div>
     `;
 
     container.innerHTML = html;
-    setupDragToShade(container);
+
+    const slider = container.querySelector('#nlSlider');
+    const pin = container.querySelector('#nlPin');
+    const dot = container.querySelector('#nlDot');
+    const currentValEl = container.querySelector('#nlCurrentVal');
+
+    const updateSliderUI = () => {
+      const idx = parseInt(slider.value, 10);
+      const posPct = ((idx / (numTicks - 1)) * 100).toFixed(2);
+      const tickVal = q.ticks[idx];
+      const valText = tickVal % 1 === 0 ? tickVal.toFixed(0) : tickVal.toFixed(2).replace(/\.?0+$/, '');
+
+      pin.style.left = `${posPct}%`;
+      dot.style.left = `${posPct}%`;
+      pin.innerText = valText;
+      currentValEl.innerText = valText;
+    };
+
+    slider.oninput = updateSliderUI;
   },
 
   evaluate(q) {
-    const activeCount = document.querySelectorAll('.grid-cell.active').length;
-    const totalCells = document.querySelectorAll('.grid-cell').length;
-    if (totalCells === 0) return false;
+    const slider = document.getElementById('nlSlider');
+    if (!slider) return false;
 
-    const userRatio = activeCount / totalCells;
-    return Math.abs(userRatio - q.targetRatio) < 0.001;
+    const selectedIndex = parseInt(slider.value, 10);
+    const userVal = q.ticks[selectedIndex];
+
+    return Math.abs(userVal - q.targetVal) < 0.001;
   }
 };
 
-function generateCircleSVG(n) {
-  const cx = 150, cy = 150, r = 140;
-  let svg = `<svg viewBox="0 0 300 300" width="300" height="300" style="display:block; margin:0 auto; width:100%; height:100%;">`;
-  const angleStep = (2 * Math.PI) / n;
-
-  for (let i = 0; i < n; i++) {
-    const startAngle = i * angleStep - Math.PI / 2;
-    const endAngle = (i + 1) * angleStep - Math.PI / 2;
-    const x1 = cx + r * Math.cos(startAngle);
-    const y1 = cy + r * Math.sin(startAngle);
-    const x2 = cx + r * Math.cos(endAngle);
-    const y2 = cy + r * Math.sin(endAngle);
-    const largeArc = angleStep > Math.PI ? 1 : 0;
-
-    const d = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
-    svg += `<path d="${d}" class="grid-cell" data-idx="${i}"></path>`;
-  }
-  svg += `</svg>`;
-  return svg;
-}
-
-function setupDragToShade(container) {
-  const grid = container.querySelector('#touchGrid');
-  let isDragging = false;
-  let targetState = true;
-  let lastProcessedCell = null;
-
-  const updateCount = () => {
-    const active = grid.querySelectorAll('.grid-cell.active').length;
-    const countEl = document.getElementById('cellCount');
-    if (countEl) countEl.innerText = active;
-  };
-
-  const processCell = (cell) => {
-    if (cell && cell.classList.contains('grid-cell') && cell !== lastProcessedCell) {
-      lastProcessedCell = cell;
-      cell.classList.toggle('active', targetState);
-      updateCount();
-    }
-  };
-
-  const getCellFromPoint = (x, y) => {
-    const elem = document.elementFromPoint(x, y);
-    return elem && elem.classList.contains('grid-cell') ? elem : null;
-  };
-
-  grid.onpointerdown = (e) => {
-    const cell = getCellFromPoint(e.clientX, e.clientY);
-    if (!cell) return;
-    isDragging = true;
-    lastProcessedCell = null;
-    targetState = !cell.classList.contains('active');
-    processCell(cell);
-  };
-
-  grid.onpointermove = (e) => {
-    if (!isDragging) return;
-    const cell = getCellFromPoint(e.clientX, e.clientY);
-    processCell(cell);
-  };
-
-  window.onpointerup = () => {
-    isDragging = false;
-    lastProcessedCell = null;
-  };
-}
-
-registerQuestionType('grid_shader', gridShaderModule);
+registerQuestionType('number_line', numberLineModule);
