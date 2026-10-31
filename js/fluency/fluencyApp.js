@@ -1,6 +1,6 @@
 import { SurvivalEngine } from './engines/survivalEngine.js';
 import { getFluencyQuestion } from './fluencyRegistry.js';
-import { getStudentFluencyData, evaluateLevelProgression } from './fluencyMastery.js';
+import { BELT_TIERS, getStudentFluencyData, evaluateLevelProgression } from './fluencyMastery.js';
 
 let engine = null;
 let currentQ = null;
@@ -21,31 +21,63 @@ export function renderFluencyMenu() {
   if (!container || !currentUserRef) return;
 
   const fluencyData = getStudentFluencyData(currentUserRef);
+  const currentBelt = BELT_TIERS[fluencyData.level] || BELT_TIERS[1];
+  const nextLevelNum = Math.min(10, fluencyData.level + 1);
+  const nextBelt = BELT_TIERS[nextLevelNum];
+
+  const accColor = fluencyData.lastAccuracy >= 90 ? '#10b981' : '#ef4444';
+  const speedColor = (fluencyData.lastSpeed <= 2.5 && fluencyData.lastSpeed > 0) ? '#10b981' : '#ef4444';
 
   container.innerHTML = `
     <div id="fluencySetupCard" class="card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h2 style="margin: 0;">⚡ Speed Fluency Arena</h2>
-        <span style="background: rgba(79, 70, 229, 0.15); color: var(--accent); font-weight: 800; padding: 6px 12px; border-radius: 8px; font-size: 0.95rem;">
-          🏆 Global Level: ${fluencyData.level}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2 style="margin: 0;">⚡ Speed Fluency Arena</h2>
+          <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.9rem;">
+            Master numerical facts under time pressure!
+          </p>
+        </div>
+        <span style="background: rgba(79, 70, 229, 0.15); color: var(--accent); font-weight: 800; padding: 8px 14px; border-radius: 10px; font-size: 1.05rem;">
+          ${currentBelt.badge} ${currentBelt.name} (Tier ${currentBelt.tier})
         </span>
       </div>
 
-      <p style="color: var(--text-muted); margin-bottom: 20px;">
-        Build rapid arithmetic recall! Beat the clock and reach <strong>≥ 90% accuracy</strong> under <strong>2.5 seconds/question</strong> to level up.
-      </p>
+      <!-- LIVE PROGRESS STATUS CARD -->
+      <div style="background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+        <div style="font-size: 0.85rem; font-weight: 800; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">
+          🎯 Next Belt Unlock Targets (${nextBelt.badge} ${nextBelt.name}):
+        </div>
 
-      <!-- GAME MODE SELECTION CARD -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
+          <div style="background: var(--bg-card); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700;">Recent Accuracy</div>
+            <div style="font-size: 1.4rem; font-weight: 900; color: ${accColor}; margin: 2px 0;">
+              ${fluencyData.lastAccuracy}%
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Target: <strong>≥ 90%</strong></div>
+          </div>
+
+          <div style="background: var(--bg-card); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700;">Recent Avg Speed</div>
+            <div style="font-size: 1.4rem; font-weight: 900; color: ${speedColor}; margin: 2px 0;">
+              ${fluencyData.lastSpeed > 0 ? fluencyData.lastSpeed + 's' : '--'}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Target: <strong>< 2.5s / Q</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SURVIVAL MODE CARD -->
       <div style="border: 2px solid var(--accent); border-radius: 12px; padding: 16px; background: rgba(79, 70, 229, 0.04); margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <h3 style="margin: 0; color: var(--text-main);">⏳ Survival Mode</h3>
           <span style="font-size: 0.8rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 8px; border-radius: 6px;">UNLOCKED</span>
         </div>
         <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0 0 12px 0; line-height: 1.4;">
-          Start with <strong>15s</strong>. Get answers right to gain <strong>+3s</strong>. Wrong answers penalize <strong>-5s</strong>. Game ends when time reaches 0!
+          Start with <strong>15s</strong> time bank. Correct answers grant <strong>+3s</strong>. Wrong answers penalize <strong>-5s</strong>. Game ends when time reaches 0!
         </p>
         <button class="btn" id="startSurvivalBtn" style="background: var(--accent); font-weight: 800;">
-          🚀 Start Survival Mode (Level ${fluencyData.level})
+          🚀 Start Survival Session (${currentBelt.badge} ${currentBelt.name})
         </button>
       </div>
     </div>
@@ -86,7 +118,7 @@ export function renderFluencyMenu() {
     <!-- GAME OVER SUMMARY CARD -->
     <div id="fluencySummaryCard" class="card hidden" style="text-align: center; max-width: 480px; margin: 0 auto;">
       <h2 style="color: var(--accent); font-size: 1.8rem; margin-bottom: 8px;">⏰ Time's Up!</h2>
-      <div id="fluencyLevelMsg" style="font-weight: 800; font-size: 1rem; color: #10b981; margin-bottom: 16px;"></div>
+      <div id="fluencyLevelMsg" style="font-weight: 800; font-size: 1.05rem; color: #10b981; margin-bottom: 16px;"></div>
 
       <div style="background: var(--bg-primary); border-radius: 12px; padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; text-align: left;">
         <div>Score: <strong id="sumScore" style="color: var(--text-main);">0</strong></div>
@@ -96,7 +128,7 @@ export function renderFluencyMenu() {
       </div>
 
       <button class="btn" id="btnRestartFluency" style="background: var(--accent); font-weight: 800;">
-        ⚡ Play Again
+        ⚡ Return to Arena
       </button>
     </div>
   `;
@@ -198,8 +230,8 @@ function handleGameOver(results) {
     currentUserRef.xp += xpEarned;
   }
 
-  // Sync session results to Google Sheet
+  // Sync session results to Google Sheet (Col I update)
   if (typeof syncCallbackRef === 'function') {
-    syncCallbackRef(`Speed Fluency (Level ${progression.currentLevel})`, xpEarned, 0, false);
+    syncCallbackRef(`Speed Fluency (Belt ${progression.currentLevel})`, xpEarned, 0, false);
   }
 }
