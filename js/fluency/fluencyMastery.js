@@ -12,15 +12,21 @@ export const BELT_TIERS = {
 };
 
 export function getStudentFluencyData(currentUser) {
-  if (!currentUser.proficiency) currentUser.proficiency = {};
+  if (!currentUser || !currentUser.proficiency) {
+    return { level: 1, lastSpeed: 0, lastAccuracy: 0 };
+  }
 
-  // Prof_fluency stores [level, lastAvgSpeed, lastAccuracy] in Google Sheet Col I
-  const rawHistory = currentUser.proficiency['fluency'] || [1, 0, 0];
+  // Fallback check across both 'fluency' and 'Prof_fluency' keys
+  const rawHistory = currentUser.proficiency['fluency'] || currentUser.proficiency['Prof_fluency'] || [];
+
+  const level = rawHistory.length > 0 && !isNaN(Number(rawHistory[0])) ? Number(rawHistory[0]) : 1;
+  const speed = rawHistory.length > 1 && !isNaN(Number(rawHistory[1])) ? Number(rawHistory[1]) : 0;
+  const accuracy = rawHistory.length > 2 && !isNaN(Number(rawHistory[2])) ? Number(rawHistory[2]) : 0;
 
   return {
-    level: Number(rawHistory[0]) || 1,
-    lastSpeed: Number(rawHistory[1]) || 0,
-    lastAccuracy: Number(rawHistory[2]) || 0
+    level: level,
+    lastSpeed: speed,
+    lastAccuracy: accuracy
   };
 }
 
@@ -47,7 +53,7 @@ export function evaluateLevelProgression(currentUser, sessionResults) {
     message = `Keep training! Target: ≥ 90% accuracy and < 2.5s / question.`;
   }
 
-  // Save latest metrics directly into proficiency map for Google Sheet sync (Col I)
+  // Store metrics array [level, avgSpeed, accuracy] under 'fluency' for Column I sync
   currentUser.proficiency['fluency'] = [currentLevel, sessionResults.avgSpeed, sessionResults.accuracy];
 
   return { currentLevel, leveledUp, message };
