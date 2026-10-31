@@ -1,23 +1,25 @@
 import { SummitEngine } from '../engines/summitEngine.js';
 import { getFluencyQuestion } from '../fluencyRegistry.js';
-import { getStudentFluencyData, evaluateLevelProgression } from '../fluencyMastery.js';
+import { getStudentFluencyData } from '../fluencyMastery.js';
 
 let engine = null;
 let currentQ = null;
 let userAnswerStr = '';
+let idleTimer = null;
+const IDLE_TIMEOUT_MS = 10000; // 10 seconds
 
 const LEDGE_COORDINATES = [
-  { left: '45px', bottom: '30px' },   // Step 0 (Base Camp)
-  { left: '80px', bottom: '65px' },   // Step 1
-  { left: '120px', bottom: '100px' }, // Step 2
-  { left: '150px', bottom: '135px' }, // Step 3
-  { left: '130px', bottom: '170px' }, // Step 4
-  { left: '160px', bottom: '205px' }, // Step 5
-  { left: '220px', bottom: '235px' }, // Step 6
-  { left: '200px', bottom: '270px' }, // Step 7
-  { left: '185px', bottom: '305px' }, // Step 8
-  { left: '192px', bottom: '340px' }, // Step 9
-  { left: '195px', bottom: '360px' }  // Step 10 (Summit Peak)
+  { left: '45px', bottom: '30px' },    // Step 0 (Base Camp)
+  { left: '80px', bottom: '70px' },    // Step 1
+  { left: '120px', bottom: '110px' },  // Step 2
+  { left: '155px', bottom: '150px' },  // Step 3
+  { left: '135px', bottom: '190px' },  // Step 4
+  { left: '170px', bottom: '230px' },  // Step 5
+  { left: '220px', bottom: '270px' },  // Step 6
+  { left: '190px', bottom: '310px' },  // Step 7
+  { left: '175px', bottom: '345px' },  // Step 8
+  { left: '188px', bottom: '375px' },  // Step 9
+  { left: '50%', bottom: '395px' }     // Step 10 (Summit Peak under Flag)
 ];
 
 export function mountSummitMode(container, currentUser, onFinishCallback) {
@@ -69,6 +71,8 @@ export function mountSummitMode(container, currentUser, onFinishCallback) {
         
         <!-- MOUNTAIN ANIMATION COLUMN -->
         <div style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 20px; position: relative; min-height: 460px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; border: 2px solid var(--border-color);">
+          
+          <!-- STAGE HEADER -->
           <div style="display: flex; justify-content: space-between; align-items: center; z-index: 2;">
             <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 800;">SUMMIT TRAIL</span>
             <span id="summitStageTitle" style="color: #38bdf8; font-size: 1.1rem; font-weight: 900; background: rgba(56, 189, 248, 0.15); padding: 4px 12px; border-radius: 8px;">
@@ -76,29 +80,51 @@ export function mountSummitMode(container, currentUser, onFinishCallback) {
             </span>
           </div>
 
+          <!-- MOUNTAIN PEAK FLAG (TOP CENTER) -->
+          <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; text-align: center;">
+            <span style="font-size: 2rem; display: block; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));">🚩</span>
+            <span style="font-size: 0.75rem; font-weight: 900; color: #facc15; background: rgba(15, 23, 42, 0.85); padding: 2px 8px; border-radius: 6px; border: 1px solid #facc15;">SUMMIT</span>
+          </div>
+
+          <!-- SVG MOUNTAIN PATH -->
           <div style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;">
             <svg width="100%" height="100%" viewBox="0 0 400 400" preserveAspectRatio="none">
-              <polygon points="200,40 370,380 30,380" fill="#334155" opacity="0.6" />
-              <polygon points="200,40 290,380 110,380" fill="#475569" opacity="0.8" />
-              <polygon points="200,40 235,110 215,100 200,115 185,100 165,110" fill="#f8fafc" />
-              <polyline points="60,360 90,330 130,300 160,265 140,230 170,195 230,165 210,130 195,95 200,50" fill="none" stroke="#64748b" stroke-width="3" stroke-dasharray="6,6" />
+              <polygon points="200,30 370,380 30,380" fill="#334155" opacity="0.6" />
+              <polygon points="200,30 290,380 110,380" fill="#475569" opacity="0.8" />
+              <polygon points="200,30 230,95 212,88 200,102 188,88 170,95" fill="#f8fafc" />
+              
+              <!-- TRAIL FROM BASE TO SUMMIT PEAK -->
+              <polyline points="
+                45,360 
+                80,320 
+                120,280 
+                155,240 
+                135,200 
+                170,160 
+                220,120 
+                190,85 
+                175,55 
+                200,35
+              " fill="none" stroke="#64748b" stroke-width="3" stroke-dasharray="6,6" />
             </svg>
           </div>
 
+          <!-- ANIMATED CLIMBER AVATAR -->
           <div id="climberAvatar" style="
             position: absolute; z-index: 10; font-size: 2.2rem;
             transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
-            left: 45px; bottom: 30px;
+            left: 45px; bottom: 30px; transform: translateX(-50%);
           ">🧗‍♂️</div>
 
-          <div style="display: flex; justify-content: space-between; align-items: flex-end; z-index: 2; margin-top: auto;">
-            <span style="font-size: 1.8rem;">⛺ <small style="font-size: 0.75rem; color: #94a3b8; display: block;">Base</small></span>
-            <span style="font-size: 2rem;">🚩 <small style="font-size: 0.75rem; color: #facc15; display: block; text-align: right;">Summit</small></span>
+          <!-- BASE CAMP (BOTTOM LEFT) -->
+          <div style="position: absolute; bottom: 12px; left: 16px; z-index: 5; text-align: center;">
+            <span style="font-size: 1.8rem; display: block;">⛺</span>
+            <span style="font-size: 0.75rem; font-weight: 800; color: #94a3b8; background: rgba(15, 23, 42, 0.7); padding: 2px 6px; border-radius: 4px;">BASE</span>
           </div>
         </div>
 
-        <!-- KEYPAD & PROMPT COLUMN -->
+        <!-- KEYPAD & QUESTION COLUMN -->
         <div style="display: flex; flex-direction: column; justify-content: space-between;">
           <div id="fluencyFeedbackBadge" style="height: 32px; line-height: 32px; text-align: center; font-weight: 800; font-size: 0.95rem; border-radius: 8px; margin-bottom: 8px; visibility: hidden;">--</div>
 
@@ -131,7 +157,7 @@ export function mountSummitMode(container, currentUser, onFinishCallback) {
   setupKeypad(currentUser, onFinishCallback);
   engine.startSession();
   updateClimber(0);
-  nextQuestion(currentUser);
+  nextQuestion(currentUser, onFinishCallback);
 }
 
 function setupKeypad(currentUser, onFinishCallback) {
@@ -156,20 +182,36 @@ function setupKeypad(currentUser, onFinishCallback) {
   }
 }
 
+function startIdleTimer(currentUser, onFinishCallback) {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    triggerIdleTimeout(onFinishCallback);
+  }, IDLE_TIMEOUT_MS);
+}
+
+function clearIdleTimer() {
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
+}
+
 function updateBox() {
   const box = document.getElementById('fluencyAnswerBox');
   if (box) box.innerText = userAnswerStr || '?';
 }
 
-function nextQuestion(currentUser) {
+function nextQuestion(currentUser, onFinishCallback) {
   const data = getStudentFluencyData(currentUser);
   currentQ = getFluencyQuestion(data.level);
-  
+
   const promptEl = document.getElementById('fluencyPrompt');
   if (promptEl) promptEl.innerText = currentQ.prompt;
 
   userAnswerStr = '';
   updateBox();
+
+  startIdleTimer(currentUser, onFinishCallback);
 }
 
 function updateClimber(step) {
@@ -181,13 +223,48 @@ function updateClimber(step) {
   if (climber && coord) {
     climber.style.left = coord.left;
     climber.style.bottom = coord.bottom;
+    climber.style.transform = 'translateX(-50%)';
   }
   if (title) title.innerText = `Ledge ${safeStep} / 10`;
+}
+
+function triggerIdleTimeout(onFinishCallback) {
+  clearIdleTimer();
+
+  const climber = document.getElementById('climberAvatar');
+  const badge = document.getElementById('fluencyFeedbackBadge');
+  const box = document.getElementById('fluencyAnswerBox');
+
+  // Disable keypad buttons
+  document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
+
+  if (box) box.classList.add('flash-wrong');
+
+  if (badge) {
+    badge.style.visibility = 'visible';
+    badge.style.background = 'rgba(239, 68, 68, 0.2)';
+    badge.style.color = '#ef4444';
+    badge.innerText = '⏰ 10s TIME OUT! Fell off the cliff! 💥';
+  }
+
+  // Animate climber tumbling to the ground
+  if (climber) {
+    climber.style.transition = 'bottom 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), transform 0.8s ease-in';
+    climber.style.bottom = '15px';
+    climber.style.transform = 'translateX(-50%) rotate(180deg)';
+  }
+
+  const results = engine.handleTimeout();
+
+  setTimeout(() => {
+    onFinishCallback(results);
+  }, 1000);
 }
 
 function submitAnswer(currentUser, onFinishCallback) {
   if (!userAnswerStr || !currentQ) return;
 
+  clearIdleTimer();
   const res = engine.submitAnswer(userAnswerStr, currentQ);
   triggerFeedback(res.isCorrect);
   updateClimber(res.currentStep);
@@ -195,7 +272,7 @@ function submitAnswer(currentUser, onFinishCallback) {
   if (res.gameOver) {
     setTimeout(() => onFinishCallback(res), 600);
   } else {
-    setTimeout(() => nextQuestion(currentUser), 400);
+    setTimeout(() => nextQuestion(currentUser, onFinishCallback), 400);
   }
 }
 
