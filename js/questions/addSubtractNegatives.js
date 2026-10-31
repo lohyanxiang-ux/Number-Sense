@@ -96,164 +96,157 @@ const addSubtractNegativesModule = {
     const startPct = ((initialStart - minVal) / totalRange) * 100;
 
     let html = `
-      <div style="max-width: 580px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
+      <div class="ipad-responsive-grid" style="user-select: none; -webkit-user-select: none;">
         
-        <!-- NUMBER LINE TRACK -->
-        <div style="position: relative; height: 140px; margin: 25px 20px 10px 20px; padding: 0 10px;">
-          <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 55px; touch-action: none;">
-            ${ticksHtml}
+        <!-- LEFT COLUMN: NUMBER LINE TRACK & ACTION BUTTONS -->
+        <div class="ipad-left-pane">
+          <!-- NUMBER LINE TRACK -->
+          <div style="position: relative; height: 140px; margin: 15px 10px 10px 10px; padding: 0 10px;">
+            <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 55px; touch-action: none;">
+              ${ticksHtml}
 
-            <!-- DRAGGABLE START PIN HANDLE (PURPLE - Hidden after Move to avoid overlap) -->
-            <div id="startPin" data-val="${initialStart}" style="
-              position: absolute;
-              top: -34px;
-              left: ${startPct}%;
-              transform: translateX(-50%);
-              background: #8b5cf6;
+              <!-- DRAGGABLE START PIN HANDLE (PURPLE) -->
+              <div id="startPin" data-val="${initialStart}" style="
+                position: absolute;
+                top: -34px;
+                left: ${startPct}%;
+                transform: translateX(-50%);
+                background: #8b5cf6;
+                color: white;
+                font-weight: 800;
+                font-size: 0.8rem;
+                padding: 3px 10px;
+                border-radius: 12px;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+                cursor: grab;
+                touch-action: none;
+                z-index: 6;
+                transition: opacity 0.2s ease;
+              ">Start: ${initialStart}</div>
+
+              <!-- ANCHOR DOT ON THE NUMBER LINE -->
+              <div id="startDot" style="
+                position: absolute;
+                top: -5px;
+                left: ${startPct}%;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: #8b5cf6;
+                transform: translateX(-50%);
+                z-index: 5;
+              "></div>
+
+              <!-- Dynamic Vector Arrow Bar -->
+              <div id="vectorBar" style="
+                position: absolute;
+                top: -3px;
+                height: 6px;
+                border-radius: 3px;
+                z-index: 2;
+                pointer-events: none;
+                display: none;
+                transition: background 0.2s ease;
+              "></div>
+
+              <!-- Floating Step Count Badge Near Arrow -->
+              <div id="vectorStepBadge" style="
+                position: absolute;
+                top: -54px;
+                left: ${startPct}%;
+                transform: translateX(-50%);
+                background: var(--bg-card);
+                border: 2px solid var(--accent);
+                color: var(--accent);
+                font-weight: 800;
+                font-size: 0.8rem;
+                padding: 2px 8px;
+                border-radius: 12px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+                pointer-events: none;
+                z-index: 4;
+                white-space: nowrap;
+                display: none;
+              ">0 steps</div>
+
+              <!-- Draggable Arrow Tip Handle -->
+              <div id="arrowHead" data-val="${initialStart}" style="
+                position: absolute;
+                top: -28px;
+                left: ${startPct}%;
+                transform: translateX(-50%);
+                color: white;
+                font-weight: 800;
+                font-size: 1.1rem;
+                padding: 3px 10px;
+                border-radius: 14px;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+                cursor: grab;
+                touch-action: none;
+                z-index: 5;
+                display: none;
+                transition: background 0.2s ease;
+              ">➔</div>
+
+            </div>
+          </div>
+
+          <!-- ACTION BUTTONS BAR: MOVE, FLIP & RESET -->
+          <div style="display: flex; justify-content: center; gap: 8px; margin: 10px 0; flex-wrap: wrap;">
+            <button id="moveBtn" style="
+              background: #3b82f6;
               color: white;
+              border: none;
+              padding: 8px 14px;
+              border-radius: 10px;
               font-weight: 800;
-              font-size: 0.8rem;
-              padding: 3px 10px;
-              border-radius: 12px;
-              box-shadow: 0 3px 6px rgba(0,0,0,0.25);
-              cursor: grab;
-              touch-action: none;
-              z-index: 6;
-              transition: opacity 0.2s ease;
-            ">Start: ${initialStart}</div>
+              font-size: 0.9rem;
+              cursor: pointer;
+              box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+              transition: transform 0.1s ease, background 0.2s ease;
+            ">➡️ Move</button>
 
-            <!-- ANCHOR DOT ON THE NUMBER LINE -->
-            <div id="startDot" style="
-              position: absolute;
-              top: -5px;
-              left: ${startPct}%;
-              width: 12px;
-              height: 12px;
-              border-radius: 50%;
-              background: #8b5cf6;
-              transform: translateX(-50%);
-              z-index: 5;
-            "></div>
-
-            <!-- Dynamic Vector Arrow Bar -->
-            <div id="vectorBar" style="
-              position: absolute;
-              top: -3px;
-              height: 6px;
-              border-radius: 3px;
-              z-index: 2;
-              pointer-events: none;
-              display: none;
-              transition: background 0.2s ease;
-            "></div>
-
-            <!-- Floating Step Count Badge Near Arrow -->
-            <div id="vectorStepBadge" style="
-              position: absolute;
-              top: -54px;
-              left: ${startPct}%;
-              transform: translateX(-50%);
-              background: var(--bg-card);
-              border: 2px solid var(--accent);
-              color: var(--accent);
-              font-weight: 800;
-              font-size: 0.8rem;
-              padding: 2px 8px;
-              border-radius: 12px;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-              pointer-events: none;
-              z-index: 4;
-              white-space: nowrap;
-              display: none;
-            ">0 steps</div>
-
-            <!-- Draggable Arrow Tip Handle -->
-            <div id="arrowHead" data-val="${initialStart}" style="
-              position: absolute;
-              top: -28px;
-              left: ${startPct}%;
-              transform: translateX(-50%);
+            <button id="flipBtn" style="
+              background: #ef4444;
               color: white;
+              border: none;
+              padding: 8px 14px;
+              border-radius: 10px;
               font-weight: 800;
-              font-size: 1.1rem;
-              padding: 3px 10px;
-              border-radius: 14px;
-              box-shadow: 0 3px 6px rgba(0,0,0,0.25);
-              cursor: grab;
-              touch-action: none;
-              z-index: 5;
-              display: none;
-              transition: background 0.2s ease;
-            ">➔</div>
+              font-size: 0.9rem;
+              cursor: pointer;
+              box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+              transition: transform 0.1s ease;
+            ">🔄 Flip negative number</button>
 
+            <button id="asnResetBtn" style="
+              background: var(--bg-primary);
+              color: var(--text-main);
+              border: 2px solid var(--border-color);
+              padding: 8px 14px;
+              border-radius: 10px;
+              font-weight: 800;
+              font-size: 0.9rem;
+              cursor: pointer;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              transition: transform 0.1s ease;
+            ">↺ Reset</button>
           </div>
         </div>
 
-        <!-- ACTION BUTTONS BAR: MOVE, FLIP & RESET -->
-        <div style="display: flex; justify-content: center; gap: 10px; margin: 15px 0 20px 0; flex-wrap: wrap;">
-          <button id="moveBtn" style="
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 10px;
-            font-weight: 800;
-            font-size: 0.95rem;
-            cursor: pointer;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-            transition: transform 0.1s ease, background 0.2s ease;
-          ">➡️ Move</button>
-
-          <button id="flipBtn" style="
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 10px;
-            font-weight: 800;
-            font-size: 0.95rem;
-            cursor: pointer;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-            transition: transform 0.1s ease;
-          ">🔄 Flip negative number</button>
-
-          <button id="asnResetBtn" style="
-            background: var(--bg-primary);
-            color: var(--text-main);
-            border: 2px solid var(--border-color);
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-weight: 800;
-            font-size: 0.95rem;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.1s ease;
-          ">↺ Reset</button>
-        </div>
-
-        <!-- EQUATION INPUT & ENLARGED TOUCH KEYPAD -->
-        <div style="
-          background: var(--bg-primary); 
-          border: 2px solid var(--border-color); 
-          border-radius: var(--radius); 
-          padding: 20px; 
-          max-width: 380px; 
-          margin: 0 auto;
-          box-shadow: var(--shadow);
-        ">
-          <!-- EQUATION DISPLAY -->
-          <div style="font-size: 1.6rem; font-weight: 800; margin-bottom: 14px;">
+        <!-- RIGHT COLUMN: EQUATION INPUT & KEYPAD -->
+        <div class="ipad-right-pane" style="text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 12px;">
             ${q.exprStr} = <span id="ansDisplay" style="
               color: var(--accent); 
               border-bottom: 3.5px solid var(--accent); 
-              padding: 0 12px;
-              min-width: 65px;
+              padding: 0 10px;
+              min-width: 60px;
               display: inline-block;
-            ">?</span>
+            ">${typedAnswer || '?'}</span>
           </div>
 
-          <!-- ENLARGED KEYPAD GRID -->
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 260px; margin: 0 auto;">
             <button class="asn-key" data-k="1">1</button>
             <button class="asn-key" data-k="2">2</button>
             <button class="asn-key" data-k="3">3</button>
@@ -276,10 +269,10 @@ const addSubtractNegativesModule = {
 
     // KEYPAD CSS STYLING
     container.querySelectorAll('.asn-key').forEach(btn => {
-      btn.style.height = '58px';
-      btn.style.fontSize = '1.4rem';
+      btn.style.height = '46px';
+      btn.style.fontSize = '1.2rem';
       btn.style.fontWeight = '800';
-      btn.style.borderRadius = '10px';
+      btn.style.borderRadius = '8px';
       btn.style.border = '2px solid var(--border-color)';
       btn.style.background = 'var(--bg-card)';
       btn.style.color = 'var(--text-main)';
