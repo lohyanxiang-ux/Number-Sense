@@ -45,11 +45,33 @@ export class SummitEngine {
       gameOver,
       victory,
       fellOff,
+      timedOut: false,
       totalQuestions: this.totalQuestions,
       correctCount: this.correctCount,
       accuracy,
       avgSpeed: Number(avgSpeed),
       timeSpent: Number(timeSpent.toFixed(1))
+    };
+  }
+
+  handleTimeout() {
+    this.totalQuestions += 1;
+    const totalElapsedSec = (Date.now() - this.startTime) / 1000;
+    const avgSpeed = this.totalQuestions > 0 ? (totalElapsedSec / this.totalQuestions).toFixed(1) : 0;
+    const accuracy = Math.round((this.correctCount / this.totalQuestions) * 100);
+
+    return {
+      isCorrect: false,
+      currentStep: 0,
+      gameOver: true,
+      victory: false,
+      fellOff: true,
+      timedOut: true,
+      totalQuestions: this.totalQuestions,
+      correctCount: this.correctCount,
+      accuracy,
+      avgSpeed: Number(avgSpeed),
+      timeSpent: 10.0
     };
   }
 }
