@@ -48,15 +48,16 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         }
       }
 
-      @keyframes shurikenHitTrajectory {
+@keyframes shurikenHitTrajectory {
         0% {
           transform: translate(-50%, 120px) scale(0.4) rotate(0deg);
           opacity: 0;
         }
-        30% { opacity: 1; }
+        25% { opacity: 1; }
+        80% { opacity: 1; }
         100% {
-          transform: translate(-50%, -10px) scale(1.1) rotate(1080deg);
-          opacity: 1;
+          transform: translate(-50%, -80px) scale(1.1) rotate(1080deg);
+          opacity: 0;
         }
       }
 
