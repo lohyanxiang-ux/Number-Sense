@@ -1,6 +1,7 @@
 import { BELT_TIERS, getStudentFluencyData, evaluateLevelProgression } from './fluencyMastery.js';
 import { mountSummitMode } from './modes/summitMode.js';
 import { mountBlitzMode } from './modes/blitzMode.js';
+import { mountBoardMode } from './modes/boardMode.js';
 
 let currentUserRef = null;
 let syncCallbackRef = null;
@@ -23,7 +24,7 @@ export function renderFluencyMenu() {
   const speedColor = (fluencyData.lastSpeed <= 2.5 && fluencyData.lastSpeed > 0) ? '#10b981' : '#ef4444';
 
   container.innerHTML = `
-    <div id="fluencySetupCard" class="card" style="max-width: 950px; margin: 0 auto;">
+    <div id="fluencySetupCard" class="card" style="max-width: 980px; margin: 0 auto;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <div>
           <h2 style="margin: 0;">⚡ Speed Fluency Arena</h2>
@@ -63,37 +64,53 @@ export function renderFluencyMenu() {
       </div>
 
       <!-- MODE SELECTION GRID -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
         
         <!-- SUMMIT QUEST CARD -->
-        <div style="border: 2px solid var(--accent); border-radius: 12px; padding: 18px; background: rgba(79, 70, 229, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="border: 2px solid var(--accent); border-radius: 12px; padding: 16px; background: rgba(79, 70, 229, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h3 style="margin: 0; color: var(--text-main);">🏔️ Summit Quest</h3>
-              <span style="font-size: 0.75rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 8px; border-radius: 6px;">PRECISION CLIMB</span>
+              <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">🏔️ Summit</h3>
+              <span style="font-size: 0.7rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 6px; border-radius: 4px;">10 LEDGES</span>
             </div>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0 0 14px 0;">
-              Scale 10 mountain ledges. +1 step on correct, -1 on wrong. 10s idle timer!
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px 0;">
+              Scale 10 ledges. +1 step on correct, -1 on wrong. 10s idle timer!
             </p>
           </div>
-          <button class="btn" id="startSummitBtn" style="background: var(--accent); font-weight: 800; width: 100%; padding: 12px;">
-            🚀 Climb Summit
+          <button class="btn" id="startSummitBtn" style="background: var(--accent); font-weight: 800; width: 100%; padding: 10px;">
+            🚀 Summit Quest
           </button>
         </div>
 
         <!-- LIGHTNING SHURIKEN BLITZ CARD -->
-        <div style="border: 2px solid #6366f1; border-radius: 12px; padding: 18px; background: rgba(99, 102, 241, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="border: 2px solid #6366f1; border-radius: 12px; padding: 16px; background: rgba(99, 102, 241, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h3 style="margin: 0; color: var(--text-main);">⚡ Shuriken Blitz</h3>
-              <span style="font-size: 0.75rem; font-weight: 800; color: #6366f1; background: rgba(99, 102, 241, 0.15); padding: 2px 8px; border-radius: 6px;">30s TIME ATTACK</span>
+              <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">⚡ Blitz</h3>
+              <span style="font-size: 0.7rem; font-weight: 800; color: #6366f1; background: rgba(99, 102, 241, 0.15); padding: 2px 6px; border-radius: 4px;">30s ATTACK</span>
             </div>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0 0 14px 0;">
-              Rapid fire! Answer as many questions as possible in 30 seconds to build high streaks.
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px 0;">
+              Rapid fire! Throw shurikens at dummy targets for 30 seconds.
             </p>
           </div>
-          <button class="btn" id="startBlitzBtn" style="background: #6366f1; color: white; font-weight: 800; width: 100%; padding: 12px;">
-            ⚡ Start Shuriken Blitz
+          <button class="btn" id="startBlitzBtn" style="background: #6366f1; color: white; font-weight: 800; width: 100%; padding: 10px;">
+            ⚡ Shuriken Blitz
+          </button>
+        </div>
+
+        <!-- DOJO BOARD BREAK CARD -->
+        <div style="border: 2px solid #d97706; border-radius: 12px; padding: 16px; background: rgba(217, 119, 6, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">🪵 Board Break</h3>
+              <span style="font-size: 0.7rem; font-weight: 800; color: #d97706; background: rgba(217, 119, 6, 0.15); padding: 2px 6px; border-radius: 4px;">20 BOARDS</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px 0;">
+              Smash 20 boards! Build streaks to unlock 2x and 3x board Power Smashes.
+            </p>
+          </div>
+          <button class="btn" id="startBoardBtn" style="background: #d97706; color: white; font-weight: 800; width: 100%; padding: 10px;">
+            🪵 Break Boards
           </button>
         </div>
 
@@ -104,7 +121,7 @@ export function renderFluencyMenu() {
 
     <!-- SUMMARY CARD -->
     <div id="fluencySummaryCard" class="card hidden" style="text-align: center; max-width: 520px; margin: 0 auto;">
-      <h2 id="summaryResultHeader" style="color: var(--accent); font-size: 2rem; margin-bottom: 8px;">⚡ Challenge Complete!</h2>
+      <h2 id="summaryResultHeader" style="color: var(--accent); font-size: 2rem; margin-bottom: 8px;">🪵 Session Complete!</h2>
       <div id="fluencyLevelMsg" style="font-weight: 800; font-size: 1.05rem; margin-bottom: 20px;"></div>
 
       <div style="background: var(--bg-primary); border-radius: 12px; padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; text-align: left; border: 1px solid var(--border-color);">
@@ -132,6 +149,12 @@ export function renderFluencyMenu() {
     mountBlitzMode(activeBox, currentUserRef, handleSessionComplete);
   };
 
+  document.getElementById('startBoardBtn').onclick = () => {
+    document.getElementById('fluencySetupCard').classList.add('hidden');
+    const activeBox = document.getElementById('fluencyActiveContainer');
+    mountBoardMode(activeBox, currentUserRef, handleSessionComplete);
+  };
+
   document.getElementById('btnRestartFluency').onclick = renderFluencyMenu;
 }
 
@@ -141,10 +164,10 @@ function handleSessionComplete(results) {
 
   const headerEl = document.getElementById('summaryResultHeader');
   if (results.victory) {
-    headerEl.innerText = '🏆 TRIAL COMPLETE!';
+    headerEl.innerText = '🏆 STACK CLEARED!';
     headerEl.style.color = '#10b981';
   } else {
-    headerEl.innerText = '⏱️ TIME EXPIRED!';
+    headerEl.innerText = '💥 STANCE BROKEN!';
     headerEl.style.color = '#ef4444';
   }
 
