@@ -20,8 +20,8 @@ export function renderFluencyMenu() {
   const currentBelt = BELT_TIERS[fluencyData.level] || BELT_TIERS[1];
   const maxBelt = BELT_TIERS[fluencyData.maxLevel] || currentBelt;
 
-  const accColor = fluencyData.lastAccuracy >= 90 ? '#10b981' : '#ef4444';
-  const speedColor = (fluencyData.lastSpeed <= 2.5 && fluencyData.lastSpeed > 0) ? '#10b981' : '#ef4444';
+  const accColor = fluencyData.lastAccuracy >= 80 ? '#10b981' : '#ef4444';
+  const speedColor = (fluencyData.lastSpeed <= 5.0 && fluencyData.lastSpeed > 0) ? '#10b981' : '#ef4444';
 
   container.innerHTML = `
     <div id="fluencySetupCard" class="card" style="max-width: 980px; margin: 0 auto;">
@@ -45,23 +45,23 @@ export function renderFluencyMenu() {
       </div>
 
       <!-- TARGET REQUIREMENTS CARD -->
-      <div style="background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-        <div style="font-size: 0.85rem; font-weight: 800; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">
-          🎯 ${fluencyData.isRefresher ? `Fast Recovery Target (Restore ${maxBelt.name}):` : `Rolling 3-Session Progress (${fluencyData.history.length}/3 runs completed):`}
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
-          <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-            <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Rolling Accuracy</div>
-            <div style="font-size: 1.6rem; font-weight: 900; color: ${accColor}; margin: 2px 0;">${fluencyData.lastAccuracy}%</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">Target: <strong>≥ 90%</strong></div>
-          </div>
-          <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-            <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Rolling Avg Speed</div>
-            <div style="font-size: 1.6rem; font-weight: 900; color: ${speedColor}; margin: 2px 0;">${fluencyData.lastSpeed > 0 ? fluencyData.lastSpeed + 's' : '--'}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">Target: <strong>< 2.5s / Q</strong></div>
-          </div>
-        </div>
-      </div>
+<div style="background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+  <div style="font-size: 0.85rem; font-weight: 800; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">
+    🎯 ${fluencyData.isRefresher ? `Fast Recovery Target (Restore ${maxBelt.name}):` : `Rolling 3-Session Progress (${fluencyData.history.length}/3 runs completed):`}
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
+    <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Rolling Accuracy</div>
+      <div style="font-size: 1.6rem; font-weight: 900; color: ${accColor}; margin: 2px 0;">${fluencyData.lastAccuracy}%</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted);">Target: <strong>≥ 80%</strong></div>
+    </div>
+    <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Rolling Avg Speed</div>
+      <div style="font-size: 1.6rem; font-weight: 900; color: ${speedColor}; margin: 2px 0;">${fluencyData.lastSpeed > 0 ? fluencyData.lastSpeed + 's' : '--'}</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted);">Target: <strong>< 5.0s / Q</strong></div>
+    </div>
+  </div>
+</div>
 
       <!-- MODE SELECTION GRID -->
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
