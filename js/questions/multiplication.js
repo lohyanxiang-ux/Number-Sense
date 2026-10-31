@@ -1,170 +1,266 @@
 import { registerQuestionType, formatMath } from './registry.js';
 
-const funObjects = {
-  2: { emoji: '🍎', name: 'Apples' },
-  3: { emoji: '⭐', name: 'Stars' },
-  4: { emoji: '🐸', name: 'Frogs' },
-  5: { emoji: '🍪', name: 'Cookies' },
-  6: { emoji: '💎', name: 'Gems' }
-};
-
-const multiplicationModule = {
+const addSubtractNegativesModule = {
   generate() {
-    // Generate factors between 2 and 6
-    const a = Math.floor(Math.random() * 5) + 2; // 2 to 6
-    const b = Math.floor(Math.random() * 5) + 2; // 2 to 6
-    const target = a * b;
+    let a, op, b, target, intermediate;
 
-    const exprStr = `${a} × ${b}`;
+    // Generate questions where Start, Intermediate Shift, and Target ALL fit within [-10, 10]
+    do {
+      a = Math.floor(Math.random() * 17) - 8; // -8 to +8
+      op = Math.random() < 0.5 ? '+' : '-';
+      
+      const bMag = Math.floor(Math.random() * 5) + 1; // 1 to 5 steps
+      const bSign = Math.random() < 0.5 ? 1 : -1;
+      b = bMag * bSign;
+
+      // Intermediate step before flip
+      intermediate = op === '+' ? a + Math.abs(b) : a - Math.abs(b);
+
+      const netShift = op === '+' ? b : -b;
+      target = a + netShift;
+
+    } while (
+      a < -10 || a > 10 ||
+      intermediate < -10 || intermediate > 10 ||
+      target < -10 || target > 10
+    );
+
+    const bFormatted = b < 0 ? `(${b})` : `${b}`;
+    const exprStr = `${a} ${op} ${bFormatted}`;
+
+    let explanationText = '';
+    if (op === '+' && b > 0) {
+      explanationText = `Place Start pin on <strong>${a}</strong>, tap <strong>Move</strong> to draw an arrow RIGHT by ${b} steps to land on <strong>${target}</strong>.`;
+    } else if (op === '+' && b < 0) {
+      explanationText = `Place Start pin on <strong>${a}</strong>, tap <strong>Move</strong> to draw an arrow RIGHT by ${Math.abs(b)} steps, then tap <strong>Flip negative number</strong> to mirror it to land on <strong>${target}</strong>.`;
+    } else if (op === '-' && b > 0) {
+      explanationText = `Place Start pin on <strong>${a}</strong>, tap <strong>Move</strong> to draw an arrow LEFT by ${b} steps to land on <strong>${target}</strong>.`;
+    } else {
+      explanationText = `Place Start pin on <strong>${a}</strong>, tap <strong>Move</strong> to draw an arrow LEFT by ${Math.abs(b)} steps, then tap <strong>Flip negative number</strong> to mirror it to land on <strong>${target}</strong>.`;
+    }
 
     return {
-      type: 'multiplication',
+      type: 'add_subtract_negatives',
       a: a,
+      op: op,
       b: b,
       target: target,
       exprStr: exprStr,
-      prompt: `Evaluate <strong>${exprStr}</strong>. Drag suitable groups into the workspace, then key in your final answer:`,
-      explanation: `<strong>${exprStr}</strong> can be represented as <strong>${a} groups of ${b}</strong> (${Array(a).fill(b).join(' + ')} = <strong>${target}</strong>) or <strong>${b} groups of ${a}</strong> (${Array(b).fill(a).join(' + ')} = <strong>${target}</strong>).`
+      prompt: `Evaluate <strong>${formatMath(exprStr)}</strong> using the number line, then key in your final answer:`,
+      explanation: formatMath(explanationText)
     };
   },
 
   render(q, container) {
-    // Generate Side Bank Item Cards (Sizes 2 to 6)
-    let bankCardsHtml = '';
-    [2, 3, 4, 5, 6].forEach(size => {
-      const obj = funObjects[size];
-      let emojisHtml = '';
-      for (let i = 0; i < size; i++) {
-        emojisHtml += `<span style="font-size: 1.1rem;">${obj.emoji}</span>`;
-      }
+    const minVal = -10;
+    const maxVal = 10;
+    const totalRange = maxVal - minVal;
 
-      bankCardsHtml += `
-        <div class="bank-group-card" data-size="${size}" style="
-          background: var(--bg-card);
-          border: 2px solid var(--border-color);
-          border-radius: 12px;
-          padding: 6px 8px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 3px;
-          cursor: grab;
-          touch-action: none;
-          user-select: none;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-          transition: transform 0.15s ease, border-color 0.15s ease;
-        ">
-          <span style="font-size: 0.7rem; font-weight: 800; color: var(--accent);">Group of ${size}</span>
-          <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 65px;">
-            ${emojisHtml}
-          </div>
-        </div>
+    // Ticks generation
+    let ticksHtml = '';
+    for (let v = minVal; v <= maxVal; v++) {
+      const posPct = ((v - minVal) / totalRange) * 100;
+      const isMajor = v % 2 === 0;
+
+      ticksHtml += `
+        <div style="
+          position: absolute; 
+          left: ${posPct}%; 
+          top: ${isMajor ? '-6px' : '-2px'}; 
+          width: 2px; 
+          height: ${isMajor ? '18px' : '10px'}; 
+          background: ${v === 0 ? 'var(--accent)' : 'var(--text-muted)'}; 
+          transform: translateX(-50%);
+        "></div>
       `;
-    });
 
-    const html = `
+      if (isMajor) {
+        ticksHtml += `
+          <span style="
+            position: absolute; 
+            left: ${posPct}%; 
+            top: 18px; 
+            transform: translateX(-50%); 
+            font-size: 0.75rem; 
+            font-weight: ${v === 0 ? '800' : '600'}; 
+            color: ${v === 0 ? 'var(--accent)' : 'var(--text-muted)'};
+          ">${v}</span>
+        `;
+      }
+    }
+
+    // Default start pin position offset from q.a initially
+    let initialStart = 0;
+    if (q.a === 0) initialStart = 3;
+
+    const startPct = ((initialStart - minVal) / totalRange) * 100;
+
+    let html = `
       <div class="ipad-responsive-grid" style="user-select: none; -webkit-user-select: none;">
         
-        <!-- LEFT COLUMN: SIDE BANK, DROP ZONE & REPEATED ADDITION -->
+        <!-- LEFT COLUMN: NUMBER LINE TRACK & ACTION BUTTONS -->
         <div class="ipad-left-pane">
-          <div style="
-            display: grid;
-            grid-template-columns: 110px 1fr;
-            gap: 10px;
-            margin-bottom: 12px;
-            align-items: start;
-          ">
-            <!-- LEFT SIDE BANK -->
-            <div style="
-              background: var(--bg-primary);
-              border: 2px solid var(--border-color);
-              border-radius: 12px;
-              padding: 8px 6px;
-              display: flex;
-              flex-direction: column;
-              gap: 6px;
-              max-height: 250px;
-              overflow-y: auto;
-            ">
-              <span style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
-                Available
-              </span>
-              ${bankCardsHtml}
-            </div>
+          <!-- NUMBER LINE TRACK -->
+          <div style="position: relative; height: 130px; margin: 20px 10px 10px 10px; padding: 0 10px;">
+            <div id="asnTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 55px; touch-action: none;">
+              ${ticksHtml}
 
-            <!-- DROP ZONE WORKSPACE -->
-            <div id="multDropZone" style="
-              background: rgba(79, 70, 229, 0.03);
-              border: 2px dashed var(--accent);
-              border-radius: 12px;
-              min-height: 230px;
-              padding: 8px;
-              display: flex;
-              flex-wrap: wrap;
-              align-content: flex-start;
-              justify-content: center;
-              gap: 6px;
-              position: relative;
-              touch-action: none;
-            ">
-              <div id="dropPlaceholder" style="
+              <!-- DRAGGABLE START PIN HANDLE -->
+              <div id="startPin" data-val="${initialStart}" style="
                 position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: var(--text-muted);
-                font-weight: 700;
-                font-size: 0.85rem;
+                top: -34px;
+                left: ${startPct}%;
+                transform: translateX(-50%);
+                background: #8b5cf6;
+                color: white;
+                font-weight: 800;
+                font-size: 0.8rem;
+                padding: 3px 10px;
+                border-radius: 12px;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+                cursor: grab;
+                touch-action: none;
+                z-index: 6;
+                transition: opacity 0.2s ease;
+              ">Start: ${initialStart}</div>
+
+              <!-- ANCHOR DOT ON THE NUMBER LINE -->
+              <div id="startDot" style="
+                position: absolute;
+                top: -5px;
+                left: ${startPct}%;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: #8b5cf6;
+                transform: translateX(-50%);
+                z-index: 5;
+              "></div>
+
+              <!-- Dynamic Vector Arrow Bar -->
+              <div id="vectorBar" style="
+                position: absolute;
+                top: -3px;
+                height: 6px;
+                border-radius: 3px;
+                z-index: 2;
                 pointer-events: none;
-                text-align: center;
-              ">
-                📥 Drag or tap groups here
-              </div>
+                display: none;
+                transition: background 0.2s ease;
+              "></div>
+
+              <!-- Floating Step Count Badge Near Arrow -->
+              <div id="vectorStepBadge" style="
+                position: absolute;
+                top: -54px;
+                left: ${startPct}%;
+                transform: translateX(-50%);
+                background: var(--bg-card);
+                border: 2px solid var(--accent);
+                color: var(--accent);
+                font-weight: 800;
+                font-size: 0.8rem;
+                padding: 2px 8px;
+                border-radius: 12px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+                pointer-events: none;
+                z-index: 4;
+                white-space: nowrap;
+                display: none;
+              ">0 steps</div>
+
+              <!-- Draggable Arrow Tip Handle -->
+              <div id="arrowHead" data-val="${initialStart}" style="
+                position: absolute;
+                top: -28px;
+                left: ${startPct}%;
+                transform: translateX(-50%);
+                color: white;
+                font-weight: 800;
+                font-size: 1.1rem;
+                padding: 3px 10px;
+                border-radius: 14px;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+                cursor: grab;
+                touch-action: none;
+                z-index: 5;
+                display: none;
+                transition: background 0.2s ease;
+              ">➔</div>
+
             </div>
           </div>
 
-          <!-- REPEATED ADDITION LIVE TRACKER -->
-          <div style="
-            background: rgba(79, 70, 229, 0.08); 
-            border: 2px solid var(--accent); 
-            border-radius: 10px; 
-            padding: 8px 12px; 
-            text-align: center;
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--accent);
-          ">
-            <span style="font-size: 0.75rem; display: block; color: var(--text-muted); margin-bottom: 2px; font-weight: 700; text-transform: uppercase;">
-              Repeated Addition View
-            </span>
-            <span id="repAddSentence">?</span>
+          <!-- ACTION BUTTONS BAR: MOVE, FLIP & RESET -->
+          <div style="display: flex; justify-content: center; gap: 8px; margin: 10px 0 14px 0; flex-wrap: wrap;">
+            <button id="moveBtn" style="
+              background: #3b82f6;
+              color: white;
+              border: none;
+              padding: 9px 14px;
+              border-radius: 10px;
+              font-weight: 800;
+              font-size: 0.88rem;
+              cursor: pointer;
+              box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+              transition: transform 0.1s ease, background 0.2s ease;
+            ">➡️ Move</button>
+
+            <button id="flipBtn" style="
+              background: #ef4444;
+              color: white;
+              border: none;
+              padding: 9px 14px;
+              border-radius: 10px;
+              font-weight: 800;
+              font-size: 0.88rem;
+              cursor: pointer;
+              box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+              transition: transform 0.1s ease;
+            ">🔄 Flip negative number</button>
+
+            <button id="asnResetBtn" style="
+              background: var(--bg-primary);
+              color: var(--text-main);
+              border: 2px solid var(--border-color);
+              padding: 9px 14px;
+              border-radius: 10px;
+              font-weight: 800;
+              font-size: 0.88rem;
+              cursor: pointer;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              transition: transform 0.1s ease;
+            ">↺ Reset</button>
           </div>
         </div>
 
         <!-- RIGHT COLUMN: EQUATION INPUT & KEYPAD -->
         <div class="ipad-right-pane" style="text-align: center;">
+          <!-- EQUATION DISPLAY -->
           <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 12px;">
             ${q.exprStr} = <span id="ansDisplay" style="
               color: var(--accent); 
               border-bottom: 3.5px solid var(--accent); 
               padding: 0 10px;
-              min-width: 60px;
+              min-width: 55px;
               display: inline-block;
-            ">${typedAnswer || '?'}</span>
+            ">?</span>
           </div>
 
+          <!-- KEYPAD GRID -->
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 260px; margin: 0 auto;">
-            <button class="mult-key" data-k="1">1</button>
-            <button class="mult-key" data-k="2">2</button>
-            <button class="mult-key" data-k="3">3</button>
-            <button class="mult-key" data-k="4">4</button>
-            <button class="mult-key" data-k="5">5</button>
-            <button class="mult-key" data-k="6">6</button>
-            <button class="mult-key" data-k="7">7</button>
-            <button class="mult-key" data-k="8">8</button>
-            <button class="mult-key" data-k="9">9</button>
-            <button class="mult-key" data-k="0" style="grid-column: span 2;">0</button>
-            <button class="mult-key" id="multClear" style="background: rgba(239, 68, 68, 0.12); color: var(--danger); font-weight: 800;">C</button>
+            <button class="asn-key" data-k="1">1</button>
+            <button class="asn-key" data-k="2">2</button>
+            <button class="asn-key" data-k="3">3</button>
+            <button class="asn-key" data-k="4">4</button>
+            <button class="asn-key" data-k="5">5</button>
+            <button class="asn-key" data-k="6">6</button>
+            <button class="asn-key" data-k="7">7</button>
+            <button class="asn-key" data-k="8">8</button>
+            <button class="asn-key" data-k="9">9</button>
+            <button class="asn-key" data-k="-" style="background: rgba(79,70,229,0.12); color: var(--accent); font-weight: 800;">-</button>
+            <button class="asn-key" data-k="0">0</button>
+            <button class="asn-key" id="asnClear" style="background: rgba(239, 68, 68, 0.12); color: var(--danger); font-weight: 800;">C</button>
           </div>
         </div>
 
@@ -173,8 +269,8 @@ const multiplicationModule = {
 
     container.innerHTML = html;
 
-    // STYLING KEYPAD BUTTONS
-    container.querySelectorAll('.mult-key').forEach(btn => {
+    // KEYPAD CSS STYLING
+    container.querySelectorAll('.asn-key').forEach(btn => {
       btn.style.height = '46px';
       btn.style.fontSize = '1.2rem';
       btn.style.fontWeight = '800';
@@ -186,188 +282,245 @@ const multiplicationModule = {
       btn.style.touchAction = 'manipulation';
     });
 
-    let droppedGroups = []; // Array of integers representing dropped group sizes
+    // STATE VARIABLES
+    let currentStartVal = initialStart;
+    let currentTipVal = initialStart;
+    let hasMoved = false;
+    let isFlipped = false;
     let typedAnswer = '';
 
-    const dropZone = container.querySelector('#multDropZone');
-    const placeholder = container.querySelector('#dropPlaceholder');
-    const sentenceEl = container.querySelector('#repAddSentence');
+    const track = container.querySelector('#asnTrack');
+    const startPin = container.querySelector('#startPin');
+    const startDot = container.querySelector('#startDot');
+    const arrowHead = container.querySelector('#arrowHead');
+    const vectorBar = container.querySelector('#vectorBar');
+    const vectorStepBadge = container.querySelector('#vectorStepBadge');
+    const moveBtn = container.querySelector('#moveBtn');
+    const flipBtn = container.querySelector('#flipBtn');
+    const asnResetBtn = container.querySelector('#asnResetBtn');
     const ansDisplay = container.querySelector('#ansDisplay');
 
-    // REPEATED ADDITION SENTENCE UPDATE LOGIC
-    const updateSentenceDisplay = () => {
-      if (droppedGroups.length === 0) {
-        placeholder.style.display = 'block';
-        sentenceEl.innerText = '?';
+    // Automatic color and arrow tip symbol based on direction & flip state
+    const getArrowDetails = () => {
+      let color = '#3b82f6';
+      let symbol = '➔';
+
+      if (isFlipped) {
+        color = '#ef4444'; // Red when flipped
+        symbol = currentTipVal >= currentStartVal ? '➔' : '⬅';
       } else {
-        placeholder.style.display = 'none';
-        
-        if (droppedGroups.length === 1) {
-          sentenceEl.innerText = `${droppedGroups[0]}`;
+        if (currentTipVal > currentStartVal) {
+          color = '#3b82f6'; // Blue when right of start
+          symbol = '➔';
+        } else if (currentTipVal < currentStartVal) {
+          color = '#10b981'; // Green when left of start
+          symbol = '⬅';
         } else {
-          const sum = droppedGroups.reduce((acc, curr) => acc + curr, 0);
-          sentenceEl.innerText = `${droppedGroups.join(' + ')} = ${sum}`;
+          color = q.op === '+' ? '#3b82f6' : '#10b981';
+          symbol = q.op === '+' ? '➔' : '⬅';
         }
       }
-      dropZone.setAttribute('data-dropped-sizes', JSON.stringify(droppedGroups));
+      return { color, symbol };
     };
 
-    // ADD A GROUP TO WORKSPACE
-    const addGroupToWorkspace = (size) => {
-      const groupSize = parseInt(size, 10);
-      droppedGroups.push(groupSize);
+    const updateUI = () => {
+      const startPctVal = ((currentStartVal - minVal) / totalRange) * 100;
+      startDot.style.left = `${startPctVal}%`;
+      startPin.style.left = `${startPctVal}%`;
 
-      const obj = funObjects[groupSize];
-      let emojisHtml = '';
-      for (let i = 0; i < groupSize; i++) {
-        emojisHtml += `<span style="font-size: 1.1rem;">${obj.emoji}</span>`;
+      if (hasMoved) {
+        // HIDE floating Start Pin badge so it doesn't block arrow dragging
+        startPin.style.display = 'none';
+
+        // Reveal Vector Arrow & Step Badge
+        vectorBar.style.display = 'block';
+        vectorStepBadge.style.display = 'block';
+        arrowHead.style.display = 'block';
+
+        const { color, symbol } = getArrowDetails();
+        arrowHead.style.background = color;
+        vectorBar.style.background = color;
+        arrowHead.innerText = symbol;
+
+        const tipPctVal = ((currentTipVal - minVal) / totalRange) * 100;
+        arrowHead.style.left = `${tipPctVal}%`;
+
+        const leftPct = Math.min(startPctVal, tipPctVal);
+        const widthPct = Math.abs(tipPctVal - startPctVal);
+
+        vectorBar.style.left = `${leftPct}%`;
+        vectorBar.style.width = `${widthPct}%`;
+
+        // Update Floating Step Counter Badge
+        const stepsCount = Math.abs(currentTipVal - currentStartVal);
+        const midPct = (startPctVal + tipPctVal) / 2;
+
+        vectorStepBadge.style.left = `${midPct}%`;
+        vectorStepBadge.innerText = `${stepsCount} ${stepsCount === 1 ? 'step' : 'steps'}`;
+        vectorStepBadge.style.borderColor = color;
+        vectorStepBadge.style.color = color;
+      } else {
+        // Show Start Pin when positioning initial start number
+        startPin.style.display = 'block';
+        startPin.style.background = '#8b5cf6';
+        startPin.style.cursor = 'grab';
+        startPin.style.opacity = '1';
+        startPin.innerText = `Start: ${currentStartVal}`;
+
+        vectorBar.style.display = 'none';
+        vectorStepBadge.style.display = 'none';
+        arrowHead.style.display = 'none';
       }
 
-      const cardEl = document.createElement('div');
-      cardEl.className = 'workspace-dropped-card';
-      cardEl.setAttribute('data-size', groupSize);
-      cardEl.style.cssText = `
-        background: var(--bg-card);
-        border: 2px solid var(--accent);
-        border-radius: 10px;
-        padding: 6px 10px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 3px;
-        cursor: pointer;
-        position: relative;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.12);
-      `;
-
-      cardEl.innerHTML = `
-        <span style="font-size: 0.7rem; font-weight: 800; color: var(--accent);">+${groupSize}</span>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 70px;">
-          ${emojisHtml}
-        </div>
-        <span style="
-          position: absolute;
-          top: -5px;
-          right: -5px;
-          background: #ef4444;
-          color: white;
-          border-radius: 50%;
-          width: 16px;
-          height: 16px;
-          font-size: 0.65rem;
-          font-weight: 800;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">✕</span>
-      `;
-
-      cardEl.onclick = () => {
-        const foundIndex = droppedGroups.indexOf(groupSize);
-        if (foundIndex > -1) {
-          droppedGroups.splice(foundIndex, 1);
-        }
-        cardEl.remove();
-        updateSentenceDisplay();
-      };
-
-      dropZone.appendChild(cardEl);
-      updateSentenceDisplay();
+      startPin.setAttribute('data-val', currentStartVal);
+      arrowHead.setAttribute('data-val', currentTipVal);
+      arrowHead.setAttribute('data-moved', hasMoved ? 'true' : 'false');
+      arrowHead.setAttribute('data-flipped', isFlipped ? 'true' : 'false');
     };
 
-    // INTERACTION 1: TAP TO ADD FROM SIDE BANK
-    container.querySelectorAll('.bank-group-card').forEach(card => {
-      card.onclick = () => {
-        const size = card.getAttribute('data-size');
-        addGroupToWorkspace(size);
-      };
-    });
+    // POINTER DRAG LOGIC - START PIN (Disabled when moved)
+    let isDraggingStart = false;
+    startPin.onpointerdown = (e) => {
+      if (hasMoved) return;
+      isDraggingStart = true;
+      startPin.style.cursor = 'grabbing';
+      startPin.setPointerCapture(e.pointerId);
+    };
 
-    // INTERACTION 2: TOUCH / POINTER DRAG & DROP LOGIC
-    container.querySelectorAll('.bank-group-card').forEach(card => {
-      let clone = null;
+    startPin.onpointermove = (e) => {
+      if (!isDraggingStart || hasMoved) return;
+      const rect = track.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, x / rect.width));
+      const rawVal = Math.round(minVal + ratio * totalRange);
+      
+      const diff = rawVal - currentStartVal;
+      currentStartVal = rawVal;
+      currentTipVal += diff;
+      updateUI();
+    };
 
-      card.onpointerdown = (e) => {
-        clone = card.cloneNode(true);
-        clone.style.position = 'fixed';
-        clone.style.zIndex = '1000';
-        clone.style.pointerEvents = 'none';
-        clone.style.opacity = '0.9';
-        clone.style.transform = 'scale(1.05)';
-        clone.style.left = `${e.clientX - 40}px`;
-        clone.style.top = `${e.clientY - 40}px`;
-        document.body.appendChild(clone);
+    startPin.onpointerup = (e) => {
+      if (isDraggingStart) {
+        isDraggingStart = false;
+        if (!hasMoved) startPin.style.cursor = 'grab';
+        startPin.releasePointerCapture(e.pointerId);
+      }
+    };
 
-        card.setPointerCapture(e.pointerId);
+    // "MOVE" BUTTON LOGIC (ACTIVATES ARROW & HIDES START PIN BADGE)
+    moveBtn.onclick = () => {
+      hasMoved = true;
+      moveBtn.style.background = '#10b981';
+      moveBtn.innerText = '✓ Move Active';
+      updateUI();
+    };
 
-        card.onpointermove = (pe) => {
-          if (clone) {
-            clone.style.left = `${pe.clientX - 40}px`;
-            clone.style.top = `${pe.clientY - 40}px`;
-          }
-        };
+    // POINTER DRAG LOGIC - ARROW TIP
+    let isDraggingTip = false;
+    arrowHead.onpointerdown = (e) => {
+      if (!hasMoved) return;
+      isDraggingTip = true;
+      arrowHead.style.cursor = 'grabbing';
+      arrowHead.setPointerCapture(e.pointerId);
+    };
 
-        card.onpointerup = (pe) => {
-          card.onpointermove = null;
-          card.onpointerup = null;
-          if (clone) {
-            clone.remove();
-            clone = null;
-          }
+    arrowHead.onpointermove = (e) => {
+      if (!isDraggingTip) return;
+      const rect = track.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, x / rect.width));
+      currentTipVal = Math.round(minVal + ratio * totalRange);
+      updateUI();
+    };
 
-          const dzRect = dropZone.getBoundingClientRect();
-          if (
-            pe.clientX >= dzRect.left &&
-            pe.clientX <= dzRect.right &&
-            pe.clientY >= dzRect.top &&
-            pe.clientY <= dzRect.bottom
-          ) {
-            const size = card.getAttribute('data-size');
-            addGroupToWorkspace(size);
-          }
-        };
-      };
-    });
+    arrowHead.onpointerup = (e) => {
+      if (isDraggingTip) {
+        isDraggingTip = false;
+        arrowHead.style.cursor = 'grab';
+        arrowHead.releasePointerCapture(e.pointerId);
+      }
+    };
+
+    // FLIP BUTTON LOGIC
+    flipBtn.onclick = () => {
+      if (!hasMoved) {
+        hasMoved = true;
+        moveBtn.style.background = '#10b981';
+        moveBtn.innerText = '✓ Move Active';
+      }
+
+      isFlipped = !isFlipped;
+      
+      // Mirror position about start pin
+      const distFromStart = currentTipVal - currentStartVal;
+      currentTipVal = currentStartVal - distFromStart;
+
+      updateUI();
+    };
+
+    // RESET BUTTON LOGIC (Restores Start Pin Badge)
+    asnResetBtn.onclick = () => {
+      hasMoved = false;
+      isFlipped = false;
+      currentStartVal = initialStart;
+      currentTipVal = initialStart;
+      typedAnswer = '';
+
+      moveBtn.style.background = '#3b82f6';
+      moveBtn.innerText = '➡️ Move';
+
+      ansDisplay.innerText = '?';
+      ansDisplay.removeAttribute('data-typed');
+
+      updateUI();
+    };
 
     // KEYPAD LOGIC
-    container.querySelectorAll('.mul-key[data-k]').forEach(btn => {
+    container.querySelectorAll('.asn-key[data-k]').forEach(btn => {
       btn.onclick = () => {
         const k = btn.getAttribute('data-k');
-        if (typedAnswer === '0') typedAnswer = k;
-        else typedAnswer += k;
-
+        if (k === '-' && typedAnswer.length === 0) {
+          typedAnswer = '-';
+        } else if (k !== '-') {
+          if (typedAnswer === '0') typedAnswer = k;
+          else typedAnswer += k;
+        }
         ansDisplay.innerText = typedAnswer || '?';
         ansDisplay.setAttribute('data-typed', typedAnswer);
       };
     });
 
-    container.querySelector('#multClear').onclick = () => {
-      typedAnswer = '';
-      ansDisplay.innerText = '?';
-      ansDisplay.removeAttribute('data-typed');
-    };
+    const clearBtn = container.querySelector('#asnClear');
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        typedAnswer = '';
+        ansDisplay.innerText = '?';
+        ansDisplay.removeAttribute('data-typed');
+      };
+    }
 
-    updateSentenceDisplay();
+    // Initial render setup
+    updateUI();
   },
 
   evaluate(q) {
-    const dropZone = document.getElementById('multDropZone');
+    const startPin = document.getElementById('startPin');
+    const arrowHead = document.getElementById('arrowHead');
     const ansDisplay = document.getElementById('ansDisplay');
 
-    if (!dropZone || !ansDisplay) return false;
+    if (!startPin || !arrowHead || !ansDisplay) return false;
 
-    const droppedSizesJson = dropZone.getAttribute('data-dropped-sizes');
-    const droppedSizes = droppedSizesJson ? JSON.parse(droppedSizesJson) : [];
+    const userStartVal = parseInt(startPin.getAttribute('data-val'), 10);
+    const userLineVal = parseInt(arrowHead.getAttribute('data-val'), 10);
+    const userMoved = arrowHead.getAttribute('data-moved') === 'true';
+    const userFlipped = arrowHead.getAttribute('data-flipped') === 'true';
     const userTypedVal = parseInt(ansDisplay.getAttribute('data-typed'), 10);
 
-    const isValidOptionA = droppedSizes.length === q.a && droppedSizes.every(sz => sz === q.b);
-    const isValidOptionB = droppedSizes.length === q.b && droppedSizes.every(sz => sz === q.a);
+    const requiredFlip = q.b < 0;
 
-    const isVisualCorrect = isValidOptionA || isValidOptionB;
-    const isAnswerCorrect = userTypedVal === q.target;
-
-    return isVisualCorrect && isAnswerCorrect;
+    return userStartVal === q.a && userMoved && userLineVal === q.target && userFlipped === requiredFlip && userTypedVal === q.target;
   }
 };
 
-registerQuestionType('multiplication', multiplicationModule);
+registerQuestionType('add_subtract_negatives', addSubtractNegativesModule);
