@@ -29,13 +29,9 @@ const negativeNumbersModule = {
     const maxVal = 10;
     const totalRange = maxVal - minVal;
 
-    let html = `
-      <div style="max-width: 550px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
-        <!-- NUMBER LINE CONTAINER -->
-    `;
+    let trackContentHtml = '';
 
     if (q.orientation === 'horizontal') {
-      // HORIZONTAL TICK MARKS FOR EVERY UNIT (-10 to +10)
       let ticksHtml = '';
       for (let v = minVal; v <= maxVal; v++) {
         const posPct = ((v - minVal) / totalRange) * 100;
@@ -68,9 +64,8 @@ const negativeNumbersModule = {
         }
       }
 
-      html += `
-        <div style="position: relative; height: 90px; margin: 20px 20px 20px 20px; padding: 0 10px;">
-          <!-- Track -->
+      trackContentHtml = `
+        <div style="position: relative; height: 90px; margin: 15px 10px; padding: 0 10px;">
           <div id="nlTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 25px; touch-action: none;">
             ${ticksHtml}
 
@@ -114,7 +109,6 @@ const negativeNumbersModule = {
       `;
 
     } else {
-      // VERTICAL TICK MARKS FOR EVERY UNIT (-10 to +10)
       let ticksHtml = '';
       for (let v = maxVal; v >= minVal; v--) {
         const posPct = ((v - minVal) / totalRange) * 100;
@@ -147,9 +141,9 @@ const negativeNumbersModule = {
         }
       }
 
-      html += `
-        <div style="display: flex; justify-content: center; margin: 10px 0 20px 0;">
-          <div id="nlTrack" style="position: relative; width: 60px; height: 300px; touch-action: none;">
+      trackContentHtml = `
+        <div style="display: flex; justify-content: center; margin: 10px 0;">
+          <div id="nlTrack" style="position: relative; width: 60px; height: 260px; touch-action: none;">
             <div style="position: absolute; left: 30px; top: 0; bottom: 0; width: 6px; background: var(--border-color); border-radius: 3px;">
               ${ticksHtml}
 
@@ -194,35 +188,47 @@ const negativeNumbersModule = {
       `;
     }
 
-    // DROPDOWN SELECTOR FOR INEQUALITY COMPARISON
-    html += `
-        <div style="
-          background: var(--bg-primary);
-          border: 2px solid var(--border-color);
-          border-radius: var(--radius);
-          padding: 14px 20px;
-          display: inline-flex;
-          align-items: center;
-          gap: 16px;
-          margin-top: 10px;
-        ">
-          <span style="font-size: 1.8rem; font-weight: 800; color: var(--accent);">${q.numA}</span>
-          
-          <select id="symbolSelect" class="input-field" style="
-            width: 75px; 
-            font-size: 1.5rem; 
-            font-weight: 800; 
-            text-align: center; 
-            padding: 4px 8px;
-            cursor: pointer;
-            border: 2px solid var(--border-color);
-          ">
-            <option value="">?</option>
-            <option value=">">></option>
-            <option value="<"><</option>
-          </select>
+    const html = `
+      <div class="ipad-responsive-grid" style="user-select: none; -webkit-user-select: none;">
+        
+        <!-- LEFT COLUMN: NUMBER LINE TRACK -->
+        <div class="ipad-left-pane">
+          ${trackContentHtml}
+        </div>
 
-          <span style="font-size: 1.8rem; font-weight: 800; color: #d97706;">${q.numB > 0 ? '+' + q.numB : q.numB}</span>
+        <!-- RIGHT COLUMN: DROPDOWN SELECTOR & COMPARISON -->
+        <div class="ipad-right-pane" style="text-align: center;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
+            Choose Inequality Symbol:
+          </div>
+
+          <div style="
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+          ">
+            <span style="font-size: 1.6rem; font-weight: 800; color: var(--accent);">${q.numA}</span>
+            
+            <select id="symbolSelect" class="input-field" style="
+              width: 70px; 
+              font-size: 1.4rem; 
+              font-weight: 800; 
+              text-align: center; 
+              padding: 4px;
+              cursor: pointer;
+              border: 2px solid var(--border-color);
+            ">
+              <option value="">?</option>
+              <option value=">">></option>
+              <option value="<"><</option>
+            </select>
+
+            <span style="font-size: 1.6rem; font-weight: 800; color: #d97706;">${q.numB > 0 ? '+' + q.numB : q.numB}</span>
+          </div>
         </div>
 
       </div>
