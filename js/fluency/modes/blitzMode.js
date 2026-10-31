@@ -28,24 +28,61 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         .blitz-arena-grid { grid-template-columns: 1fr; }
       }
 
-      /* SHURIKEN & LIGHTNING ANIMATIONS */
-      @keyframes throwShuriken {
-        0% { transform: scale(0.6) rotate(0deg); opacity: 0; left: 10%; bottom: 10%; }
-        50% { opacity: 1; }
-        100% { transform: scale(1.3) rotate(720deg); opacity: 1; left: 50%; bottom: 50%; }
+      /* --- SHURIKEN & DUMMY TRAJECTORY ANIMATIONS --- */
+      
+      /* HIT: Flies from bottom-center directly into the dummy's chest */
+      @keyframes shurikenHitTrajectory {
+        0% {
+          transform: translate(-50%, 120px) scale(0.4) rotate(0deg);
+          opacity: 0;
+        }
+        30% { opacity: 1; }
+        100% {
+          transform: translate(-50%, -10px) scale(1.1) rotate(1080deg);
+          opacity: 1;
+        }
       }
 
-      @keyframes lightningFlash {
-        0%, 100% { opacity: 0; }
-        50% { opacity: 0.8; }
+      /* MISS: Whizzes past the dummy to the upper right off-target */
+      @keyframes shurikenMissTrajectory {
+        0% {
+          transform: translate(-50%, 120px) scale(0.4) rotate(0deg);
+          opacity: 0;
+        }
+        30% { opacity: 1; }
+        100% {
+          transform: translate(140px, -140px) scale(0.6) rotate(1440deg);
+          opacity: 0;
+        }
       }
 
-      .shuriken-fly {
-        animation: throwShuriken 0.25s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      /* DUMMY IMPACT WOBBLE */
+      @keyframes dummyHitWobble {
+        0%, 100% { transform: scale(1) rotate(0deg); }
+        25% { transform: scale(1.08) rotate(-8deg); }
+        75% { transform: scale(1.08) rotate(8deg); }
       }
 
-      .lightning-overlay {
-        animation: lightningFlash 0.3s ease-out;
+      /* DUMMY MISS DODGE */
+      @keyframes dummyMissDodge {
+        0%, 100% { transform: translateX(0); }
+        30% { transform: translateX(-18px) rotate(-6deg); }
+      }
+
+      .animate-shuriken-hit {
+        animation: shurikenHitTrajectory 0.28s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+      }
+
+      .animate-shuriken-miss {
+        animation: shurikenMissTrajectory 0.32s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+      }
+
+      .animate-dummy-hit {
+        animation: dummyHitWobble 0.3s ease-in-out;
+      }
+
+      .animate-dummy-miss {
+        animation: dummyMissDodge 0.3s ease-in-out;
       }
 
       .flash-correct {
@@ -76,55 +113,76 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
     <div class="card" style="width: 100%; max-width: 1100px; margin: 0 auto; padding: 20px;">
       <div class="blitz-arena-grid">
         
-        <!-- LEFT COLUMN: TARGET DUMMY ARENA & LIGHTNING VISUALS -->
+        <!-- LEFT COLUMN: TRAINING DUMMY & SHURIKEN DOJO ARENA -->
         <div style="background: linear-gradient(180deg, #090d16 0%, #1e1b4b 100%); border-radius: 16px; padding: 20px; position: relative; min-height: 460px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; border: 2px solid #6366f1;">
           
-          <!-- LIGHTNING OVERLAY EFFECT -->
-          <div id="blitzLightning" class="lightning-overlay" style="position: absolute; inset: 0; background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, transparent 70%); opacity: 0; pointer-events: none; z-index: 2;"></div>
-
-          <!-- HEADER: 30S TIMER & STREAK COUNTER -->
+          <!-- HEADER: 30S TIMER & STREAK BADGE -->
           <div style="display: flex; justify-content: space-between; align-items: center; z-index: 5;">
-            <!-- RADIAL COUNTDOWN DISPLAY -->
             <div style="background: rgba(15, 23, 42, 0.85); border: 2px solid #38bdf8; padding: 6px 14px; border-radius: 10px; display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.2rem;">⏱️</span>
               <span id="blitzTimerDisplay" style="font-size: 1.4rem; font-weight: 900; color: #38bdf8; font-family: monospace;">30.0s</span>
             </div>
 
-            <!-- LIVE STREAK METER -->
             <div id="blitzStreakBadge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #f59e0b; font-weight: 900; padding: 6px 14px; border-radius: 10px; font-size: 1rem; transition: transform 0.2s ease;">
               🔥 STREAK: 0
             </div>
           </div>
 
-          <!-- CENTER DUMMY & SHURIKEN STRIKE ZONE -->
-          <div style="position: relative; height: 260px; display: flex; justify-content: center; align-items: center; z-index: 3;">
+          <!-- CENTER ARENA: MARTIAL ARTS WOODEN DUMMY & SHURIKEN LAYER -->
+          <div style="position: relative; height: 280px; display: flex; justify-content: center; align-items: center; z-index: 3; width: 100%;">
             
-            <!-- TARGET DUMMY -->
-            <div id="targetDummy" style="font-size: 6rem; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.7)); transition: transform 0.15s ease;">🎯</div>
+            <!-- MARTIAL ARTS TRAINING DUMMY (SVG WOODEN POST & ARMS) -->
+            <div id="trainingDummy" style="position: relative; width: 140px; height: 220px; display: flex; flex-direction: column; align-items: center; transition: transform 0.15s ease;">
+              <!-- DUMMY HEAD & HEADBAND -->
+              <div style="width: 56px; height: 56px; background: #854d0e; border-radius: 50%; border: 3px solid #713f12; position: relative; display: flex; justify-content: center; align-items: center;">
+                <div style="position: absolute; top: 12px; width: 100%; height: 10px; background: #ef4444;"></div>
+                <div style="font-size: 1.2rem; z-index: 2; margin-top: 4px;">🪵</div>
+              </div>
 
-            <!-- FLYING SHURIKEN SPRITE -->
+              <!-- DUMMY TORSO & WOODEN ARMS -->
+              <div style="width: 44px; height: 110px; background: #a16207; border-radius: 8px; border: 3px solid #713f12; position: relative; margin-top: -4px;">
+                <!-- LEFT ARM -->
+                <div style="position: absolute; top: 20px; left: -30px; width: 34px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px; transform: rotate(-15deg);"></div>
+                <!-- RIGHT ARM -->
+                <div style="position: absolute; top: 35px; right: -30px; width: 34px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px; transform: rotate(15deg);"></div>
+                <!-- MIDDLE ARM -->
+                <div style="position: absolute; top: 60px; left: -22px; width: 26px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px;"></div>
+                
+                <!-- EMBEDDED SHURIKENS CONTAINER (Landed hits accumulate here) -->
+                <div id="stuckShurikens" style="position: absolute; inset: 0; pointer-events: none;"></div>
+              </div>
+
+              <!-- DUMMY BASE / STAND -->
+              <div style="width: 70px; height: 20px; background: #54320c; border-radius: 4px; border: 2px solid #3b2207; margin-top: -2px;"></div>
+            </div>
+
+            <!-- ANIMATING FLYING SHURIKEN SPRITE -->
             <div id="shurikenSprite" style="
-              position: absolute; 
-              font-size: 3rem; 
+              position: absolute;
+              bottom: 20px;
+              left: 50%;
+              font-size: 3rem;
               opacity: 0;
               pointer-events: none;
-              transform: translate(-50%, 50%);
+              z-index: 10;
+              filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.8));
             ">🥷</div>
 
-            <!-- HIT SPARK / IMPACT EFFECT -->
-            <div id="blitzHitEffect" style="
+            <!-- IMPACT SPARK / MISS DUST EFFECT -->
+            <div id="blitzImpactEffect" style="
               position: absolute;
-              font-size: 4rem;
+              font-size: 3.5rem;
               opacity: 0;
-              transition: all 0.2s ease;
               pointer-events: none;
-            ">⚡</div>
+              z-index: 12;
+              transition: opacity 0.2s ease;
+            ">💥</div>
           </div>
 
-          <!-- FOOTER SCORE COUNTER -->
+          <!-- FOOTER STATS -->
           <div style="display: flex; justify-content: space-between; align-items: flex-end; z-index: 5;">
             <div style="color: #94a3b8; font-size: 0.9rem; font-weight: 800;">
-              TARGETS STRUCK: <strong id="blitzScoreCount" style="color: #10b981; font-size: 1.2rem;">0</strong>
+              DUMMY HITS: <strong id="blitzScoreCount" style="color: #10b981; font-size: 1.2rem;">0</strong>
             </div>
             <span style="color: #818cf8; font-size: 0.8rem; font-weight: 800; letter-spacing: 1px;">SHURIKEN BLITZ</span>
           </div>
@@ -232,7 +290,7 @@ function submitAnswer(currentUser, onFinishCallback) {
   if (!userAnswerStr || !currentQ || timeRemaining <= 0) return;
 
   const res = engine.submitAnswer(userAnswerStr, currentQ);
-  triggerStrikeAnimation(res.isCorrect, res.currentStreak);
+  triggerShurikenFlight(res.isCorrect, res.currentStreak);
 
   // Update Score counter
   const scoreEl = document.getElementById('blitzScoreCount');
@@ -251,13 +309,13 @@ function submitAnswer(currentUser, onFinishCallback) {
   nextQuestion(currentUser);
 }
 
-function triggerStrikeAnimation(isCorrect, streak) {
-  const dummy = document.getElementById('targetDummy');
+function triggerShurikenFlight(isCorrect, streak) {
+  const dummy = document.getElementById('trainingDummy');
   const shuriken = document.getElementById('shurikenSprite');
-  const effect = document.getElementById('blitzHitEffect');
+  const impactEffect = document.getElementById('blitzImpactEffect');
+  const stuckContainer = document.getElementById('stuckShurikens');
   const box = document.getElementById('fluencyAnswerBox');
   const badge = document.getElementById('fluencyFeedbackBadge');
-  const lightning = document.getElementById('blitzLightning');
 
   if (box) {
     box.classList.remove('flash-correct', 'flash-wrong');
@@ -269,42 +327,80 @@ function triggerStrikeAnimation(isCorrect, streak) {
     badge.style.visibility = 'visible';
     badge.style.background = isCorrect ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
     badge.style.color = isCorrect ? '#10b981' : '#ef4444';
-    badge.innerText = isCorrect ? `⚡ BULLSEYE! (${streak}x Streak)` : '💥 MISS!';
-    setTimeout(() => { badge.style.visibility = 'hidden'; }, 400);
+    badge.innerText = isCorrect ? `⚡ DIRECT HIT! (${streak}x Streak)` : '💨 SHURIKEN MISSED!';
+    setTimeout(() => { badge.style.visibility = 'hidden'; }, 450);
   }
 
-  if (isCorrect) {
-    if (shuriken) {
-      shuriken.classList.remove('shuriken-fly');
-      void shuriken.offsetWidth;
-      shuriken.classList.add('shuriken-fly');
-    }
+  if (shuriken) {
+    shuriken.classList.remove('animate-shuriken-hit', 'animate-shuriken-miss');
+    void shuriken.offsetWidth;
 
-    if (dummy) {
+    if (isCorrect) {
+      // 1. FLY DIRECTLY TO DUMMY
+      shuriken.classList.add('animate-shuriken-hit');
+
+      // 2. DUMMY WOBBLES ON IMPACT
       setTimeout(() => {
-        dummy.style.transform = 'scale(1.2) rotate(10deg)';
-        setTimeout(() => { dummy.style.transform = 'scale(1) rotate(0deg)'; }, 150);
-      }, 200);
-    }
+        if (dummy) {
+          dummy.classList.remove('animate-dummy-hit', 'animate-dummy-miss');
+          void dummy.offsetWidth;
+          dummy.classList.add('animate-dummy-hit');
+        }
 
-    if (lightning && streak >= 3) {
-      lightning.classList.remove('lightning-overlay');
-      void lightning.offsetWidth;
-      lightning.classList.add('lightning-overlay');
-    }
-  } else {
-    if (effect) {
-      effect.innerText = '❌';
-      effect.style.opacity = '1';
-      setTimeout(() => { effect.style.opacity = '0'; }, 300);
+        if (impactEffect) {
+          impactEffect.innerText = '⚡';
+          impactEffect.style.left = '50%';
+          impactEffect.style.top = '40%';
+          impactEffect.style.transform = 'translate(-50%, -50%)';
+          impactEffect.style.opacity = '1';
+          setTimeout(() => { impactEffect.style.opacity = '0'; }, 250);
+        }
+
+        // Add a small stuck shuriken pin on the wooden dummy torso
+        if (stuckContainer) {
+          const pin = document.createElement('span');
+          pin.innerText = '🥷';
+          pin.style.position = 'absolute';
+          pin.style.fontSize = '1rem';
+          pin.style.left = `${Math.floor(Math.random() * 24 + 6)}px`;
+          pin.style.top = `${Math.floor(Math.random() * 60 + 15)}px`;
+          pin.style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
+          stuckContainer.appendChild(pin);
+
+          // Limit stuck pins to 8 max to keep canvas clean
+          if (stuckContainer.children.length > 8) {
+            stuckContainer.removeChild(stuckContainer.firstChild);
+          }
+        }
+      }, 260);
+
+    } else {
+      // 1. FLY PAST DUMMY INTO WALL
+      shuriken.classList.add('animate-shuriken-miss');
+
+      // 2. DUMMY DODGES SLIGHTLY
+      setTimeout(() => {
+        if (dummy) {
+          dummy.classList.remove('animate-dummy-hit', 'animate-dummy-miss');
+          void dummy.offsetWidth;
+          dummy.classList.add('animate-dummy-miss');
+        }
+
+        if (impactEffect) {
+          impactEffect.innerText = '💨';
+          impactEffect.style.left = '75%';
+          impactEffect.style.top = '25%';
+          impactEffect.style.transform = 'translate(-50%, -50%)';
+          impactEffect.style.opacity = '1';
+          setTimeout(() => { impactEffect.style.opacity = '0'; }, 250);
+        }
+      }, 240);
     }
   }
 }
 
 function finishBlitz(onFinishCallback) {
-  // Disable Keypad
   document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
-
   const results = engine.finishSession();
   onFinishCallback(results);
 }
