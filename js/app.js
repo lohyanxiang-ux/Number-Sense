@@ -270,6 +270,7 @@ async function handleLogin() {
         body: JSON.stringify({ action: 'login', studentCode: enteredPin })
       });
       const data = await res.json();
+
       if (data.success && !data.isTeacher) {
         const isDoneToday = (data.lastDailyCompleted === todayStr) || 
                             (localStorage.getItem(`NUMSENSE_DAILY_DONE_${enteredPin}`) === todayStr);
@@ -289,23 +290,27 @@ async function handleLogin() {
         enteredPin = '';
         startStudentSession();
         return;
+      } else {
+        // Display error message when PIN is not found in Google Sheet
+        if (errEl) {
+          errEl.innerText = data.error || "Invalid PIN. Student record not found.";
+          errEl.classList.remove('hidden');
+        }
+        return;
       }
-    } catch (e) {}
+    } catch (e) {
+      if (errEl) {
+        errEl.innerText = "Network error. Unable to verify PIN.";
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
+  } else {
+    if (errEl) {
+      errEl.innerText = "Google Sheet URL is not configured.";
+      errEl.classList.remove('hidden');
+    }
   }
-
-  const localDoneToday = localStorage.getItem(`NUMSENSE_DAILY_DONE_${enteredPin}`) === todayStr;
-  currentUser = { 
-    code: enteredPin, 
-    name: 'Student ' + enteredPin, 
-    class: 'Sec 2A', 
-    xp: 0, 
-    streak: 1, 
-    tokens: 0, 
-    dailyDoneToday: localDoneToday,
-    proficiency: {} 
-  };
-  enteredPin = '';
-  startStudentSession();
 }
 
 function startStudentSession() {
