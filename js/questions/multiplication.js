@@ -35,7 +35,7 @@ const multiplicationModule = {
       const obj = funObjects[size];
       let emojisHtml = '';
       for (let i = 0; i < size; i++) {
-        emojisHtml += `<span style="font-size: 1.2rem;">${obj.emoji}</span>`;
+        emojisHtml += `<span style="font-size: 1.1rem;">${obj.emoji}</span>`;
       }
 
       bankCardsHtml += `
@@ -43,19 +43,19 @@ const multiplicationModule = {
           background: var(--bg-card);
           border: 2px solid var(--border-color);
           border-radius: 12px;
-          padding: 8px 10px;
+          padding: 6px 8px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 4px;
+          gap: 3px;
           cursor: grab;
           touch-action: none;
           user-select: none;
           box-shadow: 0 2px 4px rgba(0,0,0,0.08);
           transition: transform 0.15s ease, border-color 0.15s ease;
         ">
-          <span style="font-size: 0.75rem; font-weight: 800; color: var(--accent);">Group of ${size}</span>
-          <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 75px;">
+          <span style="font-size: 0.7rem; font-weight: 800; color: var(--accent);">Group of ${size}</span>
+          <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 65px;">
             ${emojisHtml}
           </div>
         </div>
@@ -63,103 +63,97 @@ const multiplicationModule = {
     });
 
     const html = `
-      <div style="max-width: 620px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
+      <div class="ipad-responsive-grid" style="user-select: none; -webkit-user-select: none;">
         
-        <!-- MAIN WORKSPACE LAYOUT (SIDE BANK + DROP ZONE) -->
-        <div style="
-          display: grid;
-          grid-template-columns: 130px 1fr;
-          gap: 14px;
-          margin: 15px 0 20px 0;
-          align-items: start;
-        ">
-          <!-- LEFT SIDE BANK -->
+        <!-- LEFT COLUMN: SIDE BANK, DROP ZONE & REPEATED ADDITION -->
+        <div class="ipad-left-pane">
           <div style="
-            background: var(--bg-primary);
-            border: 2px solid var(--border-color);
-            border-radius: 14px;
-            padding: 10px 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 290px;
-            overflow-y: auto;
-          ">
-            <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
-              Available Groups
-            </span>
-            ${bankCardsHtml}
-          </div>
-
-          <!-- DROP ZONE WORKSPACE -->
-          <div id="multDropZone" style="
-            background: rgba(79, 70, 229, 0.03);
-            border: 2px dashed var(--accent);
-            border-radius: 14px;
-            min-height: 270px;
-            padding: 12px;
-            display: flex;
-            flex-wrap: wrap;
-            align-content: flex-start;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: 110px 1fr;
             gap: 10px;
-            position: relative;
-            touch-action: none;
+            margin-bottom: 12px;
+            align-items: start;
           ">
-            <div id="dropPlaceholder" style="
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              color: var(--text-muted);
-              font-weight: 700;
-              font-size: 0.95rem;
-              pointer-events: none;
+            <!-- LEFT SIDE BANK -->
+            <div style="
+              background: var(--bg-primary);
+              border: 2px solid var(--border-color);
+              border-radius: 12px;
+              padding: 8px 6px;
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
+              max-height: 250px;
+              overflow-y: auto;
             ">
-              📥 Drag or tap groups here
+              <span style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
+                Available
+              </span>
+              ${bankCardsHtml}
+            </div>
+
+            <!-- DROP ZONE WORKSPACE -->
+            <div id="multDropZone" style="
+              background: rgba(79, 70, 229, 0.03);
+              border: 2px dashed var(--accent);
+              border-radius: 12px;
+              min-height: 230px;
+              padding: 8px;
+              display: flex;
+              flex-wrap: wrap;
+              align-content: flex-start;
+              justify-content: center;
+              gap: 6px;
+              position: relative;
+              touch-action: none;
+            ">
+              <div id="dropPlaceholder" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: var(--text-muted);
+                font-weight: 700;
+                font-size: 0.85rem;
+                pointer-events: none;
+                text-align: center;
+              ">
+                📥 Drag or tap groups here
+              </div>
             </div>
           </div>
+
+          <!-- REPEATED ADDITION LIVE TRACKER -->
+          <div style="
+            background: rgba(79, 70, 229, 0.08); 
+            border: 2px solid var(--accent); 
+            border-radius: 10px; 
+            padding: 8px 12px; 
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--accent);
+          ">
+            <span style="font-size: 0.75rem; display: block; color: var(--text-muted); margin-bottom: 2px; font-weight: 700; text-transform: uppercase;">
+              Repeated Addition View
+            </span>
+            <span id="repAddSentence">?</span>
+          </div>
         </div>
 
-        <!-- REPEATED ADDITION LIVE TRACKER -->
-        <div style="
-          background: rgba(79, 70, 229, 0.08); 
-          border: 2px solid var(--accent); 
-          border-radius: 12px; 
-          padding: 10px 18px; 
-          display: inline-block; 
-          margin-bottom: 20px;
-          font-size: 1.25rem;
-          font-weight: 800;
-          color: var(--accent);
-        ">
-          <span style="font-size: 0.8rem; display: block; color: var(--text-muted); margin-bottom: 2px; font-weight: 700; text-transform: uppercase;">
-            Repeated Addition View
-          </span>
-          <span id="repAddSentence">?</span>
-        </div>
-
-        <!-- EQUATION INPUT & ENLARGED TOUCH KEYPAD -->
-        <div style="
-          background: var(--bg-primary); 
-          border: 2px solid var(--border-color); 
-          border-radius: var(--radius); 
-          padding: 20px; 
-          max-width: 380px; 
-          margin: 0 auto;
-          box-shadow: var(--shadow);
-        ">
-          <div style="font-size: 1.6rem; font-weight: 800; margin-bottom: 14px;">
+        <!-- RIGHT COLUMN: EQUATION INPUT & KEYPAD -->
+        <div class="ipad-right-pane" style="text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 12px;">
             ${q.exprStr} = <span id="ansDisplay" style="
               color: var(--accent); 
               border-bottom: 3.5px solid var(--accent); 
-              padding: 0 12px;
-              min-width: 65px;
+              padding: 0 10px;
+              min-width: 60px;
               display: inline-block;
-            ">?</span>
+            ">${typedAnswer || '?'}</span>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 260px; margin: 0 auto;">
             <button class="mult-key" data-k="1">1</button>
             <button class="mult-key" data-k="2">2</button>
             <button class="mult-key" data-k="3">3</button>
@@ -181,10 +175,10 @@ const multiplicationModule = {
 
     // STYLING KEYPAD BUTTONS
     container.querySelectorAll('.mult-key').forEach(btn => {
-      btn.style.height = '58px';
-      btn.style.fontSize = '1.4rem';
+      btn.style.height = '46px';
+      btn.style.fontSize = '1.2rem';
       btn.style.fontWeight = '800';
-      btn.style.borderRadius = '10px';
+      btn.style.borderRadius = '8px';
       btn.style.border = '2px solid var(--border-color)';
       btn.style.background = 'var(--bg-card)';
       btn.style.color = 'var(--text-main)';
@@ -209,10 +203,8 @@ const multiplicationModule = {
         placeholder.style.display = 'none';
         
         if (droppedGroups.length === 1) {
-          // E.g., 1 group of 2 -> "2"
           sentenceEl.innerText = `${droppedGroups[0]}`;
         } else {
-          // E.g., 2 groups of 2 -> "2 + 2 = 4", 3 groups of 2 -> "2 + 2 + 2 = 6"
           const sum = droppedGroups.reduce((acc, curr) => acc + curr, 0);
           sentenceEl.innerText = `${droppedGroups.join(' + ')} = ${sum}`;
         }
@@ -228,7 +220,7 @@ const multiplicationModule = {
       const obj = funObjects[groupSize];
       let emojisHtml = '';
       for (let i = 0; i < groupSize; i++) {
-        emojisHtml += `<span style="font-size: 1.3rem;">${obj.emoji}</span>`;
+        emojisHtml += `<span style="font-size: 1.1rem;">${obj.emoji}</span>`;
       }
 
       const cardEl = document.createElement('div');
@@ -237,33 +229,32 @@ const multiplicationModule = {
       cardEl.style.cssText = `
         background: var(--bg-card);
         border: 2px solid var(--accent);
-        border-radius: 12px;
-        padding: 8px 12px;
+        border-radius: 10px;
+        padding: 6px 10px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
         cursor: pointer;
         position: relative;
         box-shadow: 0 3px 6px rgba(0,0,0,0.12);
-        animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       `;
 
       cardEl.innerHTML = `
-        <span style="font-size: 0.75rem; font-weight: 800; color: var(--accent);">+${groupSize}</span>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; max-width: 80px;">
+        <span style="font-size: 0.7rem; font-weight: 800; color: var(--accent);">+${groupSize}</span>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 70px;">
           ${emojisHtml}
         </div>
         <span style="
           position: absolute;
-          top: -6px;
-          right: -6px;
+          top: -5px;
+          right: -5px;
           background: #ef4444;
           color: white;
           border-radius: 50%;
-          width: 18px;
-          height: 18px;
-          font-size: 0.7rem;
+          width: 16px;
+          height: 16px;
+          font-size: 0.65rem;
           font-weight: 800;
           display: flex;
           align-items: center;
@@ -271,9 +262,7 @@ const multiplicationModule = {
         ">✕</span>
       `;
 
-      // Click dropped item to remove it
       cardEl.onclick = () => {
-        const idx = Array.from(dropZone.children).indexOf(cardEl) - 1; // subtract placeholder
         const foundIndex = droppedGroups.indexOf(groupSize);
         if (foundIndex > -1) {
           droppedGroups.splice(foundIndex, 1);
@@ -297,12 +286,8 @@ const multiplicationModule = {
     // INTERACTION 2: TOUCH / POINTER DRAG & DROP LOGIC
     container.querySelectorAll('.bank-group-card').forEach(card => {
       let clone = null;
-      let startX = 0, startY = 0;
 
       card.onpointerdown = (e) => {
-        startX = e.clientX;
-        startY = e.clientY;
-
         clone = card.cloneNode(true);
         clone.style.position = 'fixed';
         clone.style.zIndex = '1000';
@@ -345,7 +330,7 @@ const multiplicationModule = {
     });
 
     // KEYPAD LOGIC
-    container.querySelectorAll('.mult-key[data-k]').forEach(btn => {
+    container.querySelectorAll('.mul-key[data-k]').forEach(btn => {
       btn.onclick = () => {
         const k = btn.getAttribute('data-k');
         if (typedAnswer === '0') typedAnswer = k;
@@ -375,9 +360,6 @@ const multiplicationModule = {
     const droppedSizes = droppedSizesJson ? JSON.parse(droppedSizesJson) : [];
     const userTypedVal = parseInt(ansDisplay.getAttribute('data-typed'), 10);
 
-    // Accept EITHER representation:
-    // Option A: q.a groups of size q.b
-    // Option B: q.b groups of size q.a
     const isValidOptionA = droppedSizes.length === q.a && droppedSizes.every(sz => sz === q.b);
     const isValidOptionB = droppedSizes.length === q.b && droppedSizes.every(sz => sz === q.a);
 
