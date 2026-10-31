@@ -15,10 +15,9 @@ const funObjects = [
 
 const divisionModule = {
   generate() {
-    const b = Math.floor(Math.random() * 4) + 2; // Divisor (groups): 2 to 5
-    const target = Math.floor(Math.random() * 5) + 2; // Quotient (per group): 2 to 6
-    const a = b * target; // Dividend (total items)
-
+    const b = Math.floor(Math.random() * 4) + 2;
+    const target = Math.floor(Math.random() * 5) + 2;
+    const a = b * target;
     const item = funObjects[Math.floor(Math.random() * funObjects.length)];
 
     return {
@@ -43,114 +42,106 @@ const divisionModule = {
     let groupCounts = q.userGroupCounts || [];
     let typedAnswer = q.userTypedAnswer || '';
 
-    // Initialize state on question object
     q.userSelectedGroups = selectedGroupCount;
     q.userGroupCounts = groupCounts;
     q.userTypedAnswer = typedAnswer;
 
     const html = `
-      <div style="max-width: 620px; margin: 0 auto; text-align: center; user-select: none; -webkit-user-select: none;">
+      <div class="ipad-responsive-grid" style="user-select: none;">
         
-        <!-- STEP 1: GROUP COUNT SELECTOR -->
-        <div style="
-          background: var(--bg-card);
-          border: 2px solid var(--border-color);
-          border-radius: 12px;
-          padding: 12px;
-          margin-bottom: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        ">
-          <span style="font-weight: 800; font-size: 0.95rem; color: var(--text-main);">
-            1. Select Number of Groups:
-          </span>
-          <div id="groupBtnContainer" style="display: flex; gap: 6px;">
-            ${[2, 3, 4, 5, 6].map(num => `
-              <button class="div-group-btn" data-cnt="${num}" style="
-                background: var(--bg-primary);
-                border: 2px solid var(--border-color);
-                color: var(--text-main);
-                font-weight: 800;
-                font-size: 1rem;
-                padding: 6px 14px;
-                border-radius: 8px;
-                cursor: pointer;
-                touch-action: manipulation;
-                transition: all 0.2s ease;
-              ">${num}</button>
-            `).join('')}
-          </div>
-        </div>
-
-        <!-- STEP 2: UNALLOCATED ITEM POOL -->
-        <div style="
-          background: var(--bg-primary);
-          border: 2px solid var(--border-color);
-          border-radius: 14px;
-          padding: 12px;
-          margin-bottom: 16px;
-        ">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px;">
-            <span style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
-              Items to Divide (Total: ${q.a})
-            </span>
-            <span id="poolCountBadge" style="font-size: 0.85rem; font-weight: 800; color: var(--accent);">
-              ${unallocatedCount} Remaining
-            </span>
-          </div>
-          
-          <div id="itemPool" style="
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 6px;
-            min-height: 52px;
-            padding: 8px;
+        <!-- LEFT COLUMN: VISUAL GROUPING WORKSPACE -->
+        <div class="ipad-left-pane">
+          <!-- STEP 1: GROUP COUNT SELECTOR -->
+          <div style="
             background: var(--bg-card);
-            border: 2px dashed var(--accent);
-            border-radius: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
           ">
+            <span style="font-weight: 800; font-size: 0.85rem; color: var(--text-main);">
+              1. Select Number of Groups:
+            </span>
+            <div id="groupBtnContainer" style="display: flex; gap: 6px;">
+              ${[2, 3, 4, 5, 6].map(num => `
+                <button class="div-group-btn" data-cnt="${num}" style="
+                  background: var(--bg-primary);
+                  border: 2px solid var(--border-color);
+                  color: var(--text-main);
+                  font-weight: 800;
+                  font-size: 0.95rem;
+                  padding: 4px 12px;
+                  border-radius: 8px;
+                  cursor: pointer;
+                  touch-action: manipulation;
+                ">${num}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- STEP 2: UNALLOCATED ITEM POOL -->
+          <div style="
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 12px;
+          ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 4px;">
+              <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
+                Items to Divide (Total: ${q.a})
+              </span>
+              <span id="poolCountBadge" style="font-size: 0.8rem; font-weight: 800; color: var(--accent);">
+                ${unallocatedCount} Remaining
+              </span>
+            </div>
+            
+            <div id="itemPool" style="
+              display: flex;
+              flex-wrap: wrap;
+              justify-content: center;
+              gap: 6px;
+              min-height: 48px;
+              padding: 6px;
+              background: var(--bg-card);
+              border: 2px dashed var(--accent);
+              border-radius: 10px;
+            ">
+            </div>
+          </div>
+
+          <!-- STEP 3: DYNAMIC GROUP TRAYS -->
+          <div id="divTraysContainer" style="
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            min-height: 100px;
+          ">
+            <div style="color: var(--text-muted); font-weight: 700; font-size: 0.85rem; padding: 20px 0;">
+              👆 Select group count above to start dividing
+            </div>
           </div>
         </div>
 
-        <!-- STEP 3: DYNAMIC GROUP TRAYS WORKSPACE -->
-        <div id="divTraysContainer" style="
-          display: flex;
-          justify-content: center;
-          gap: 10px;
-          flex-wrap: wrap;
-          margin-bottom: 16px;
-          min-height: 120px;
-        ">
-          <div style="color: var(--text-muted); font-weight: 700; font-size: 0.9rem; padding: 30px 0;">
-            👆 Select the number of groups above to start dividing
-          </div>
-        </div>
-
-        <!-- EQUATION INPUT & TOUCH KEYPAD -->
-        <div style="
-          background: var(--bg-primary); 
-          border: 2px solid var(--border-color); 
-          border-radius: var(--radius); 
-          padding: 20px; 
-          max-width: 380px; 
-          margin: 0 auto;
-          box-shadow: var(--shadow);
-        ">
-          <div style="font-size: 1.6rem; font-weight: 800; margin-bottom: 14px;">
+        <!-- RIGHT COLUMN: EQUATION & KEYPAD -->
+        <div class="ipad-right-pane" style="text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 12px;">
             ${q.a} ÷ ${q.b} = <span id="ansDisplay" style="
               color: var(--accent); 
-              border-bottom: 3.5px solid var(--accent); 
-              padding: 0 12px;
-              min-width: 65px;
+              border-bottom: 3px solid var(--accent); 
+              padding: 0 10px;
+              min-width: 55px;
               display: inline-block;
             ">${typedAnswer || '?'}</span>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 280px; margin: 0 auto;">
             <button class="div-key" data-k="1">1</button>
             <button class="div-key" data-k="2">2</button>
             <button class="div-key" data-k="3">3</button>
@@ -171,10 +162,10 @@ const divisionModule = {
     container.innerHTML = html;
 
     container.querySelectorAll('.div-key').forEach(btn => {
-      btn.style.height = '58px';
-      btn.style.fontSize = '1.4rem';
+      btn.style.height = '48px';
+      btn.style.fontSize = '1.2rem';
       btn.style.fontWeight = '800';
-      btn.style.borderRadius = '10px';
+      btn.style.borderRadius = '8px';
       btn.style.border = '2px solid var(--border-color)';
       btn.style.background = 'var(--bg-card)';
       btn.style.color = 'var(--text-main)';
@@ -192,8 +183,8 @@ const divisionModule = {
       for (let i = 0; i < unallocatedCount; i++) {
         poolHtml += `
           <div class="div-pool-item" style="
-            font-size: 1.5rem;
-            padding: 4px 8px;
+            font-size: 1.4rem;
+            padding: 3px 6px;
             background: var(--bg-primary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -280,7 +271,6 @@ const divisionModule = {
       const isAllEqual = groupCounts.length > 0 && groupCounts.every(val => val === groupCounts[0] && val > 0);
       const isFullyEqual = isAllDivided && isAllEqual;
 
-      // RED if unequal or incomplete, GREEN when all items divided equally
       const trayBorderColor = isFullyEqual ? '#10b981' : '#ef4444';
       const trayBg = isFullyEqual ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.06)';
       const badgeBg = isFullyEqual ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)';
@@ -291,17 +281,17 @@ const divisionModule = {
         const cnt = groupCounts[g];
         let itemsHtml = '';
         for (let k = 0; k < cnt; k++) {
-          itemsHtml += `<span style="font-size: 1.3rem;">${q.itemEmoji}</span>`;
+          itemsHtml += `<span style="font-size: 1.2rem;">${q.itemEmoji}</span>`;
         }
 
         traysHtml += `
           <div class="div-tray-card" data-gidx="${g}" style="
             background: ${trayBg};
             border: 2px solid ${trayBorderColor};
-            border-radius: 14px;
-            padding: 10px;
-            min-width: 95px;
-            min-height: 110px;
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 80px;
+            min-height: 95px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -310,7 +300,7 @@ const divisionModule = {
             box-shadow: 0 2px 4px rgba(0,0,0,0.08);
             transition: all 0.2s ease;
           ">
-            <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
+            <span style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
               Group ${g + 1}
             </span>
 
@@ -318,20 +308,20 @@ const divisionModule = {
               display: flex;
               flex-wrap: wrap;
               justify-content: center;
-              gap: 3px;
-              margin: 6px 0;
-              min-height: 42px;
+              gap: 2px;
+              margin: 4px 0;
+              min-height: 36px;
             ">
-              ${itemsHtml || `<span style="font-size: 0.75rem; color: var(--text-muted);">Tap to add</span>`}
+              ${itemsHtml || `<span style="font-size: 0.7rem; color: var(--text-muted);">Tap</span>`}
             </div>
 
             <span style="
-              font-size: 0.85rem;
+              font-size: 0.75rem;
               font-weight: 800;
               color: ${badgeColor};
               background: ${badgeBg};
-              padding: 2px 8px;
-              border-radius: 8px;
+              padding: 2px 6px;
+              border-radius: 6px;
             ">${cnt} items</span>
           </div>
         `;
@@ -341,11 +331,8 @@ const divisionModule = {
 
       traysContainer.querySelectorAll('.div-tray-card').forEach((trayEl, gIdx) => {
         trayEl.onclick = () => {
-          if (unallocatedCount > 0) {
-            allocateToGroup(gIdx);
-          } else {
-            deallocateFromGroup(gIdx);
-          }
+          if (unallocatedCount > 0) allocateToGroup(gIdx);
+          else deallocateFromGroup(gIdx);
         };
       });
     };
