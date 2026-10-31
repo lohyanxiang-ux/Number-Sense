@@ -131,7 +131,7 @@ const numberLineModule = {
 
     return {
       type: 'number_line',
-      prompt: `Drag the slider to place <strong>${formatMath(t.label)}</strong> on the number line:`,
+      prompt: `Drag the marker to place <strong>${formatMath(t.label)}</strong> on the number line:`,
       targetVal: t.val,
       ticks: t.ticks,
       tickLabels: t.tickLabels || null,
@@ -152,11 +152,12 @@ const numberLineModule = {
         <div style="
           position: absolute; 
           left: ${posPct}%; 
-          top: ${isMajor ? '-6px' : '-2px'}; 
+          top: ${isMajor ? '-8px' : '-4px'}; 
           width: 2px; 
-          height: ${isMajor ? '20px' : '12px'}; 
+          height: ${isMajor ? '24px' : '16px'}; 
           background: ${tickVal === 0 ? 'var(--accent)' : 'var(--text-muted)'}; 
           transform: translateX(-50%);
+          pointer-events: none;
         "></div>
       `;
 
@@ -174,109 +175,119 @@ const numberLineModule = {
             left: ${posPct}%; 
             transform: translateX(-50%); 
             font-weight: ${tickVal === 0 ? '800' : '600'}; 
-            font-size: 0.8rem; 
+            font-size: 0.9rem; 
             color: ${tickVal === 0 ? 'var(--accent)' : 'var(--text-muted)'};
+            pointer-events: none;
           ">${labelText}</span>
         `;
       }
     });
 
-    const initialValText = q.ticks[0] % 1 === 0 ? q.ticks[0].toFixed(0) : q.ticks[0].toFixed(2).replace(/\.?0+$/, '');
-
     const html = `
-      <div class="ipad-responsive-grid" style="user-select: none; -webkit-user-select: none;">
-        
-        <!-- LEFT COLUMN: NUMBER LINE VISUAL TRACK -->
-        <div class="ipad-left-pane">
-          <div style="position: relative; height: 110px; margin: 20px 10px 10px 10px; padding: 0 10px;">
-            <div id="nlTrack" style="position: relative; width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; top: 45px;">
-              ${tickMarksHtml}
+      <div style="max-width: 650px; margin: 20px auto; padding: 10px 20px; user-select: none; -webkit-user-select: none;">
+        <div style="position: relative; height: 110px; margin: 30px 10px;">
+          
+          <!-- NUMBER LINE TRACK -->
+          <div id="nlTrack" style="
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: var(--border-color, #cbd5e1);
+            border-radius: 4px;
+            top: 45px;
+            cursor: pointer;
+            touch-action: none;
+          ">
+            ${tickMarksHtml}
 
-              <!-- POSITION INDICATOR PIN -->
-              <div id="nlPin" style="
-                position: absolute;
-                top: -34px;
-                left: 0%;
-                transform: translateX(-50%);
-                background: var(--accent);
-                color: white;
-                font-weight: 800;
-                font-size: 0.85rem;
-                padding: 3px 10px;
-                border-radius: 12px;
-                box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-                pointer-events: none;
-                transition: left 0.1s ease;
-                white-space: nowrap;
-                z-index: 5;
-              ">${initialValText}</div>
+            <!-- LARGE DRAGGABLE MARKER PIN -->
+            <div id="nlMarker" data-idx="0" style="
+              position: absolute;
+              top: 50%;
+              left: 0%;
+              transform: translate(-50%, -50%);
+              width: 36px;
+              height: 36px;
+              border-radius: 50%;
+              background: var(--accent, #4f46e5);
+              border: 4px solid #ffffff;
+              box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+              cursor: grab;
+              touch-action: none;
+              z-index: 10;
+              transition: transform 0.1s ease, background 0.15s ease;
+            "></div>
 
-              <!-- ANCHOR DOT ON LINE -->
-              <div id="nlDot" style="
-                position: absolute;
-                top: -4px;
-                left: 0%;
-                width: 14px;
-                height: 14px;
-                border-radius: 50%;
-                background: var(--accent);
-                transform: translateX(-50%);
-                transition: left 0.1s ease;
-                z-index: 4;
-              "></div>
-
-              <div style="position: relative; width: 100%; height: 24px; top: 22px;">
-                ${tickLabelsHtml}
-              </div>
+            <!-- TICK LABELS ROW BELOW -->
+            <div style="position: absolute; top: 28px; left: 0; right: 0; height: 30px; pointer-events: none;">
+              ${tickLabelsHtml}
             </div>
+
           </div>
         </div>
-
-        <!-- RIGHT COLUMN: SLIDER CONTROL & VALUE DISPLAY -->
-        <div class="ipad-right-pane" style="text-align: center;">
-          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
-            Adjust Slider Position:
-          </div>
-
-          <div style="font-size: 1.8rem; font-weight: 900; color: var(--accent); margin-bottom: 14px;">
-            Value: <span id="nlCurrentVal">${initialValText}</span>
-          </div>
-
-          <input type="range" min="0" max="${numTicks - 1}" step="1" value="0" class="nl-slider" id="nlSlider" style="width: 100%; cursor: pointer; touch-action: manipulation;">
-        </div>
-
       </div>
     `;
 
     container.innerHTML = html;
 
-    const slider = container.querySelector('#nlSlider');
-    const pin = container.querySelector('#nlPin');
-    const dot = container.querySelector('#nlDot');
-    const currentValEl = container.querySelector('#nlCurrentVal');
+    const track = container.querySelector('#nlTrack');
+    const marker = container.querySelector('#nlMarker');
 
-    const updateSliderUI = () => {
-      const idx = parseInt(slider.value, 10);
-      const posPct = ((idx / (numTicks - 1)) * 100).toFixed(2);
-      const tickVal = q.ticks[idx];
-      const valText = tickVal % 1 === 0 ? tickVal.toFixed(0) : tickVal.toFixed(2).replace(/\.?0+$/, '');
+    let isDragging = false;
 
-      pin.style.left = `${posPct}%`;
-      dot.style.left = `${posPct}%`;
-      pin.innerText = valText;
-      currentValEl.innerText = valText;
+    const updatePosition = (clientX) => {
+      const rect = track.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, x / rect.width));
+
+      // Snap to nearest tick index
+      const snappedIdx = Math.round(ratio * (numTicks - 1));
+      const posPct = ((snappedIdx / (numTicks - 1)) * 100).toFixed(2);
+
+      marker.style.left = `${posPct}%`;
+      marker.setAttribute('data-idx', snappedIdx);
     };
 
-    slider.oninput = updateSliderUI;
+    track.onpointerdown = (e) => {
+      isDragging = true;
+      marker.style.cursor = 'grabbing';
+      marker.style.transform = 'translate(-50%, -50%) scale(1.15)';
+      track.setPointerCapture(e.pointerId);
+      updatePosition(e.clientX);
+    };
+
+    track.onpointermove = (e) => {
+      if (!isDragging) return;
+      updatePosition(e.clientX);
+    };
+
+    track.onpointerup = (e) => {
+      if (isDragging) {
+        isDragging = false;
+        marker.style.cursor = 'grab';
+        marker.style.transform = 'translate(-50%, -50%) scale(1)';
+        track.releasePointerCapture(e.pointerId);
+      }
+    };
+
+    track.onpointercancel = (e) => {
+      if (isDragging) {
+        isDragging = false;
+        marker.style.cursor = 'grab';
+        marker.style.transform = 'translate(-50%, -50%) scale(1)';
+      }
+    };
   },
 
   evaluate(q) {
-    const slider = document.getElementById('nlSlider');
-    if (!slider) return false;
+    const marker = document.getElementById('nlMarker');
+    if (!marker) return false;
 
-    const selectedIndex = parseInt(slider.value, 10);
+    const selectedIndex = parseInt(marker.getAttribute('data-idx'), 10);
+    if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= q.ticks.length) return false;
+
     const userVal = q.ticks[selectedIndex];
-
     return Math.abs(userVal - q.targetVal) < 0.001;
   }
 };
