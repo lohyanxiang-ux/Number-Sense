@@ -95,22 +95,12 @@ const gridShaderModule = {
   },
 
   render(q, container) {
-    let html = `
-      <!-- FIXED 300px x 300px CONTAINER -->
-      <div class="fixed-area-box" id="touchGrid" style="
-        width: 300px;
-        height: 300px;
-        margin: 20px auto 10px auto;
-        touch-action: none;
-        user-select: none;
-        -webkit-user-select: none;
-      ">
-    `;
+    let gridInnerHtml = '';
 
     if (q.shape === 'square') {
       const { rows, cols } = getSquareGridDimensions(q.partition);
 
-      html += `<div style="
+      gridInnerHtml += `<div style="
         display: grid;
         width: 300px;
         height: 300px;
@@ -123,18 +113,42 @@ const gridShaderModule = {
         box-sizing: border-box;
       ">`;
       for (let i = 0; i < q.partition; i++) {
-        html += `<div class="grid-cell" data-idx="${i}"></div>`;
+        gridInnerHtml += `<div class="grid-cell" data-idx="${i}"></div>`;
       }
-      html += `</div>`;
+      gridInnerHtml += `</div>`;
     } else {
-      html += generateCircleSVG(q.partition);
+      gridInnerHtml += generateCircleSVG(q.partition);
     }
 
-    html += `
+    const html = `
+      <div class="ipad-responsive-grid" style="user-select: none;">
+        
+        <!-- LEFT COLUMN: INTERACTIVE SHAPED GRID -->
+        <div class="ipad-left-pane">
+          <div class="fixed-area-box" id="touchGrid" style="
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+          ">
+            ${gridInnerHtml}
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: SHADED COUNTER & PROGRESS -->
+        <div class="ipad-right-pane" style="text-align: center;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+            Parts Shaded:
+          </div>
+          
+          <div style="font-size: 2.2rem; font-weight: 900; color: var(--accent); margin-bottom: 14px;">
+            <span id="cellCount">0</span> / ${q.partition}
+          </div>
+        </div>
+
       </div>
-      <p style="text-align: center; font-weight: 700; margin-top: 14px; font-size: 1.1rem;">
-        Shaded: <span id="cellCount" style="color: var(--accent);">0</span> / ${q.partition} parts
-      </p>
     `;
 
     container.innerHTML = html;
