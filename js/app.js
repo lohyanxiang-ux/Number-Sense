@@ -319,6 +319,35 @@ function startStudentSession() {
   document.getElementById('appContainer').classList.remove('hidden');
   document.getElementById('userStatsHeader').classList.remove('hidden');
 
+  // Validate if streak was broken before today (allowing weekend grace days)
+  if (currentUser.lastDailyCompleted) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastDate = new Date(currentUser.lastDailyCompleted);
+    lastDate.setHours(0, 0, 0, 0);
+
+    let missedWeekday = false;
+    let checkDate = new Date(lastDate);
+    checkDate.setDate(checkDate.getDate() + 1);
+
+    // Check all days between last completed date and today (exclusive)
+    while (checkDate < today) {
+      const dayOfWeek = checkDate.getDay(); // 0 = Sun, 6 = Sat
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        missedWeekday = true;
+        break;
+      }
+      checkDate.setDate(checkDate.getDate() + 1);
+    }
+
+    if (missedWeekday) {
+      currentUser.streak = 0;
+    }
+  } else {
+    currentUser.streak = 0;
+  }
+
   document.getElementById('hdrStudentName').innerText = currentUser.name;
   document.getElementById('hdrStudentClass').innerText = currentUser.class;
 
@@ -458,16 +487,37 @@ function updateDailyStreak() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  if (!currentUser.lastActive) {
+  if (!currentUser.lastDailyCompleted) {
     currentUser.streak = 1;
   } else {
-    const last = new Date(currentUser.lastActive);
-    last.setHours(0, 0, 0, 0);
-    const diffDays = Math.round((today - last) / (1000 * 60 * 60 * 24));
+    const lastDate = new Date(currentUser.lastDailyCompleted);
+    lastDate.setHours(0, 0, 0, 0);
 
-    if (diffDays === 1) currentUser.streak += 1;
-    else if (diffDays > 1) currentUser.streak = 1;
+    const diffDays = Math.round((today - lastDate) / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) {
+      let missedWeekday = false;
+      let checkDate = new Date(lastDate);
+      checkDate.setDate(checkDate.getDate() + 1);
+
+      // Check all intermediate days between last completed date and today
+      while (checkDate < today) {
+        const dayOfWeek = checkDate.getDay(); // 0 = Sun, 6 = Sat
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          missedWeekday = true;
+          break;
+        }
+        checkDate.setDate(checkDate.getDate() + 1);
+      }
+
+      if (missedWeekday) {
+        currentUser.streak = 1; // Weekday missed -> start new streak of 1
+      } else {
+        currentUser.streak += 1; // Valid continuation (consecutive or weekend practice/grace) -> extend streak!
+      }
+    }
   }
+
   currentUser.lastActive = new Date().toISOString();
 }
 
