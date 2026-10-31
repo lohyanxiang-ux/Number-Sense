@@ -314,6 +314,22 @@ main {
   color: var(--text-muted);
 }
 
+/* GRID SHADER INTERACTIVE SHAPES */
+.grid-cell {
+  background-color: #ffffff;
+  fill: #ffffff;
+  stroke: #334155;
+  stroke-width: 2px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, fill 0.15s ease;
+  touch-action: none;
+}
+
+.grid-cell.active {
+  background-color: var(--accent);
+  fill: var(--accent);
+}
+
 /* ========================================================= */
 /* IPAD / TABLET 2-COLUMN RESPONSIVE LAYOUT (width >= 640px) */
 /* ========================================================= */
