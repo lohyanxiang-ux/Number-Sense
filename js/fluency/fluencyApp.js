@@ -1,6 +1,5 @@
 import { BELT_TIERS, getStudentFluencyData, evaluateLevelProgression } from './fluencyMastery.js';
 import { mountSummitMode } from './modes/summitMode.js';
-// Import future modes here: e.g. import { mountSprintMode } from './modes/sprintMode.js';
 
 let currentUserRef = null;
 let syncCallbackRef = null;
@@ -17,7 +16,7 @@ export function renderFluencyMenu() {
 
   const fluencyData = getStudentFluencyData(currentUserRef);
   const currentBelt = BELT_TIERS[fluencyData.level] || BELT_TIERS[1];
-  const nextBelt = BELT_TIERS[Math.min(10, fluencyData.level + 1)];
+  const maxBelt = BELT_TIERS[fluencyData.maxLevel] || currentBelt;
 
   const accColor = fluencyData.lastAccuracy >= 90 ? '#10b981' : '#ef4444';
   const speedColor = (fluencyData.lastSpeed <= 2.5 && fluencyData.lastSpeed > 0) ? '#10b981' : '#ef4444';
@@ -28,60 +27,63 @@ export function renderFluencyMenu() {
         <div>
           <h2 style="margin: 0;">⚡ Speed Fluency Arena</h2>
           <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.95rem;">
-            Choose a challenge mode to test your numerical fluency!
+            Test your numerical fluency across belt tiers!
           </p>
         </div>
-        <span style="background: rgba(79, 70, 229, 0.15); color: var(--accent); font-weight: 800; padding: 8px 16px; border-radius: 10px; font-size: 1.1rem;">
-          ${currentBelt.badge} ${currentBelt.name} (Tier ${currentBelt.tier})
-        </span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          ${fluencyData.isRefresher ? `
+            <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-weight: 800; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem;">
+              ⚡ Refresher Mode (Highest: ${maxBelt.badge} Tier ${maxBelt.tier})
+            </span>
+          ` : ''}
+          <span style="background: rgba(79, 70, 229, 0.15); color: var(--accent); font-weight: 800; padding: 8px 16px; border-radius: 10px; font-size: 1.1rem;">
+            ${currentBelt.badge} ${currentBelt.name} (Tier ${currentBelt.tier})
+          </span>
+        </div>
       </div>
 
-      <!-- RECENT ACCURACY / SPEED CARDS -->
+      <!-- TARGET REQUIREMENTS CARD -->
       <div style="background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
         <div style="font-size: 0.85rem; font-weight: 800; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">
-          🎯 Next Belt Unlock Targets (${nextBelt.badge} ${nextBelt.name}):
+          🎯 ${fluencyData.isRefresher ? `Fast Recovery Target (Restore ${maxBelt.name}):` : `Rolling 3-Session Progress (${fluencyData.history.length}/3 runs completed):`}
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
           <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-            <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Recent Accuracy</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Rolling Accuracy</div>
             <div style="font-size: 1.6rem; font-weight: 900; color: ${accColor}; margin: 2px 0;">${fluencyData.lastAccuracy}%</div>
             <div style="font-size: 0.75rem; color: var(--text-muted);">Target: <strong>≥ 90%</strong></div>
           </div>
           <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-            <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Recent Avg Speed</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Rolling Avg Speed</div>
             <div style="font-size: 1.6rem; font-weight: 900; color: ${speedColor}; margin: 2px 0;">${fluencyData.lastSpeed > 0 ? fluencyData.lastSpeed + 's' : '--'}</div>
             <div style="font-size: 0.75rem; color: var(--text-muted);">Target: <strong>< 2.5s / Q</strong></div>
           </div>
         </div>
       </div>
 
-      <!-- AVAILABLE GAME MODES SELECTION -->
+      <!-- MODE SELECTION MENU -->
       <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
-        
-        <!-- SUMMIT QUEST CARD -->
         <div style="border: 2px solid var(--accent); border-radius: 12px; padding: 18px; background: rgba(79, 70, 229, 0.04);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <h3 style="margin: 0; color: var(--text-main);">🏔️ Summit Quest</h3>
-            <span style="font-size: 0.8rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 8px; border-radius: 6px;">STEP CLIMBER</span>
+            <span style="font-size: 0.8rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 8px; border-radius: 6px;">AVAILABLE</span>
           </div>
           <p style="font-size: 0.95rem; color: var(--text-muted); margin: 0 0 14px 0;">
-            Climb to Ledge 10 (+1 Ledge on correct, -1 Ledge on wrong). Don't fall off Base Camp!
+            Climb 10 ledges to reach the mountain peak! (+1 step correct, -1 step slip).
           </p>
           <button class="btn" id="startSummitBtn" style="background: var(--accent); font-weight: 800; width: 100%; padding: 12px;">
-            🚀 Start Summit Quest
+            🚀 Start Summit Quest (${currentBelt.badge} Tier ${currentBelt.tier})
           </button>
         </div>
-
       </div>
     </div>
 
-    <!-- MOUNTING CONTAINER FOR ACTIVE GAME MODES -->
     <div id="fluencyActiveContainer"></div>
 
-    <!-- SUMMARY CONTAINER -->
+    <!-- SUMMARY CARD -->
     <div id="fluencySummaryCard" class="card hidden" style="text-align: center; max-width: 520px; margin: 0 auto;">
       <h2 id="summaryResultHeader" style="color: var(--accent); font-size: 2rem; margin-bottom: 8px;">🏔️ Quest Complete!</h2>
-      <div id="fluencyLevelMsg" style="font-weight: 800; font-size: 1.1rem; color: #10b981; margin-bottom: 20px;"></div>
+      <div id="fluencyLevelMsg" style="font-weight: 800; font-size: 1.05rem; margin-bottom: 20px;"></div>
 
       <div style="background: var(--bg-primary); border-radius: 12px; padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; text-align: left; border: 1px solid var(--border-color);">
         <div>Accuracy: <strong id="sumAcc" style="color: var(--text-main); font-size: 1.1rem;">0%</strong></div>
@@ -124,7 +126,9 @@ function handleSessionComplete(results) {
   document.getElementById('sumSpeed').innerText = `${results.avgSpeed}s / Q`;
 
   const progression = evaluateLevelProgression(currentUserRef, results);
-  document.getElementById('fluencyLevelMsg').innerText = progression.message;
+  const msgEl = document.getElementById('fluencyLevelMsg');
+  msgEl.innerText = progression.message;
+  msgEl.style.color = progression.leveledUp || progression.restored ? '#10b981' : (progression.steppedDown ? '#f59e0b' : 'var(--text-main)');
 
   const xpEarned = results.correctCount * 5;
   if (xpEarned > 0) {
