@@ -98,7 +98,8 @@ export function renderFluencyMenu() {
         ?
       </div>
 
-      <!-- ON-SCREEN KEYPAD -->
+
+<!-- ON-SCREEN KEYPAD WITH NEGATIVE SIGN SUPPORT -->
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 320px; margin: 0 auto 16px auto;">
         <button class="btn f-key" data-k="1">1</button>
         <button class="btn f-key" data-k="2">2</button>
@@ -109,10 +110,11 @@ export function renderFluencyMenu() {
         <button class="btn f-key" data-k="7">7</button>
         <button class="btn f-key" data-k="8">8</button>
         <button class="btn f-key" data-k="9">9</button>
-        <button class="btn" id="fKeyClear" style="background: var(--bg-primary); color: var(--danger); border: 1px solid var(--border-color); font-weight: 800;">C</button>
+        <button class="btn f-key" data-k="-">-</button>
         <button class="btn f-key" data-k="0">0</button>
-        <button class="btn" id="fKeyEnter" style="background: var(--accent); color: white; font-weight: 800;">↵</button>
+        <button class="btn" id="fKeyClear" style="background: var(--bg-primary); color: var(--danger); border: 1px solid var(--border-color); font-weight: 800;">C</button>
       </div>
+      <button class="btn" id="fKeyEnter" style="width: 100%; max-width: 320px; background: var(--accent); color: white; font-weight: 800; margin-top: 8px;">↵ SUBMIT</button>
     </div>
 
     <!-- GAME OVER SUMMARY CARD -->
