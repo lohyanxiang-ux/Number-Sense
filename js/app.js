@@ -10,6 +10,9 @@ import './questions/division.js';
 import './questions/orderOfOperations.js';
 import './questions/factors.js';
 
+// Speed Fluency Tab Module Integration
+import { initFluencyTab } from './fluency/fluencyApp.js';
+
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || 'https://script.google.com/macros/s/AKfycbxs1uvyTFFuFmmmmXQAMm3I57kNeE2VlCqYOd3DOvMwGcHZj6kRP_ZjMpd-Tqg5_OTw/exec';
 let enteredPin = '';
@@ -439,7 +442,7 @@ function switchTab(tabKey, targetBtn) {
   document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
   if (targetBtn) targetBtn.classList.add('active');
 
-  const tabs = ['Practice', 'Extra', 'Progress', 'Shop'];
+  const tabs = ['Practice', 'Extra', 'Progress', 'Shop', 'Fluency'];
   tabs.forEach(t => {
     const el = document.getElementById(`tab${t}`);
     if (el) el.classList.add('hidden');
@@ -448,7 +451,9 @@ function switchTab(tabKey, targetBtn) {
   const activeTabEl = document.getElementById(`tab${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`);
   if (activeTabEl) activeTabEl.classList.remove('hidden');
 
-  if (tabKey === 'extra') {
+  if (tabKey === 'fluency') {
+    initFluencyTab(currentUser, syncQuestionProgressToSheet);
+  } else if (tabKey === 'extra') {
     if (selectedExtraTopics.length === 0) {
       selectedExtraTopics = ALL_TOPICS.map(t => t.key);
     }
