@@ -1,163 +1,111 @@
 export const BELT_TIERS = {
-  1:  { tier: 1,  name: "White Belt",    badge: "⚪", color: "#f8fafc" },
-  2:  { tier: 2,  name: "Yellow Belt",   badge: "🟡", color: "#eab308" },
-  3:  { tier: 3,  name: "Orange Belt",   badge: "🟠", color: "#f97316" },
-  4:  { tier: 4,  name: "Green Belt",    badge: "🟢", color: "#10b981" },
-  5:  { tier: 5,  name: "Blue Belt",     badge: "🔵", color: "#3b82f6" },
-  6:  { tier: 6,  name: "Purple Belt",   badge: "🟣", color: "#a855f7" },
-  7:  { tier: 7,  name: "Red Belt",      badge: "🔴", color: "#ef4444" },
-  8:  { tier: 8,  name: "Brown Belt",    badge: "🟤", color: "#854d0e" },
-  9:  { tier: 9,  name: "Black Belt",    badge: "⬛", color: "#1e293b" },
-  10: { tier: 10, name: "Grandmaster",   badge: "🥋", color: "#6366f1" }
+  1: { name: 'White Belt', badge: '⚪', tier: 1 },
+  2: { name: 'Yellow Belt', badge: '🟡', tier: 2 },
+  3: { name: 'Orange Belt', badge: '🟠', tier: 3 },
+  4: { name: 'Green Belt', badge: '🟢', tier: 4 },
+  5: { name: 'Blue Belt', badge: '🔵', tier: 5 },
+  6: { name: 'Purple Belt', badge: '🟣', tier: 6 },
+  7: { name: 'Brown Belt', badge: '🟤', tier: 7 },
+  8: { name: 'Red Belt', badge: '🔴', tier: 8 },
+  9: { name: 'Black Belt', badge: '⚫', tier: 9 },
+  10: { name: 'Grandmaster Gold', badge: '👑', tier: 10 }
 };
 
-/**
- * Extracts fluency telemetry and session history from currentUser proficiency mapping.
- * Column I format: [currentLevel, maxLevel, rollingSpeed, rollingAccuracy, acc1, spd1, acc2, spd2, acc3, spd3]
- */
-export function getStudentFluencyData(currentUser) {
-  if (!currentUser || !currentUser.proficiency) {
-    return { level: 1, maxLevel: 1, lastSpeed: 0, lastAccuracy: 0, history: [], isRefresher: false };
-  }
+export function getStudentFluencyData(user) {
+  const raw = user.Prof_fluency || [1, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+  const currentLevel = raw[0] || 1;
+  const maxLevel = raw[1] || 1;
+  const rollingSpeed = raw[2] || 0;
+  const rollingAccuracy = raw[3] || 0;
 
-  const profKey = Object.keys(currentUser.proficiency).find(
-    k => k.toLowerCase() === 'fluency' || k.toLowerCase() === 'prof_fluency'
-  );
-
-  const raw = profKey ? currentUser.proficiency[profKey] : [];
-
-  const level = raw.length > 0 && !isNaN(Number(raw[0])) ? Math.max(1, Number(raw[0])) : 1;
-  const maxLevel = raw.length > 1 && !isNaN(Number(raw[1])) ? Math.max(level, Number(raw[1])) : level;
-  const rollingSpeed = raw.length > 2 && !isNaN(Number(raw[2])) ? Number(raw[2]) : 0;
-  const rollingAccuracy = raw.length > 3 && !isNaN(Number(raw[3])) ? Number(raw[3]) : 0;
-
-  // Reconstruct last 3 session buffer pairs: [{ accuracy, avgSpeed }, ...]
   const history = [];
   for (let i = 4; i < raw.length; i += 2) {
-    if (raw[i] !== undefined && raw[i + 1] !== undefined) {
-      history.push({
-        accuracy: Number(raw[i]),
-        avgSpeed: Number(raw[i + 1])
-      });
+    if (raw[i] > 0 || raw[i + 1] > 0) {
+      history.push({ accuracy: raw[i], speed: raw[i + 1] });
     }
   }
 
   return {
-    level,
+    level: currentLevel,
     maxLevel,
     lastSpeed: rollingSpeed,
     lastAccuracy: rollingAccuracy,
     history,
-    isRefresher: level < maxLevel
+    isRefresher: currentLevel < maxLevel,
+    raw
   };
 }
 
-/**
- * Mode-agnostic evaluator for session completion across all current and future game modes.
- */
-export function evaluateLevelProgression(currentUser, sessionResult) {
-  const data = getStudentFluencyData(currentUser);
-  let currentLevel = data.level;
-  let maxLevel = data.maxLevel;
-  let history = data.history;
+export function evaluateLevelProgression(user, sessionResult) {
+  let [currentLevel, maxLevel, rollingSpeed, rollingAccuracy, acc1, spd1, acc2, spd2, acc3, spd3] = user.Prof_fluency || [1, 1, 0, 0, 0, 0, 0, 0, 0, 0];
 
-  const sessionAcc = Number(sessionResult.accuracy);
-  const sessionSpd = Number(sessionResult.avgSpeed);
-  const isRefresher = currentLevel < maxLevel;
+  const TARGET_ACCURACY = 80; // Updated from 90%
+  const TARGET_SPEED = 5.0;   // Updated from 2.5s
+
+  // Push new session into rolling 3-session buffer
+  acc3 = acc2; spd3 = spd2;
+  acc2 = acc1; spd2 = spd1;
+  acc1 = sessionResult.accuracy; spd1 = sessionResult.avgSpeed;
+
+  const activeBuffer = [];
+  if (acc1 > 0 || spd1 > 0) activeBuffer.push({ acc: acc1, spd: spd1 });
+  if (acc2 > 0 || spd2 > 0) activeBuffer.push({ acc: acc2, spd: spd2 });
+  if (acc3 > 0 || spd3 > 0) activeBuffer.push({ acc: acc3, spd: spd3 });
+
+  const avgAcc = Math.round(activeBuffer.reduce((sum, s) => sum + s.acc, 0) / activeBuffer.length);
+  const avgSpd = Number((activeBuffer.reduce((sum, s) => sum + s.spd, 0) / activeBuffer.length).toFixed(1));
 
   let leveledUp = false;
-  let steppedDown = false;
   let restored = false;
-  let message = "";
+  let steppedDown = false;
+  let message = '';
 
-  // 1. FAST RECOVERY PATH (If currently on a refresher tier)
+  const isRefresher = currentLevel < maxLevel;
+
   if (isRefresher) {
-    if (sessionAcc >= 90 && sessionSpd <= 2.5) {
-      currentLevel = maxLevel;
+    // Fast Recovery: 1 Session meeting thresholds restores level
+    if (sessionResult.accuracy >= TARGET_ACCURACY && sessionResult.avgSpeed <= TARGET_SPEED) {
+      currentLevel += 1;
       restored = true;
-      history = []; // Clear buffer upon restoring belt
-      const restoredBelt = BELT_TIERS[currentLevel];
-      message = `⚡ RECOVERY COMPLETE! Restored to Tier ${currentLevel} (${restoredBelt.badge} ${restoredBelt.name})!`;
+      message = `⚡ Fast Recovery! Restored to ${BELT_TIERS[currentLevel].name}!`;
     } else {
-      // Append session to refresher buffer
-      history.push({ accuracy: sessionAcc, avgSpeed: sessionSpd });
-      if (history.length > 3) history.shift();
-      message = `Refresher session logged. Reach ≥ 90% accuracy & ≤ 2.5s speed in 1 session to restore your belt!`;
+      message = `Keep training! Target: ≥80% Acc and <5.0s Speed to restore rank.`;
     }
-  } 
-  // 2. NORMAL PROGRESSION PATH (Current tier === highest unlocked tier)
-  else {
-    history.push({ accuracy: sessionAcc, avgSpeed: sessionSpd });
-    if (history.length > 3) history.shift();
-
-    // Check Circuit Breaker: 2 consecutive sessions with accuracy < 50%
-    const recentCircuitBreaker = history.length >= 2 && 
-      history.slice(-2).every(s => s.accuracy < 50);
-
-    // Calculate rolling averages
-    const totalAcc = history.reduce((sum, s) => sum + s.accuracy, 0);
-    const totalSpd = history.reduce((sum, s) => sum + s.avgSpeed, 0);
-    const rollingAcc = Math.round(totalAcc / history.length);
-    const rollingSpd = Number((totalSpd / history.length).toFixed(1));
-
-    // A. Evaluate Promotion (3 completed sessions meeting targets)
-    if (history.length >= 3 && rollingAcc >= 90 && rollingSpd <= 2.5) {
-      if (currentLevel < 10) {
+  } else {
+    // Normal Progression: Requires rolling 3-session average
+    if (activeBuffer.length >= 3) {
+      if (avgAcc >= TARGET_ACCURACY && avgSpd <= TARGET_SPEED && currentLevel < 10) {
         currentLevel += 1;
         maxLevel = Math.max(maxLevel, currentLevel);
         leveledUp = true;
-        history = []; // Reset window for new belt level
-        const newBelt = BELT_TIERS[currentLevel];
-        message = `🎉 SUSTAINED MASTERY! Belt Promotion to Tier ${currentLevel} (${newBelt.badge} ${newBelt.name})!`;
+        message = `🏆 Promotion Unlocked! Promoted to ${BELT_TIERS[currentLevel].name}!`;
+        acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0; // Reset buffer on promotion
       } else {
-        message = `🥋 GRANDMASTER MASTERY MAINTAINED!`;
+        message = `Progress logged (${activeBuffer.length}/3 runs). Keep aiming for ≥80% Acc & <5.0s Speed!`;
       }
-    } 
-    // B. Circuit Breaker Step-Down (Fast rescue on 2 severe failures)
-    else if (recentCircuitBreaker && currentLevel > 1) {
-      currentLevel -= 1;
-      steppedDown = true;
-      history = [];
-      const lowerBelt = BELT_TIERS[currentLevel];
-      message = `🥋 BELT TUNE-UP: Stepped back to Tier ${currentLevel} (${lowerBelt.name}) to build confidence.`;
-    }
-    // C. Standard Rolling Window Step-Down (3 sessions underperforming)
-    else if (history.length >= 3 && (rollingAcc < 65 || rollingSpd >= 5.0) && currentLevel > 1) {
-      currentLevel -= 1;
-      steppedDown = true;
-      history = [];
-      const lowerBelt = BELT_TIERS[currentLevel];
-      message = `🥋 BELT TUNE-UP: Stepped back to Tier ${currentLevel} (${lowerBelt.name}) to reinforce foundations.`;
-    } 
-    else {
-      message = `Session logged! (${history.length}/3 attempts completed toward belt evaluation)`;
+    } else {
+      message = `Run logged (${activeBuffer.length}/3 runs). Complete 3 runs to qualify for promotion.`;
     }
   }
 
-  // Calculate final rolling averages for saved state
-  const finalTotalAcc = history.length > 0 ? history.reduce((s, x) => s + x.accuracy, 0) : sessionAcc;
-  const finalTotalSpd = history.length > 0 ? history.reduce((s, x) => s + x.avgSpeed, 0) : sessionSpd;
-  const finalRollingAcc = Math.round(finalTotalAcc / (history.length || 1));
-  const finalRollingSpd = Number((finalTotalSpd / (history.length || 1)).toFixed(1));
+  // Circuit Breaker: 2 consecutive severe failures (<50% accuracy)
+  if (acc1 < 50 && acc2 < 50 && activeBuffer.length >= 2 && currentLevel > 1) {
+    currentLevel -= 1;
+    steppedDown = true;
+    message = `⚠️ Belt Step-Down. Level lowered to ${BELT_TIERS[currentLevel].name}.`;
+    acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0;
+  }
 
-  // 3. Serialize back into flat array for Column I synchronization
-  const updatedArray = [currentLevel, maxLevel, finalRollingSpd, finalRollingAcc];
-  history.forEach(s => {
-    updatedArray.push(s.accuracy, s.avgSpeed);
-  });
-
-  if (!currentUser.proficiency) currentUser.proficiency = {};
-  currentUser.proficiency['fluency'] = updatedArray;
+  user.Prof_fluency = [currentLevel, maxLevel, avgSpd, avgAcc, acc1, spd1, acc2, spd2, acc3, spd3];
 
   return {
     currentLevel,
     maxLevel,
     leveledUp,
-    steppedDown,
     restored,
+    steppedDown,
     message,
-    rollingAcc: finalRollingAcc,
-    rollingSpd: finalRollingSpd,
-    historyCount: history.length
+    avgAcc,
+    avgSpd
   };
 }
