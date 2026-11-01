@@ -11,29 +11,21 @@ export const BELT_TIERS = {
   10: { name: 'Grandmaster Gold', badge: '👑', tier: 10 }
 };
 
-/**
- * Normalizes fluency data from all potential Google Sheets response locations.
- */
 export function getStudentFluencyData(user) {
   if (!user) user = {};
 
-  // 1. Resolve raw data from any valid backend/frontend path
   let raw = user?.proficiency?.fluency || user?.proficiency?.Prof_fluency || user?.Prof_fluency;
 
-  // 2. Parse string format if received directly from Google Sheets
   if (typeof raw === 'string') {
     raw = raw.split(',').map(v => Number(v.trim()) || 0);
   }
 
-  // 3. Apply default schema if missing or corrupted
   if (!Array.isArray(raw) || raw.length < 10) {
     raw = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0];
   }
 
-  // Ensure elements are pure numbers
   raw = raw.map(v => Number(v) || 0);
 
-  // 4. Synchronize references on user object for two-way binding
   user.Prof_fluency = raw;
   if (!user.proficiency) user.proficiency = {};
   user.proficiency.fluency = raw;
@@ -62,17 +54,14 @@ export function getStudentFluencyData(user) {
   };
 }
 
-/**
- * Evaluates session outcomes and updates all user references for Sheets sync.
- */
 export function evaluateLevelProgression(user, sessionResult) {
   const data = getStudentFluencyData(user);
   let [currentLevel, maxLevel, rollingSpeed, rollingAccuracy, acc1, spd1, acc2, spd2, acc3, spd3] = data.raw;
 
+  const previousLevel = currentLevel;
   const TARGET_ACCURACY = 80;
   const TARGET_SPEED = 5.0;
 
-  // Push new session into rolling 3-session buffer
   acc3 = acc2; spd3 = spd2;
   acc2 = acc1; spd2 = spd1;
   acc1 = sessionResult.accuracy; spd1 = sessionResult.avgSpeed;
@@ -88,28 +77,29 @@ export function evaluateLevelProgression(user, sessionResult) {
   let leveledUp = false;
   let restored = false;
   let steppedDown = false;
+  let transitionType = null;
   let message = '';
 
   const isRefresher = currentLevel < maxLevel;
 
   if (isRefresher) {
-    // Fast Recovery: 1 session meeting thresholds restores level
     if (sessionResult.accuracy >= TARGET_ACCURACY && sessionResult.avgSpeed <= TARGET_SPEED) {
       currentLevel += 1;
       restored = true;
+      transitionType = 'RECOVERY';
       message = `⚡ Fast Recovery! Restored to ${BELT_TIERS[currentLevel].name}!`;
     } else {
       message = `Keep training! Target: ≥80% Acc and <5.0s Speed to restore rank.`;
     }
   } else {
-    // Normal Progression: Requires rolling 3-session average
     if (activeBuffer.length >= 3) {
       if (avgAcc >= TARGET_ACCURACY && avgSpd <= TARGET_SPEED && currentLevel < 10) {
         currentLevel += 1;
         maxLevel = Math.max(maxLevel, currentLevel);
         leveledUp = true;
+        transitionType = 'PROMOTION';
         message = `🏆 Promotion Unlocked! Promoted to ${BELT_TIERS[currentLevel].name}!`;
-        acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0; // Reset buffer on promotion
+        acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0;
       } else {
         message = `Progress logged (${activeBuffer.length}/3 runs). Keep aiming for ≥80% Acc & <5.0s Speed!`;
       }
@@ -118,28 +108,30 @@ export function evaluateLevelProgression(user, sessionResult) {
     }
   }
 
-  // Circuit Breaker: 2 consecutive severe failures (<50% accuracy)
+  // Circuit Breaker: 2 consecutive failures (<50% accuracy)
   if (acc1 < 50 && acc2 < 50 && activeBuffer.length >= 2 && currentLevel > 1) {
     currentLevel -= 1;
     steppedDown = true;
+    transitionType = 'STEP_DOWN';
     message = `⚠️ Belt Step-Down. Level lowered to ${BELT_TIERS[currentLevel].name}.`;
     acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0;
   }
 
   const updatedRaw = [currentLevel, maxLevel, avgSpd, avgAcc, acc1, spd1, acc2, spd2, acc3, spd3];
 
-  // Keep all object paths synchronized for Google Apps Script sync
   user.Prof_fluency = updatedRaw;
   if (!user.proficiency) user.proficiency = {};
   user.proficiency.fluency = updatedRaw;
   user.proficiency.Prof_fluency = updatedRaw;
 
   return {
+    previousLevel,
     currentLevel,
     maxLevel,
     leveledUp,
     restored,
     steppedDown,
+    transitionType,
     message,
     avgAcc,
     avgSpd,
