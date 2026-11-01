@@ -141,16 +141,16 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
       }
 
       @keyframes ninjaRunStride {
-        0% { transform: translateY(0) rotate(6deg); }
-        100% { transform: translateY(-8px) rotate(14deg); }
+        0% { transform: translateY(0) rotate(2deg); }
+        100% { transform: translateY(-8px) rotate(8deg); }
       }
 
       /* CORRECT ANSWER: ARC VAULT JUMP ANIMATION */
       @keyframes ninjaVaultJump {
-        0% { transform: translateY(0) translateX(0) rotate(6deg); }
+        0% { transform: translateY(0) translateX(0) rotate(2deg); }
         40% { transform: translateY(-85px) translateX(40px) rotate(-22deg) scale(1.1); }
         70% { transform: translateY(-30px) translateX(60px) rotate(-10deg); }
-        100% { transform: translateY(0) translateX(0) rotate(6deg); }
+        100% { transform: translateY(0) translateX(0) rotate(2deg); }
       }
 
       /* WRONG ANSWER: TILE TRIP STUMBLE ANIMATION */
@@ -158,7 +158,7 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
         0% { transform: translateX(0) rotate(0deg); }
         25% { transform: translateX(-35px) translateY(-10px) rotate(-25deg); }
         60% { transform: translateX(15px) rotate(15deg); }
-        100% { transform: translateX(0) rotate(6deg); }
+        100% { transform: translateX(0) rotate(2deg); }
       }
 
       /* GAME OVER: FALL OFF THE ROOF ANIMATION */
@@ -240,7 +240,7 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
             </div>
           </div>
 
-          <!-- CENTER ARENA: MOVING PAGODA ROOFTOP & RUNNING NINJA -->
+          <!-- CENTER ARENA: MOVING PAGODA ROOFTOP & RUNNING NINJA IMAGE -->
           <div style="position: relative; height: 310px; display: flex; justify-content: center; align-items: flex-end; z-index: 3; width: 100%;">
             
             <!-- MOON & SILHOUETTE BACKDROP -->
@@ -260,18 +260,26 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
               </svg>
             </div>
 
-            <!-- ANIMATED RUNNING NINJA EMOJI AVATAR -->
+            <!-- ANIMATED RUNNING NINJA IMAGE AVATAR -->
             <div id="chaseNinjaAvatar" class="ninja-running" style="
-              position: absolute; bottom: 55px; left: 40%;
-              font-size: 3.8rem; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.85));
+              position: absolute; 
+              bottom: 45px; 
+              left: 38%;
+              width: 100px; 
+              height: 100px;
               z-index: 10;
             ">
-              🥷<span style="font-size: 2rem; margin-left: -10px; opacity: 0.75;">💨</span>
+              <img src="js/fluency/assets/ninja-runner.png.png" alt="Ninja Runner" style="
+                width: 100%; 
+                height: 100%; 
+                object-fit: contain; 
+                filter: drop-shadow(0 8px 12px rgba(0,0,0,0.85));
+              " />
             </div>
 
             <!-- VAULT / LANDING PARTICLES EFFECT -->
             <div id="chaseVaultEffect" style="
-              position: absolute; bottom: 65px; left: 50%;
+              position: absolute; bottom: 65px; left: 52%;
               font-size: 3.5rem; opacity: 0; pointer-events: none;
               transition: opacity 0.2s ease; z-index: 12;
             ">✨</div>
@@ -487,7 +495,7 @@ function handleQuestionTimeout(onFinishCallback) {
   const res = engine.handleTimeout();
   updateHUD(res);
 
-  // Reset audio BGM to 110 BPM on failure
+  // Reset audio BGM tempo to 110 BPM on failure
   chaseAudio.startBGM(res.tier.bpm);
 
   triggerLeapAnimation(false, true, res.gameOver);
@@ -500,7 +508,6 @@ function handleQuestionTimeout(onFinishCallback) {
       onFinishCallback(finalResults);
     }, 900);
   } else {
-    // Load a new question with timer reset to 8.0s
     setTimeout(() => nextQuestion(currentUser, onFinishCallback), 550);
   }
 }
@@ -518,7 +525,7 @@ function submitAnswer(currentUser, onFinishCallback) {
   } else {
     chaseAudio.playTileCrack();
     chaseAudio.playScrollShatter();
-    chaseAudio.startBGM(res.tier.bpm); // Resets audio tempo back to 110 BPM
+    chaseAudio.startBGM(res.tier.bpm);
   }
 
   triggerLeapAnimation(res.isCorrect, false, res.gameOver);
@@ -531,7 +538,6 @@ function submitAnswer(currentUser, onFinishCallback) {
       onFinishCallback(finalResults);
     }, 900);
   } else {
-    // Load a new question after vault or stumble animation
     setTimeout(() => nextQuestion(currentUser, onFinishCallback), res.isCorrect ? 400 : 550);
   }
 }
