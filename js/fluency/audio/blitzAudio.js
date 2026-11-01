@@ -3,8 +3,10 @@ import { audioCore } from './fluencyAudioCore.js';
 class BlitzAudio {
   constructor() {
     this.bgmTimer = null;
-    this.bgmStep = 0;
+    this.step = 0;
   }
+
+  // --- SOUND EFFECTS ---
 
   playThrowSwoosh() {
     if (audioCore.isMuted || !audioCore.ctx) return;
@@ -73,36 +75,84 @@ class BlitzAudio {
     osc.stop(now + 0.18);
   }
 
+  // --- MULTI-TRACK SYNTHESIZED BGM (135 BPM NINJA DOJO THEME) ---
+
   startBGM() {
     if (audioCore.isMuted) return;
     audioCore.init();
     this.stopBGM();
 
-    const notes = [110, 146.83, 130.81, 164.81];
-    this.bgmStep = 0;
+    const bassNotes = [110.00, 110.00, 146.83, 130.81]; // A2, A2, D3, C3
+    const pentatonicScale = [220.00, 261.63, 293.66, 329.63, 392.00, 440.00]; // Japanese A-minor pentatonic
 
+    this.step = 0;
+
+    // 135 BPM rhythm step (~111ms interval per 16th note)
     this.bgmTimer = setInterval(() => {
       if (audioCore.isMuted || !audioCore.ctx) return;
       const now = audioCore.ctx.currentTime;
 
-      const osc = audioCore.ctx.createOscillator();
-      const gain = audioCore.ctx.createGain();
+      // TRACK 1: PULSING BASS (Every quarter note / 4 steps)
+      if (this.step % 4 === 0) {
+        const bassOsc = audioCore.ctx.createOscillator();
+        const bassGain = audioCore.ctx.createGain();
+        const filter = audioCore.ctx.createBiquadFilter();
 
-      const freq = notes[this.bgmStep % notes.length];
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now);
+        const freq = bassNotes[(Math.floor(this.step / 4)) % bassNotes.length];
+        bassOsc.type = 'sawtooth';
+        bassOsc.frequency.setValueAtTime(freq, now);
 
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(350, now);
 
-      osc.connect(gain);
-      gain.connect(audioCore.ctx.destination);
+        bassGain.gain.setValueAtTime(0.12, now);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
-      osc.start(now);
-      osc.stop(now + 0.12);
+        bassOsc.connect(filter);
+        filter.connect(bassGain);
+        bassGain.connect(audioCore.ctx.destination);
 
-      this.bgmStep++;
-    }, 220); // ~136 BPM rhythm loop
+        bassOsc.start(now);
+        bassOsc.stop(now + 0.22);
+      }
+
+      // TRACK 2: PENTATONIC RUNNING ARPEGGIO (Every 16th note)
+      const arpFreq = pentatonicScale[this.step % pentatonicScale.length];
+      const arpOsc = audioCore.ctx.createOscillator();
+      const arpGain = audioCore.ctx.createGain();
+
+      arpOsc.type = 'triangle';
+      arpOsc.frequency.setValueAtTime(arpFreq, now);
+
+      arpGain.gain.setValueAtTime(0.035, now);
+      arpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+      arpOsc.connect(arpGain);
+      arpGain.connect(audioCore.ctx.destination);
+
+      arpOsc.start(now);
+      arpOsc.stop(now + 0.08);
+
+      // TRACK 3: PERCUSSION WOODBLOCK TICK (Beats 2 and 4)
+      if (this.step % 8 === 4) {
+        const tickOsc = audioCore.ctx.createOscillator();
+        const tickGain = audioCore.ctx.createGain();
+
+        tickOsc.type = 'sine';
+        tickOsc.frequency.setValueAtTime(1600, now);
+
+        tickGain.gain.setValueAtTime(0.05, now);
+        tickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+        tickOsc.connect(tickGain);
+        tickGain.connect(audioCore.ctx.destination);
+
+        tickOsc.start(now);
+        tickOsc.stop(now + 0.03);
+      }
+
+      this.step++;
+    }, 111);
   }
 
   stopBGM() {
