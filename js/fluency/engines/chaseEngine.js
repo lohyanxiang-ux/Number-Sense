@@ -4,8 +4,9 @@ export class ChaseEngine {
     this.correctCount = 0;
     this.totalQuestions = 0;
     this.currentStreak = 0;
-    this.speedStreak = 0; // Tracks consecutive correct answers for speed ramp
+    this.speedStreak = 0;
     this.distance = 0;
+    this.targetDistance = 2500; // 2,500m Target Finish Line
     this.startTime = null;
   }
 
@@ -19,13 +20,11 @@ export class ChaseEngine {
     this.startTime = Date.now();
   }
 
-  // Calculate time limit: starts at 8.0s, decays by 0.4s per streak step down to 4.0s floor
   getCurrentTimeLimit() {
     const calculated = 8.0 - (this.speedStreak * 0.4);
     return Math.max(4.0, Number(calculated.toFixed(1)));
   }
 
-  // Determine dynamic speed tier level (evenly spread between 8.0s and 4.0s)
   getCurrentTier() {
     const limit = this.getCurrentTimeLimit();
     if (limit > 7.0) return { level: 1, name: 'MOONLIGHT SPRINT', color: '#38bdf8', bpm: 110 };
@@ -41,19 +40,20 @@ export class ChaseEngine {
     if (isCorrect) {
       this.correctCount++;
       this.currentStreak++;
-      this.speedStreak++; // Increase speed ramp
+      this.speedStreak++;
 
       const bonus = (this.currentStreak - 1) * 20;
       this.distance += (100 + bonus);
     } else {
       this.currentStreak = 0;
-      this.speedStreak = 0; // Reset speed ramp back to 8.0s on wrong answer
+      this.speedStreak = 0; // Speed resets to 8.0s on miss
       this.scrollsLeft = Math.max(0, this.scrollsLeft - 1);
     }
 
     const timeLimit = this.getCurrentTimeLimit();
     const tier = this.getCurrentTier();
-    const gameOver = this.scrollsLeft <= 0;
+    const victory = this.distance >= this.targetDistance;
+    const gameOver = this.scrollsLeft <= 0 || victory;
 
     return {
       isCorrect,
@@ -62,8 +62,10 @@ export class ChaseEngine {
       currentStreak: this.currentStreak,
       scrollsLeft: this.scrollsLeft,
       distance: this.distance,
+      targetDistance: this.targetDistance,
       timeLimit,
       tier,
+      victory,
       gameOver
     };
   }
@@ -71,12 +73,13 @@ export class ChaseEngine {
   handleTimeout() {
     this.totalQuestions++;
     this.currentStreak = 0;
-    this.speedStreak = 0; // Reset speed ramp back to 8.0s on timeout
+    this.speedStreak = 0; // Speed resets to 8.0s on timeout
     this.scrollsLeft = Math.max(0, this.scrollsLeft - 1);
 
     const timeLimit = this.getCurrentTimeLimit();
     const tier = this.getCurrentTier();
-    const gameOver = this.scrollsLeft <= 0;
+    const victory = this.distance >= this.targetDistance;
+    const gameOver = this.scrollsLeft <= 0 || victory;
 
     return {
       isCorrect: false,
@@ -86,8 +89,10 @@ export class ChaseEngine {
       currentStreak: 0,
       scrollsLeft: this.scrollsLeft,
       distance: this.distance,
+      targetDistance: this.targetDistance,
       timeLimit,
       tier,
+      victory,
       gameOver
     };
   }
@@ -104,7 +109,7 @@ export class ChaseEngine {
       correctCount: this.correctCount,
       distance: this.distance,
       scrollsLeft: this.scrollsLeft,
-      victory: this.correctCount >= 25
+      victory: this.distance >= this.targetDistance
     };
   }
 }
