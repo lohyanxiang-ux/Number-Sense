@@ -430,12 +430,21 @@ function setupKeypad(currentUser, onFinishCallback) {
 }
 
 function startQuestionTimer(onFinishCallback) {
-  clearInterval(questionTimerInterval);
+  // Always stop previous timer interval before launching new countdown
+  if (questionTimerInterval) {
+    clearInterval(questionTimerInterval);
+    questionTimerInterval = null;
+  }
+
+  // Recalculate time limit based on speed streak (e.g. 8.0s if speed was reset)
   currentTimeLimit = engine.getCurrentTimeLimit();
   timeRemaining = currentTimeLimit;
 
+  // Immediately set visual fuse bar to 100%
   const fuseBar = document.getElementById('chaseFuseBar');
-  if (fuseBar) fuseBar.style.width = '100%';
+  if (fuseBar) {
+    fuseBar.style.width = '100%';
+  }
 
   const startTime = Date.now();
 
@@ -450,6 +459,7 @@ function startQuestionTimer(onFinishCallback) {
 
     if (timeRemaining <= 0) {
       clearInterval(questionTimerInterval);
+      questionTimerInterval = null;
       handleQuestionTimeout(onFinishCallback);
     }
   }, 50);
@@ -469,6 +479,10 @@ function nextQuestion(currentUser, onFinishCallback) {
 
   userAnswerStr = '';
   updateBox();
+
+  // Reset fuse bar visually before initiating countdown
+  const fuseBar = document.getElementById('chaseFuseBar');
+  if (fuseBar) fuseBar.style.width = '100%';
 
   startQuestionTimer(onFinishCallback);
 }
@@ -504,7 +518,7 @@ function updateHUD(res) {
   }
 }
 
-// INSTANT TIMEOUT ADVANCE: LOCKS INPUT & DISPATCHES NEXT QUESTION IN 500MS
+// INSTANT TIMEOUT ADVANCE: LOCKS INPUT, RESETS TIMER AND DISPATCHES NEXT QUESTION
 function handleQuestionTimeout(onFinishCallback) {
   document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
   chaseAudio.playScrollShatter();
@@ -512,7 +526,7 @@ function handleQuestionTimeout(onFinishCallback) {
   const res = engine.handleTimeout();
   updateHUD(res);
 
-  // Speed resets back to 8.0s (110 BPM)
+  // Speed resets back to 8.0s (110 BPM BGM)
   chaseAudio.startBGM(res.tier.bpm);
 
   triggerLeapAnimation(false, true, res.gameOver, res.victory);
@@ -534,7 +548,11 @@ function handleQuestionTimeout(onFinishCallback) {
 function submitAnswer(currentUser, onFinishCallback) {
   if (!userAnswerStr || !currentQ || userAnswerStr === '-') return;
 
-  clearInterval(questionTimerInterval);
+  if (questionTimerInterval) {
+    clearInterval(questionTimerInterval);
+    questionTimerInterval = null;
+  }
+
   const res = engine.submitAnswer(userAnswerStr, currentQ);
   updateHUD(res);
 
@@ -595,7 +613,6 @@ function triggerLeapAnimation(isCorrect, isTimeout, isGameOver, isVictory) {
     void ninja.offsetWidth;
 
     if (isVictory) {
-      // VICTORY: SLIDE IN TORII GATE & BACKFLIP LANDING
       if (roofTrack) roofTrack.style.animationPlayState = 'paused';
       if (toriiGate) toriiGate.style.right = '40px';
 
@@ -607,11 +624,9 @@ function triggerLeapAnimation(isCorrect, isTimeout, isGameOver, isVictory) {
         vaultEffect.style.opacity = '1';
       }
     } else if (isGameOver) {
-      // GAME OVER (0 SCROLLS): FALL SPINNING OFF THE ROOF
       ninja.classList.remove('ninja-running');
       ninja.classList.add('animate-fall-off');
     } else if (isCorrect) {
-      // CORRECT ANSWER: ARC VAULT JUMP
       ninja.classList.add('animate-vault-jump');
 
       if (vaultEffect) {
@@ -620,7 +635,6 @@ function triggerLeapAnimation(isCorrect, isTimeout, isGameOver, isVictory) {
         setTimeout(() => { vaultEffect.style.opacity = '0'; }, 350);
       }
     } else {
-      // WRONG ANSWER / TIMEOUT: STUMBLE & TILE CRACK
       ninja.classList.add('animate-trip-stumble');
 
       if (vaultEffect) {
