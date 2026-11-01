@@ -1,6 +1,8 @@
 import { BoardEngine } from '../engines/boardEngine.js';
 import { getFluencyQuestion } from '../fluencyRegistry.js';
 import { getStudentFluencyData } from '../fluencyMastery.js';
+import { audioCore } from '../audio/fluencyAudioCore.js';
+import { boardAudio } from '../audio/boardAudio.js';
 
 let engine = null;
 let currentQ = null;
@@ -10,6 +12,9 @@ const IDLE_TIMEOUT_MS = 10000; // 10 Seconds
 
 export function mountBoardMode(container, currentUser, onFinishCallback) {
   engine = new BoardEngine();
+
+  audioCore.init();
+  boardAudio.startBGM();
 
   container.innerHTML = `
     <style>
@@ -25,6 +30,85 @@ export function mountBoardMode(container, currentUser, onFinishCallback) {
 
       @media (max-width: 768px) {
         .board-arena-grid { grid-template-columns: 1fr; }
+      }
+
+      /* 4-COLUMN KEYPAD GRID WITH 4TH COLUMN ACTION BAR */
+      .board-keypad-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        width: 100%;
+        margin-bottom: 12px;
+      }
+
+      .board-keypad-grid .btn {
+        padding: 12px 0;
+        font-size: 1.3rem;
+        font-weight: 800;
+        border-radius: 10px;
+        transition: transform 0.1s ease, filter 0.15s ease;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      }
+
+      .board-keypad-grid .btn:active {
+        transform: scale(0.94);
+      }
+
+      .f-key-num {
+        background: #1e293b !important;
+        color: #f8fafc !important;
+        border: 1.5px solid #334155 !important;
+      }
+
+      .f-key-zero {
+        grid-column: span 3;
+      }
+
+      .f-key-minus {
+        background: rgba(245, 158, 11, 0.2) !important;
+        color: #fbbf24 !important;
+        border: 2px solid #f59e0b !important;
+        font-size: 1.5rem !important;
+      }
+
+      .f-key-dot {
+        background: rgba(6, 182, 212, 0.2) !important;
+        color: #38bdf8 !important;
+        border: 2px solid #06b6d4 !important;
+        font-size: 2.4rem !important;
+        line-height: 0.8 !important;
+        font-weight: 900 !important;
+      }
+
+      .f-key-slash {
+        background: rgba(139, 92, 246, 0.2) !important;
+        color: #c084fc !important;
+        border: 2px solid #8b5cf6 !important;
+        font-size: 1.4rem !important;
+      }
+
+      .f-key-clear {
+        background: rgba(239, 68, 68, 0.2) !important;
+        color: #ef4444 !important;
+        border: 2px solid #ef4444 !important;
+        font-size: 1.3rem !important;
+      }
+
+      .f-btn-submit {
+        width: 100%;
+        background: #10b981 !important;
+        color: #ffffff !important;
+        font-size: 1.3rem !important;
+        font-weight: 900 !important;
+        padding: 16px 0 !important;
+        border-radius: 12px !important;
+        border: none !important;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4) !important;
+        letter-spacing: 1px;
+      }
+
+      .f-btn-submit:hover {
+        filter: brightness(1.1);
       }
 
       /* ARENA LEFT COLUMN MODE STYLES & TRANSITIONS */
@@ -127,11 +211,26 @@ export function mountBoardMode(container, currentUser, onFinishCallback) {
           transition: background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
         ">
           
-          <!-- HEADER: BOARDS REMAINING & STREAK BADGE -->
+          <!-- HEADER: BOARDS REMAINING, AUDIO TOGGLE & STREAK BADGE -->
           <div style="display: flex; justify-content: space-between; align-items: center; z-index: 5;">
             <div style="background: rgba(15, 23, 42, 0.85); border: 2px solid #f59e0b; padding: 6px 14px; border-radius: 10px; color: #fbbf24; font-weight: 900; font-size: 1.1rem;">
               🪵 BOARDS: <span id="boardsRemainingCount">20</span> / 20
             </div>
+
+            <!-- AUDIO MUTE TOGGLE BUTTON -->
+            <button id="btnToggleBoardSound" style="
+              background: rgba(16, 185, 129, 0.15);
+              border: 1px solid #10b981;
+              color: #10b981;
+              font-weight: 900;
+              padding: 6px 14px;
+              border-radius: 10px;
+              font-size: 0.85rem;
+              cursor: pointer;
+              transition: all 0.2s ease;
+            ">
+              🔊 Sound: ON
+            </button>
 
             <div id="boardStreakBadge" style="background: rgba(15, 23, 42, 0.85); border: 1px solid #64748b; color: #94a3b8; font-weight: 900; padding: 6px 14px; border-radius: 10px; font-size: 0.95rem; transition: all 0.3s ease;">
               🔥 STREAK: 0 (1 Board/Hit)
@@ -141,7 +240,6 @@ export function mountBoardMode(container, currentUser, onFinishCallback) {
           <!-- CENTER ARENA: FULL 20-BOARD PHYSICAL STACK -->
           <div style="position: relative; height: 320px; display: flex; justify-content: center; align-items: flex-end; z-index: 3; width: 100%; padding-bottom: 10px;">
             
-            <!-- 20-BOARD STACK CONTAINER -->
             <div id="boardStackVisual" style="
               position: relative; 
               width: 210px; 
@@ -151,10 +249,8 @@ export function mountBoardMode(container, currentUser, onFinishCallback) {
               gap: 2px; 
               transition: transform 0.2s ease;
             ">
-              <!-- All 20 physical boards rendered via JS -->
             </div>
 
-            <!-- ANIMATING STRIKING FIST / FIRE / LIGHTNING -->
             <div id="fistSprite" style="
               position: absolute;
               top: 10px;
@@ -167,7 +263,6 @@ export function mountBoardMode(container, currentUser, onFinishCallback) {
               filter: drop-shadow(0 6px 14px rgba(0,0,0,0.8));
             ">👊</div>
 
-            <!-- IMPACT SPARK EFFECT -->
             <div id="boardImpactEffect" style="
               position: absolute;
               top: 40%;
@@ -190,46 +285,103 @@ export function mountBoardMode(container, currentUser, onFinishCallback) {
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: QUESTION & KEYPAD -->
+        <!-- RIGHT COLUMN: QUESTION & ENHANCED KEYPAD (NON-NUMERICAL IN COL 4) -->
         <div style="display: flex; flex-direction: column; justify-content: space-between;">
           <div id="fluencyFeedbackBadge" style="height: 32px; line-height: 32px; text-align: center; font-weight: 800; font-size: 0.95rem; border-radius: 8px; margin-bottom: 8px; visibility: hidden;">--</div>
 
           <div id="fluencyPrompt" style="font-size: 2.8rem; font-weight: 900; color: var(--text-main); text-align: center; margin-bottom: 12px; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; padding: 12px;">--</div>
 
-          <div id="fluencyAnswerBox" style="font-size: 2.2rem; font-weight: 800; height: 54px; line-height: 54px; text-align: center; background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: 12px; margin-bottom: 16px; color: #f59e0b;">?</div>
+          <div id="fluencyAnswerBox" style="font-size: 2.2rem; font-weight: 800; height: 54px; line-height: 54px; text-align: center; background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: 12px; margin-bottom: 16px; color: #38bdf8;">?</div>
 
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-bottom: 12px;">
-            <button class="btn f-key" data-k="1">1</button>
-            <button class="btn f-key" data-k="2">2</button>
-            <button class="btn f-key" data-k="3">3</button>
-            <button class="btn f-key" data-k="4">4</button>
-            <button class="btn f-key" data-k="5">5</button>
-            <button class="btn f-key" data-k="6">6</button>
-            <button class="btn f-key" data-k="7">7</button>
-            <button class="btn f-key" data-k="8">8</button>
-            <button class="btn f-key" data-k="9">9</button>
-            <button class="btn f-key" data-k="-" style="background: var(--bg-primary);">-</button>
-            <button class="btn f-key" data-k="0">0</button>
-            <button class="btn" id="fKeyClear" style="background: var(--bg-primary); color: var(--danger); font-weight: 800;">C</button>
+          <!-- 4-COLUMN KEYPAD GRID WITH 4TH COLUMN ACTION BAR -->
+          <div class="board-keypad-grid">
+            <button class="btn f-key f-key-num" data-k="1">1</button>
+            <button class="btn f-key f-key-num" data-k="2">2</button>
+            <button class="btn f-key f-key-num" data-k="3">3</button>
+            <button class="btn f-key f-key-minus" data-k="-">−</button>
+
+            <button class="btn f-key f-key-num" data-k="4">4</button>
+            <button class="btn f-key f-key-num" data-k="5">5</button>
+            <button class="btn f-key f-key-num" data-k="6">6</button>
+            <button class="btn f-key f-key-dot" data-k=".">.</button>
+
+            <button class="btn f-key f-key-num" data-k="7">7</button>
+            <button class="btn f-key f-key-num" data-k="8">8</button>
+            <button class="btn f-key f-key-num" data-k="9">9</button>
+            <button class="btn f-key f-key-slash" data-k="/">/</button>
+
+            <button class="btn f-key f-key-num f-key-zero" data-k="0">0</button>
+            <button class="btn f-key-clear" id="fKeyClear">C</button>
           </div>
 
-          <button class="btn" id="fKeyEnter" style="width: 100%; background: #d97706; color: white; font-size: 1.2rem; font-weight: 800; padding: 14px 0;">↵ SUBMIT</button>
+          <!-- GREEN SUBMIT BUTTON -->
+          <button class="btn f-btn-submit" id="fKeyEnter">SUBMIT</button>
         </div>
 
       </div>
     </div>
   `;
 
+  setupAudioToggle(container);
   setupKeypad(currentUser, onFinishCallback);
   engine.startSession();
   renderFullPhysicalStack(20, 0);
   nextQuestion(currentUser, onFinishCallback);
 }
 
+function setupAudioToggle(container) {
+  const toggleBtn = container.querySelector('#btnToggleBoardSound');
+  if (!toggleBtn) return;
+
+  const updateUI = () => {
+    if (audioCore.isMuted) {
+      toggleBtn.innerText = '🔇 Sound: OFF';
+      toggleBtn.style.background = 'rgba(239, 68, 68, 0.15)';
+      toggleBtn.style.color = '#ef4444';
+      toggleBtn.style.borderColor = '#ef4444';
+    } else {
+      toggleBtn.innerText = '🔊 Sound: ON';
+      toggleBtn.style.background = 'rgba(16, 185, 129, 0.15)';
+      toggleBtn.style.color = '#10b981';
+      toggleBtn.style.borderColor = '#10b981';
+    }
+  };
+
+  updateUI();
+
+  toggleBtn.onclick = () => {
+    const isMuted = audioCore.toggleMute();
+    if (isMuted) {
+      boardAudio.stopBGM();
+    } else {
+      boardAudio.startBGM();
+    }
+    updateUI();
+  };
+}
+
 function setupKeypad(currentUser, onFinishCallback) {
   document.querySelectorAll('.f-key').forEach(btn => {
     btn.onclick = () => {
-      userAnswerStr += btn.getAttribute('data-k');
+      const val = btn.getAttribute('data-k');
+
+      if (val === '-') {
+        if (userAnswerStr.startsWith('-')) {
+          userAnswerStr = userAnswerStr.slice(1);
+        } else {
+          userAnswerStr = '-' + userAnswerStr;
+        }
+      } else if (val === '.') {
+        if (!userAnswerStr.includes('.')) {
+          userAnswerStr += '.';
+        }
+      } else if (val === '/') {
+        if (!userAnswerStr.includes('/')) {
+          userAnswerStr += '/';
+        }
+      } else {
+        userAnswerStr += val;
+      }
       updateBox();
     };
   });
@@ -276,7 +428,6 @@ function renderFullPhysicalStack(remaining, streak) {
 
   if (countEl) countEl.innerText = remaining;
 
-  // DYNAMIC BACKGROUND THEME & LIGHTING FOR ENTIRE LEFT COLUMN
   if (leftCol && streakBadge && powerText) {
     leftCol.classList.remove('arena-theme-normal', 'arena-theme-blue', 'arena-theme-fire');
 
@@ -310,7 +461,6 @@ function renderFullPhysicalStack(remaining, streak) {
   if (!container) return;
   container.innerHTML = '';
 
-  // RENDER ALL 20 PHYSICAL BOARDS WITH NATURAL WOOD COLOURING
   for (let i = 0; i < remaining; i++) {
     const board = document.createElement('div');
     board.className = 'board-item-row';
@@ -323,11 +473,9 @@ function renderFullPhysicalStack(remaining, streak) {
     board.style.overflow = 'visible';
     board.style.boxSizing = 'border-box';
 
-    // Board background remains consistent natural wood grain across all modes
     board.style.background = 'linear-gradient(90deg, #78350f 0%, #b45309 50%, #78350f 100%)';
     board.style.border = '1px solid #451a03';
 
-    // Ambient aura glow around the physical stack during active streaks
     if (streak >= 5) {
       board.style.boxShadow = '0 0 6px rgba(249, 115, 22, 0.5)';
     } else if (streak >= 3) {
@@ -336,7 +484,6 @@ function renderFullPhysicalStack(remaining, streak) {
       board.style.boxShadow = '0 1px 3px rgba(0,0,0,0.5)';
     }
 
-    // INNER SPLIT HALVES FOR SHATTER ANIMATION
     board.innerHTML = `
       <div class="board-half-left" style="width: 50%; height: 100%; background: inherit; border-radius: 3px 0 0 3px;"></div>
       <div class="board-half-right" style="width: 50%; height: 100%; background: inherit; border-radius: 0 3px 3px 0;"></div>
@@ -361,6 +508,9 @@ function nextQuestion(currentUser, onFinishCallback) {
 
 function triggerIdleTimeout(onFinishCallback) {
   clearIdleTimer();
+  boardAudio.stopBGM();
+  boardAudio.playStanceBroken();
+
   document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
 
   const box = document.getElementById('fluencyAnswerBox');
@@ -385,20 +535,33 @@ function triggerIdleTimeout(onFinishCallback) {
 }
 
 function submitAnswer(currentUser, onFinishCallback) {
-  if (!userAnswerStr || !currentQ) return;
+  if (!userAnswerStr || !currentQ || userAnswerStr === '-') return;
 
   clearIdleTimer();
   const res = engine.submitAnswer(userAnswerStr, currentQ);
+
+  if (res.isCorrect) {
+    if (res.currentStreak >= 3) {
+      boardAudio.playPowerSmash(res.currentStreak);
+    } else {
+      boardAudio.playWoodCrack();
+    }
+  } else {
+    boardAudio.playMissThud();
+  }
+
   triggerStrikeAnimation(res.isCorrect, res.boardsBroken, res.currentStreak);
 
-  // Allow shatter animation to play before re-rendering board stack
   setTimeout(() => {
     renderFullPhysicalStack(res.boardsRemaining, res.currentStreak);
   }, 280);
 
   if (res.gameOver) {
+    boardAudio.stopBGM();
     document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
+
     if (res.failedConsecutive) {
+      boardAudio.playStanceBroken();
       const badge = document.getElementById('fluencyFeedbackBadge');
       if (badge) {
         badge.style.visibility = 'visible';
@@ -406,7 +569,10 @@ function submitAnswer(currentUser, onFinishCallback) {
         badge.style.color = '#ef4444';
         badge.innerText = '❌ 3 CONSECUTIVE MISSES! Trial Failed! 💥';
       }
+    } else if (res.victory) {
+      audioCore.playVictoryFanfare();
     }
+
     setTimeout(() => onFinishCallback(res), 800);
   } else {
     setTimeout(() => nextQuestion(currentUser, onFinishCallback), 450);
@@ -435,7 +601,6 @@ function triggerStrikeAnimation(isCorrect, boardsBroken, streak) {
   }
 
   if (isCorrect) {
-    // 1. ANIMATE FIST SMASH
     if (fist) {
       fist.innerText = streak >= 5 ? '🔥' : (streak >= 3 ? '⚡' : '👊');
       fist.classList.remove('animate-fist-smash');
@@ -443,7 +608,6 @@ function triggerStrikeAnimation(isCorrect, boardsBroken, streak) {
       fist.classList.add('animate-fist-smash');
     }
 
-    // 2. SHATTER TOP N PHYSICAL BOARDS FROM STACK
     if (container) {
       const boardRows = Array.from(container.children);
       const targetRows = boardRows.slice(-boardsBroken);
@@ -459,14 +623,12 @@ function triggerStrikeAnimation(isCorrect, boardsBroken, streak) {
       });
     }
 
-    // 3. IMPACT LIGHTNING / FIRE EFFECT
     if (impactEffect) {
       impactEffect.innerText = streak >= 5 ? '🔥' : (streak >= 3 ? '⚡' : '💥');
       impactEffect.style.opacity = '1';
       setTimeout(() => { impactEffect.style.opacity = '0'; }, 300);
     }
   } else {
-    // WRONG ANSWER: CRACK AND SHAKE STACK
     if (container) {
       container.classList.remove('animate-crack-shake');
       void container.offsetWidth;
