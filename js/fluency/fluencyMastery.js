@@ -31,8 +31,8 @@ export function getStudentFluencyData(user) {
   user.proficiency.fluency = raw;
   user.proficiency.Prof_fluency = raw;
 
-  const currentLevel = raw[0] || 1;
-  const maxLevel = raw[1] || 1;
+  const currentLevel = Math.max(1, Math.min(10, raw[0] || 1));
+  const maxLevel = Math.max(1, Math.min(10, raw[1] || currentLevel));
   const rollingSpeed = raw[2] || 0;
   const rollingAccuracy = raw[3] || 0;
 
@@ -71,8 +71,8 @@ export function evaluateLevelProgression(user, sessionResult) {
   if (acc2 > 0 || spd2 > 0) activeBuffer.push({ acc: acc2, spd: spd2 });
   if (acc3 > 0 || spd3 > 0) activeBuffer.push({ acc: acc3, spd: spd3 });
 
-  const avgAcc = Math.round(activeBuffer.reduce((sum, s) => sum + s.acc, 0) / activeBuffer.length);
-  const avgSpd = Number((activeBuffer.reduce((sum, s) => sum + s.spd, 0) / activeBuffer.length).toFixed(1));
+  const avgAcc = activeBuffer.length > 0 ? Math.round(activeBuffer.reduce((sum, s) => sum + s.acc, 0) / activeBuffer.length) : sessionResult.accuracy;
+  const avgSpd = activeBuffer.length > 0 ? Number((activeBuffer.reduce((sum, s) => sum + s.spd, 0) / activeBuffer.length).toFixed(1)) : sessionResult.avgSpeed;
 
   let leveledUp = false;
   let restored = false;
@@ -87,7 +87,7 @@ export function evaluateLevelProgression(user, sessionResult) {
       currentLevel += 1;
       restored = true;
       transitionType = 'RECOVERY';
-      message = `⚡ Fast Recovery! Restored to ${BELT_TIERS[currentLevel].name}!`;
+      message = `⚡ Fast Recovery! Restored to ${BELT_TIERS[currentLevel]?.name || 'Next Belt'}!`;
     } else {
       message = `Keep training! Target: ≥80% Acc and <5.0s Speed to restore rank.`;
     }
@@ -98,7 +98,7 @@ export function evaluateLevelProgression(user, sessionResult) {
         maxLevel = Math.max(maxLevel, currentLevel);
         leveledUp = true;
         transitionType = 'PROMOTION';
-        message = `🏆 Promotion Unlocked! Promoted to ${BELT_TIERS[currentLevel].name}!`;
+        message = `🏆 Promotion Unlocked! Promoted to ${BELT_TIERS[currentLevel]?.name || 'Next Belt'}!`;
         acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0;
       } else {
         message = `Progress logged (${activeBuffer.length}/3 runs). Keep aiming for ≥80% Acc & <5.0s Speed!`;
@@ -108,12 +108,11 @@ export function evaluateLevelProgression(user, sessionResult) {
     }
   }
 
-  // Circuit Breaker: 2 consecutive failures (<50% accuracy)
   if (acc1 < 50 && acc2 < 50 && activeBuffer.length >= 2 && currentLevel > 1) {
     currentLevel -= 1;
     steppedDown = true;
     transitionType = 'STEP_DOWN';
-    message = `⚠️ Belt Step-Down. Level lowered to ${BELT_TIERS[currentLevel].name}.`;
+    message = `⚠️ Belt Step-Down. Level lowered to ${BELT_TIERS[currentLevel]?.name || 'Previous Belt'}.`;
     acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0;
   }
 
