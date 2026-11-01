@@ -26,7 +26,6 @@ export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, 
 
   overlay.innerHTML = `
     <style>
-      /* MARTIAL ARTIST TORSO & WAIST ANIMATIONS */
       @keyframes unwrapOldBelt {
         0% { transform: scaleX(1) translateX(0); opacity: 1; }
         50% { transform: scaleX(1.2) translateX(-40px) rotate(-10deg); opacity: 0.6; }
@@ -37,11 +36,6 @@ export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, 
         0% { transform: scale(0.3) translateY(-40px); opacity: 0; filter: brightness(2); }
         60% { transform: scale(1.15) translateY(4px); opacity: 1; filter: brightness(1.4); }
         100% { transform: scale(1) translateY(0); opacity: 1; filter: brightness(1); }
-      }
-
-      @keyframes waistAuraPulse {
-        0%, 100% { filter: drop-shadow(0 0 15px ${newBelt.color}); }
-        50% { filter: drop-shadow(0 0 35px ${newBelt.color}); }
       }
 
       .ceremony-container {
@@ -126,22 +120,15 @@ export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, 
         ${isPositive ? 'PROMOTED TO NEXT RANK!' : 'BELT STEP-DOWN'}
       </h1>
 
-      <!-- MARTIAL ARTIST TORSO SILHOUETTE & WAIST BELT ANIMATION -->
       <div class="torso-visual-box">
-        <!-- SVG MARTIAL ARTIST TORSO AT WAIST -->
         <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Gi Shoulders & Chest -->
           <path d="M40 180 L60 50 L100 90 L140 50 L160 180 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="4"/>
-          <!-- Lapels V-Neck -->
           <path d="M60 50 L100 120 L140 50" fill="none" stroke="#94a3b8" stroke-width="6"/>
-          <!-- Torso Body Shadow -->
           <path d="M65 130 L100 165 L135 130" fill="none" stroke="#cbd5e1" stroke-width="3"/>
         </svg>
 
-        <!-- DYNAMIC WAIST BELT LAYER -->
         <div id="waistBeltWrapper" style="position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-          <!-- OLD BELT AT WAIST -->
-          <div id="activeWaistBelt" class="belt-on-waist" style="background: ${oldBelt.color}; border: 1.5 solid rgba(255,255,255,0.3);">
+          <div id="activeWaistBelt" class="belt-on-waist" style="background: ${oldBelt.color}; border: 1.5px solid rgba(255,255,255,0.3);">
             <div class="belt-knot" style="background: ${oldBelt.color};"></div>
             <div class="belt-tail-left" style="background: ${oldBelt.color};"></div>
             <div class="belt-tail-right" style="background: ${oldBelt.color};"></div>
@@ -163,7 +150,7 @@ export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, 
         padding: 14px 32px; border-radius: 12px; width: 100%;
         cursor: pointer; opacity: 0.4; pointer-events: none; transition: all 0.3s ease;
       ">
-        OSS! CONTINUE ↵
+        ${isPositive ? 'BOW & ACCEPT RANK ↵' : 'BOW & ACKNOWLEDGE ↵'}
       </button>
     </div>
   `;
@@ -171,7 +158,7 @@ export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, 
   document.body.appendChild(overlay);
   setTimeout(() => { overlay.style.opacity = '1'; }, 20);
 
-  // SEQUENCE STEP 1: UNTIE & REMOVE OLD BELT (0.9s)
+  // STEP 1: UNTIE & REMOVE OLD BELT (0.9s)
   setTimeout(() => {
     const activeBelt = overlay.querySelector('#activeWaistBelt');
     if (activeBelt) {
@@ -179,7 +166,7 @@ export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, 
     }
   }, 900);
 
-  // SEQUENCE STEP 2: REPLACE WITH NEW BELT & BURST AURA (1.8s)
+  // STEP 2: REPLACE WITH NEW BELT & BURST AURA (1.8s)
   setTimeout(() => {
     const wrapper = overlay.querySelector('#waistBeltWrapper');
     const titleEl = overlay.querySelector('#ceremonyTitle');
