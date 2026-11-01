@@ -16,7 +16,6 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
   timeRemaining = 30;
   lastTickSecond = 30;
 
-  // Initialize Web Audio context and start 130 BPM high-energy synth beat
   audioCore.init();
   blitzAudio.startBGM();
 
@@ -36,7 +35,64 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         .blitz-arena-grid { grid-template-columns: 1fr; }
       }
 
-      /* --- HAND THROW & SHURIKEN TRAJECTORY ANIMATIONS --- */
+      /* KEYPAD STYLING */
+      .blitz-keypad-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        width: 100%;
+        margin-bottom: 14px;
+      }
+
+      .blitz-keypad-grid .btn {
+        padding: 14px 0;
+        font-size: 1.4rem;
+        font-weight: 800;
+        border-radius: 10px;
+        transition: transform 0.1s ease, filter 0.15s ease;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      }
+
+      .blitz-keypad-grid .btn:active {
+        transform: scale(0.95);
+      }
+
+      .f-key-num {
+        background: #1e293b !important;
+        color: #f8fafc !important;
+        border: 1.5px solid #334155 !important;
+      }
+
+      .f-key-minus {
+        background: rgba(245, 158, 11, 0.2) !important;
+        color: #fbbf24 !important;
+        border: 2px solid #f59e0b !important;
+      }
+
+      .f-key-clear {
+        background: rgba(239, 68, 68, 0.2) !important;
+        color: #ef4444 !important;
+        border: 2px solid #ef4444 !important;
+      }
+
+      .f-btn-submit {
+        width: 100%;
+        background: #10b981 !important;
+        color: #ffffff !important;
+        font-size: 1.3rem !important;
+        font-weight: 900 !important;
+        padding: 16px 0 !important;
+        border-radius: 12px !important;
+        border: none !important;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4) !important;
+        letter-spacing: 1px;
+      }
+
+      .f-btn-submit:hover {
+        filter: brightness(1.1);
+      }
+
+      /* ANIMATIONS */
       @keyframes handThrow {
         0% { transform: translate(-50%, 80px) rotate(-25deg); opacity: 0; }
         30% { transform: translate(-50%, 10px) rotate(10deg); opacity: 1; }
@@ -69,8 +125,8 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
       }
 
       .animate-hand-throw { animation: handThrow 0.45s cubic-bezier(0.2, 0.8, 0.25, 1) forwards; }
-      .animate-shuriken-hit { animation: shurikenHitTrajectory 0.28s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
-      .animate-shuriken-miss { animation: shurikenMissTrajectory 0.32s cubic-bezier(0.2, 0.8, 0.4, 1) forwards; }
+      .animate-shuriken-hit { animation: shurikenHitTrajectory 0.28s cubic-bezier(0.1, 0.9, 0.2) forwards; }
+      .animate-shuriken-miss { animation: shurikenMissTrajectory 0.32s cubic-bezier(0.2, 0.8, 0.4) forwards; }
       .animate-dummy-hit { animation: dummyHitWobble 0.3s ease-in-out; }
       .animate-dummy-miss { animation: dummyMissDodge 0.3s ease-in-out; }
 
@@ -135,29 +191,23 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
           <!-- CENTER ARENA: MARTIAL ARTS WOODEN DUMMY & SHURIKEN LAYER -->
           <div style="position: relative; height: 280px; display: flex; justify-content: center; align-items: center; z-index: 3; width: 100%;">
             
-            <!-- MARTIAL ARTS TRAINING DUMMY -->
             <div id="trainingDummy" style="position: relative; width: 140px; height: 220px; display: flex; flex-direction: column; align-items: center; transition: transform 0.15s ease;">
-              <!-- DUMMY HEAD & HEADBAND -->
               <div style="width: 56px; height: 56px; background: #854d0e; border-radius: 50%; border: 3px solid #713f12; position: relative; display: flex; justify-content: center; align-items: center;">
                 <div style="position: absolute; top: 12px; width: 100%; height: 10px; background: #ef4444;"></div>
                 <div style="font-size: 1.2rem; z-index: 2; margin-top: 4px;">🪵</div>
               </div>
 
-              <!-- DUMMY TORSO & WOODEN ARMS -->
               <div style="width: 44px; height: 110px; background: #a16207; border-radius: 8px; border: 3px solid #713f12; position: relative; margin-top: -4px;">
                 <div style="position: absolute; top: 20px; left: -30px; width: 34px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px; transform: rotate(-15deg);"></div>
                 <div style="position: absolute; top: 35px; right: -30px; width: 34px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px; transform: rotate(15deg);"></div>
                 <div style="position: absolute; top: 60px; left: -22px; width: 26px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px;"></div>
                 
-                <!-- EMBEDDED SHURIKENS CONTAINER -->
                 <div id="stuckShurikens" style="position: absolute; inset: 0; pointer-events: none;"></div>
               </div>
 
-              <!-- DUMMY BASE / STAND -->
               <div style="width: 70px; height: 20px; background: #54320c; border-radius: 4px; border: 2px solid #3b2207; margin-top: -2px;"></div>
             </div>
 
-            <!-- ANIMATING THROWING HAND -->
             <div id="handSprite" style="
               position: absolute;
               bottom: 10px;
@@ -169,7 +219,6 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
               filter: drop-shadow(0 6px 10px rgba(0,0,0,0.6));
             ">🤚</div>
 
-            <!-- ANIMATING FLYING SHURIKEN SPRITE -->
             <div id="shurikenSprite" style="
               position: absolute;
               bottom: 30px;
@@ -187,7 +236,6 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
               </svg>
             </div>
 
-            <!-- IMPACT SPARK / MISS DUST EFFECT -->
             <div id="blitzImpactEffect" style="
               position: absolute;
               font-size: 3.5rem;
@@ -207,30 +255,32 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: QUESTION & KEYPAD -->
+        <!-- RIGHT COLUMN: QUESTION & ENHANCED DISTINCT KEYPAD -->
         <div style="display: flex; flex-direction: column; justify-content: space-between;">
           <div id="fluencyFeedbackBadge" style="height: 32px; line-height: 32px; text-align: center; font-weight: 800; font-size: 0.95rem; border-radius: 8px; margin-bottom: 8px; visibility: hidden;">--</div>
 
           <div id="fluencyPrompt" style="font-size: 2.8rem; font-weight: 900; color: var(--text-main); text-align: center; margin-bottom: 12px; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; padding: 12px;">--</div>
 
-          <div id="fluencyAnswerBox" style="font-size: 2.2rem; font-weight: 800; height: 54px; line-height: 54px; text-align: center; background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: 12px; margin-bottom: 16px; color: #6366f1;">?</div>
+          <div id="fluencyAnswerBox" style="font-size: 2.2rem; font-weight: 800; height: 54px; line-height: 54px; text-align: center; background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: 12px; margin-bottom: 16px; color: #38bdf8;">?</div>
 
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-bottom: 12px;">
-            <button class="btn f-key" data-k="1">1</button>
-            <button class="btn f-key" data-k="2">2</button>
-            <button class="btn f-key" data-k="3">3</button>
-            <button class="btn f-key" data-k="4">4</button>
-            <button class="btn f-key" data-k="5">5</button>
-            <button class="btn f-key" data-k="6">6</button>
-            <button class="btn f-key" data-k="7">7</button>
-            <button class="btn f-key" data-k="8">8</button>
-            <button class="btn f-key" data-k="9">9</button>
-            <button class="btn f-key" data-k="-" style="background: var(--bg-primary);">-</button>
-            <button class="btn f-key" data-k="0">0</button>
-            <button class="btn" id="fKeyClear" style="background: var(--bg-primary); color: var(--danger); font-weight: 800;">C</button>
+          <!-- DISTINCT COLORED KEYPAD GRID -->
+          <div class="blitz-keypad-grid">
+            <button class="btn f-key f-key-num" data-k="1">1</button>
+            <button class="btn f-key f-key-num" data-k="2">2</button>
+            <button class="btn f-key f-key-num" data-k="3">3</button>
+            <button class="btn f-key f-key-num" data-k="4">4</button>
+            <button class="btn f-key f-key-num" data-k="5">5</button>
+            <button class="btn f-key f-key-num" data-k="6">6</button>
+            <button class="btn f-key f-key-num" data-k="7">7</button>
+            <button class="btn f-key f-key-num" data-k="8">8</button>
+            <button class="btn f-key f-key-num" data-k="9">9</button>
+            <button class="btn f-key f-key-minus" data-k="-">−</button>
+            <button class="btn f-key f-key-num" data-k="0">0</button>
+            <button class="btn f-key-clear" id="fKeyClear">C</button>
           </div>
 
-          <button class="btn" id="fKeyEnter" style="width: 100%; background: #6366f1; color: white; font-size: 1.2rem; font-weight: 800; padding: 14px 0;">↵ SUBMIT</button>
+          <!-- GREEN SUBMIT BUTTON (NO ENTER SYMBOL) -->
+          <button class="btn f-btn-submit" id="fKeyEnter">SUBMIT</button>
         </div>
 
       </div>
@@ -278,7 +328,18 @@ function setupAudioToggle(container) {
 function setupKeypad(currentUser, onFinishCallback) {
   document.querySelectorAll('.f-key').forEach(btn => {
     btn.onclick = () => {
-      userAnswerStr += btn.getAttribute('data-k');
+      const val = btn.getAttribute('data-k');
+
+      // Smart Negative Sign Toggling
+      if (val === '-') {
+        if (userAnswerStr.startsWith('-')) {
+          userAnswerStr = userAnswerStr.slice(1);
+        } else {
+          userAnswerStr = '-' + userAnswerStr;
+        }
+      } else {
+        userAnswerStr += val;
+      }
       updateBox();
     };
   });
@@ -313,7 +374,6 @@ function startTimer(onFinishCallback) {
         timerEl.style.color = '#ef4444';
         timerEl.style.borderColor = '#ef4444';
 
-        // Play sharp countdown tick sound every second under 5 seconds
         const currentSec = Math.ceil(timeRemaining);
         if (currentSec <= 5 && currentSec !== lastTickSecond && currentSec > 0) {
           lastTickSecond = currentSec;
@@ -346,19 +406,16 @@ function nextQuestion(currentUser) {
 }
 
 function submitAnswer(currentUser, onFinishCallback) {
-  if (!userAnswerStr || !currentQ || timeRemaining <= 0) return;
+  if (!userAnswerStr || !currentQ || timeRemaining <= 0 || userAnswerStr === '-') return;
 
-  // Trigger shuriken release sound on submit
   blitzAudio.playThrowSwoosh();
 
   const res = engine.submitAnswer(userAnswerStr, currentQ);
   triggerShurikenFlight(res.isCorrect, res.currentStreak);
 
-  // Update Score counter
   const scoreEl = document.getElementById('blitzScoreCount');
   if (scoreEl) scoreEl.innerText = res.correctCount;
 
-  // Update Streak Badge
   const streakEl = document.getElementById('blitzStreakBadge');
   if (streakEl) {
     streakEl.innerText = `🔥 STREAK: ${res.currentStreak}`;
@@ -394,14 +451,12 @@ function triggerShurikenFlight(isCorrect, streak) {
     setTimeout(() => { badge.style.visibility = 'hidden'; }, 450);
   }
 
-  // 1. ANIMATE HAND THROW & RETRACT
   if (hand) {
     hand.classList.remove('animate-hand-throw');
     void hand.offsetWidth;
     hand.classList.add('animate-hand-throw');
   }
 
-  // 2. ANIMATE SHURIKEN TRAJECTORY & SOUNDS (HIT OR MISS)
   if (shuriken) {
     shuriken.classList.remove('animate-shuriken-hit', 'animate-shuriken-miss');
     void shuriken.offsetWidth;
@@ -409,9 +464,7 @@ function triggerShurikenFlight(isCorrect, streak) {
     if (isCorrect) {
       shuriken.classList.add('animate-shuriken-hit');
 
-      // DUMMY IMPACT & EMBEDDED STAR
       setTimeout(() => {
-        // Trigger bright target hit chime sound effect
         blitzAudio.playTargetHit();
 
         if (dummy) {
@@ -454,9 +507,7 @@ function triggerShurikenFlight(isCorrect, streak) {
     } else {
       shuriken.classList.add('animate-shuriken-miss');
 
-      // DUMMY DODGE & MISS SOUND
       setTimeout(() => {
-        // Trigger low dull thud sound effect
         blitzAudio.playTargetMiss();
 
         if (dummy) {
@@ -481,7 +532,6 @@ function triggerShurikenFlight(isCorrect, streak) {
 function finishBlitz(onFinishCallback) {
   document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
   
-  // Stop background music and trigger 4-note victory fanfare chime
   blitzAudio.stopBGM();
   audioCore.playVictoryFanfare();
 
