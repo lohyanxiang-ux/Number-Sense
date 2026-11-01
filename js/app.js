@@ -12,6 +12,7 @@ import './questions/factors.js';
 
 // Speed Fluency Tab Module Integration
 import { initFluencyTab } from './fluency/fluencyApp.js';
+import { BELT_TIERS, getStudentFluencyData } from './fluency/fluencyMastery.js';
 
 let currentUser = null;
 let sheetWebAppUrl = localStorage.getItem('NUMSENSE_SHEET_URL') || 'https://script.google.com/macros/s/AKfycbxs1uvyTFFuFmmmmXQAMm3I57kNeE2VlCqYOd3DOvMwGcHZj6kRP_ZjMpd-Tqg5_OTw/exec';
@@ -1194,7 +1195,7 @@ function renderRosterTable(students) {
   if (!tbody) return;
 
   if (!students || students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; padding: 20px;">No matching student records found.</td></tr>`;
     return;
   }
 
@@ -1203,6 +1204,8 @@ function renderRosterTable(students) {
   let html = '';
   students.forEach(s => {
     const lastDateDisplay = s.lastDailyCompleted ? s.lastDailyCompleted : '<span style="color:var(--text-muted);">Never</span>';
+    const fluencyData = getStudentFluencyData(s);
+    const belt = BELT_TIERS[fluencyData.level] || BELT_TIERS[1];
 
     html += `
       <tr>
@@ -1217,6 +1220,7 @@ function renderRosterTable(students) {
         <td>🔥 ${s.streak}</td>
         <td>⭐ ${s.xp}</td>
         <td>🎟️ <strong>${s.tokens}</strong></td>
+        <td><span style="font-weight: 700; white-space: nowrap;">${belt.badge} ${belt.name}</span></td>
     `;
 
     topicKeys.forEach(tKey => {
