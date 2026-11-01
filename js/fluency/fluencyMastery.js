@@ -1,16 +1,19 @@
 export const BELT_TIERS = {
-  1: { name: 'White Belt', badge: '⚪', tier: 1 },
-  2: { name: 'Yellow Belt', badge: '🟡', tier: 2 },
-  3: { name: 'Orange Belt', badge: '🟠', tier: 3 },
-  4: { name: 'Green Belt', badge: '🟢', tier: 4 },
-  5: { name: 'Blue Belt', badge: '🔵', tier: 5 },
-  6: { name: 'Purple Belt', badge: '🟣', tier: 6 },
-  7: { name: 'Brown Belt', badge: '🟤', tier: 7 },
-  8: { name: 'Red Belt', badge: '🔴', tier: 8 },
-  9: { name: 'Black Belt', badge: '⚫', tier: 9 },
-  10: { name: 'Grandmaster Gold', badge: '👑', tier: 10 }
+  1: { name: 'White Belt', badge: '⚪', tier: 1, color: '#f8fafc' },
+  2: { name: 'Yellow Belt', badge: '🟡', tier: 2, color: '#eab308' },
+  3: { name: 'Orange Belt', badge: '🟠', tier: 3, color: '#f97316' },
+  4: { name: 'Green Belt', badge: '🟢', tier: 4, color: '#22c55e' },
+  5: { name: 'Blue Belt', badge: '🔵', tier: 5, color: '#3b82f6' },
+  6: { name: 'Purple Belt', badge: '🟣', tier: 6, color: '#a855f7' },
+  7: { name: 'Brown Belt', badge: '🟤', tier: 7, color: '#78350f' },
+  8: { name: 'Red Belt', badge: '🔴', tier: 8, color: '#ef4444' },
+  9: { name: 'Black Belt', badge: '⚫', tier: 9, color: '#1e293b' },
+  10: { name: 'Grandmaster Gold', badge: '👑', tier: 10, color: '#eab308' }
 };
 
+/**
+ * Normalizes user fluency data across all backend and frontend format paths.
+ */
 export function getStudentFluencyData(user) {
   if (!user) user = {};
 
@@ -54,6 +57,9 @@ export function getStudentFluencyData(user) {
   };
 }
 
+/**
+ * Evaluates session scores, updates rolling buffers, and handles promotion / step-down logic cleanly.
+ */
 export function evaluateLevelProgression(user, sessionResult) {
   const data = getStudentFluencyData(user);
   let [currentLevel, maxLevel, rollingSpeed, rollingAccuracy, acc1, spd1, acc2, spd2, acc3, spd3] = data.raw;
@@ -62,17 +68,26 @@ export function evaluateLevelProgression(user, sessionResult) {
   const TARGET_ACCURACY = 80;
   const TARGET_SPEED = 5.0;
 
+  // Store pre-shift accuracy of the immediate previous run
+  const prevRunAcc = acc1;
+
+  // Shift rolling 3-session buffer
   acc3 = acc2; spd3 = spd2;
   acc2 = acc1; spd2 = spd1;
-  acc1 = sessionResult.accuracy; spd1 = sessionResult.avgSpeed;
+  acc1 = Number(sessionResult.accuracy) || 0;
+  spd1 = Number(sessionResult.avgSpeed) || 0;
 
   const activeBuffer = [];
   if (acc1 > 0 || spd1 > 0) activeBuffer.push({ acc: acc1, spd: spd1 });
   if (acc2 > 0 || spd2 > 0) activeBuffer.push({ acc: acc2, spd: spd2 });
   if (acc3 > 0 || spd3 > 0) activeBuffer.push({ acc: acc3, spd: spd3 });
 
-  const avgAcc = activeBuffer.length > 0 ? Math.round(activeBuffer.reduce((sum, s) => sum + s.acc, 0) / activeBuffer.length) : sessionResult.accuracy;
-  const avgSpd = activeBuffer.length > 0 ? Number((activeBuffer.reduce((sum, s) => sum + s.spd, 0) / activeBuffer.length).toFixed(1)) : sessionResult.avgSpeed;
+  const avgAcc = activeBuffer.length > 0 
+    ? Math.round(activeBuffer.reduce((sum, s) => sum + s.acc, 0) / activeBuffer.length) 
+    : acc1;
+  const avgSpd = activeBuffer.length > 0 
+    ? Number((activeBuffer.reduce((sum, s) => sum + s.spd, 0) / activeBuffer.length).toFixed(1)) 
+    : spd1;
 
   let leveledUp = false;
   let restored = false;
@@ -82,16 +97,20 @@ export function evaluateLevelProgression(user, sessionResult) {
 
   const isRefresher = currentLevel < maxLevel;
 
+  // 1. RECOVERY MODE (Restoring a previously unlocked higher belt)
   if (isRefresher) {
-    if (sessionResult.accuracy >= TARGET_ACCURACY && sessionResult.avgSpeed <= TARGET_SPEED) {
+    if (acc1 >= TARGET_ACCURACY && spd1 <= TARGET_SPEED) {
       currentLevel += 1;
       restored = true;
       transitionType = 'RECOVERY';
       message = `⚡ Fast Recovery! Restored to ${BELT_TIERS[currentLevel]?.name || 'Next Belt'}!`;
+      acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0; // Clear buffer on rank restore
     } else {
       message = `Keep training! Target: ≥80% Acc and <5.0s Speed to restore rank.`;
     }
-  } else {
+  } 
+  // 2. NORMAL PROGRESSION MODE
+  else {
     if (activeBuffer.length >= 3) {
       if (avgAcc >= TARGET_ACCURACY && avgSpd <= TARGET_SPEED && currentLevel < 10) {
         currentLevel += 1;
@@ -99,7 +118,7 @@ export function evaluateLevelProgression(user, sessionResult) {
         leveledUp = true;
         transitionType = 'PROMOTION';
         message = `🏆 Promotion Unlocked! Promoted to ${BELT_TIERS[currentLevel]?.name || 'Next Belt'}!`;
-        acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0;
+        acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0; // Clear buffer on promotion
       } else {
         message = `Progress logged (${activeBuffer.length}/3 runs). Keep aiming for ≥80% Acc & <5.0s Speed!`;
       }
@@ -108,16 +127,23 @@ export function evaluateLevelProgression(user, sessionResult) {
     }
   }
 
-  if (acc1 < 50 && acc2 < 50 && activeBuffer.length >= 2 && currentLevel > 1) {
-    currentLevel -= 1;
-    steppedDown = true;
-    transitionType = 'STEP_DOWN';
-    message = `⚠️ Belt Step-Down. Level lowered to ${BELT_TIERS[currentLevel]?.name || 'Previous Belt'}.`;
-    acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0;
+  // 3. STEP-DOWN CIRCUIT BREAKER (Guarded: NEVER triggers if promotion/recovery just occurred)
+  if (!leveledUp && !restored && currentLevel > 1) {
+    const isCurrentRunFailed = acc1 > 0 && acc1 < 50;
+    const isPreviousRunFailed = prevRunAcc > 0 && prevRunAcc < 50;
+
+    if (isCurrentRunFailed && isPreviousRunFailed) {
+      currentLevel -= 1;
+      steppedDown = true;
+      transitionType = 'STEP_DOWN';
+      message = `⚠️ Belt Step-Down. Level lowered to ${BELT_TIERS[currentLevel]?.name || 'Previous Belt'}.`;
+      acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0; // Clear buffer on step-down
+    }
   }
 
   const updatedRaw = [currentLevel, maxLevel, avgSpd, avgAcc, acc1, spd1, acc2, spd2, acc3, spd3];
 
+  // Synchronize state across all references for Google Sheets sync
   user.Prof_fluency = updatedRaw;
   if (!user.proficiency) user.proficiency = {};
   user.proficiency.fluency = updatedRaw;
