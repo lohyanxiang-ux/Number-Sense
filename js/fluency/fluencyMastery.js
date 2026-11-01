@@ -11,8 +11,34 @@ export const BELT_TIERS = {
   10: { name: 'Grandmaster Gold', badge: '👑', tier: 10 }
 };
 
+/**
+ * Normalizes fluency data from all potential Google Sheets response locations.
+ */
 export function getStudentFluencyData(user) {
-  const raw = user.Prof_fluency || [1, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+  if (!user) user = {};
+
+  // 1. Resolve raw data from any valid backend/frontend path
+  let raw = user?.proficiency?.fluency || user?.proficiency?.Prof_fluency || user?.Prof_fluency;
+
+  // 2. Parse string format if received directly from Google Sheets
+  if (typeof raw === 'string') {
+    raw = raw.split(',').map(v => Number(v.trim()) || 0);
+  }
+
+  // 3. Apply default schema if missing or corrupted
+  if (!Array.isArray(raw) || raw.length < 10) {
+    raw = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+  }
+
+  // Ensure elements are pure numbers
+  raw = raw.map(v => Number(v) || 0);
+
+  // 4. Synchronize references on user object for two-way binding
+  user.Prof_fluency = raw;
+  if (!user.proficiency) user.proficiency = {};
+  user.proficiency.fluency = raw;
+  user.proficiency.Prof_fluency = raw;
+
   const currentLevel = raw[0] || 1;
   const maxLevel = raw[1] || 1;
   const rollingSpeed = raw[2] || 0;
@@ -36,11 +62,15 @@ export function getStudentFluencyData(user) {
   };
 }
 
+/**
+ * Evaluates session outcomes and updates all user references for Sheets sync.
+ */
 export function evaluateLevelProgression(user, sessionResult) {
-  let [currentLevel, maxLevel, rollingSpeed, rollingAccuracy, acc1, spd1, acc2, spd2, acc3, spd3] = user.Prof_fluency || [1, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+  const data = getStudentFluencyData(user);
+  let [currentLevel, maxLevel, rollingSpeed, rollingAccuracy, acc1, spd1, acc2, spd2, acc3, spd3] = data.raw;
 
-  const TARGET_ACCURACY = 80; // Updated from 90%
-  const TARGET_SPEED = 5.0;   // Updated from 2.5s
+  const TARGET_ACCURACY = 80;
+  const TARGET_SPEED = 5.0;
 
   // Push new session into rolling 3-session buffer
   acc3 = acc2; spd3 = spd2;
@@ -63,7 +93,7 @@ export function evaluateLevelProgression(user, sessionResult) {
   const isRefresher = currentLevel < maxLevel;
 
   if (isRefresher) {
-    // Fast Recovery: 1 Session meeting thresholds restores level
+    // Fast Recovery: 1 session meeting thresholds restores level
     if (sessionResult.accuracy >= TARGET_ACCURACY && sessionResult.avgSpeed <= TARGET_SPEED) {
       currentLevel += 1;
       restored = true;
@@ -96,7 +126,13 @@ export function evaluateLevelProgression(user, sessionResult) {
     acc1 = spd1 = acc2 = spd2 = acc3 = spd3 = 0;
   }
 
-  user.Prof_fluency = [currentLevel, maxLevel, avgSpd, avgAcc, acc1, spd1, acc2, spd2, acc3, spd3];
+  const updatedRaw = [currentLevel, maxLevel, avgSpd, avgAcc, acc1, spd1, acc2, spd2, acc3, spd3];
+
+  // Keep all object paths synchronized for Google Apps Script sync
+  user.Prof_fluency = updatedRaw;
+  if (!user.proficiency) user.proficiency = {};
+  user.proficiency.fluency = updatedRaw;
+  user.proficiency.Prof_fluency = updatedRaw;
 
   return {
     currentLevel,
@@ -106,6 +142,7 @@ export function evaluateLevelProgression(user, sessionResult) {
     steppedDown,
     message,
     avgAcc,
-    avgSpd
+    avgSpd,
+    updatedRaw
   };
 }
