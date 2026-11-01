@@ -1,29 +1,21 @@
 import { BELT_TIERS } from './fluencyMastery.js';
 
-/**
- * Displays a full-screen animated belt ceremony overlay when a student ranks up or steps down.
- * 
- * @param {number} oldLevel - Belt tier index before session.
- * @param {number} newLevel - Belt tier index after session.
- * @param {'PROMOTION'|'RECOVERY'|'STEP_DOWN'} transitionType - Type of belt transition.
- * @param {Function} onComplete - Callback executed when the student clicks continue.
- */
 export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, onComplete) {
   const oldBelt = BELT_TIERS[oldLevel] || BELT_TIERS[1];
   const newBelt = BELT_TIERS[newLevel] || BELT_TIERS[1];
-
   const isPositive = transitionType === 'PROMOTION' || transitionType === 'RECOVERY';
+
+  const existing = document.getElementById('beltCeremonyOverlay');
+  if (existing) existing.remove();
 
   const overlay = document.createElement('div');
   overlay.id = 'beltCeremonyOverlay';
   overlay.style.cssText = `
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(10, 15, 29, 0.94);
-    backdrop-filter: blur(8px);
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(10, 15, 29, 0.95);
+    backdrop-filter: blur(10px);
     z-index: 10000;
     display: flex;
     justify-content: center;
@@ -34,99 +26,142 @@ export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, 
 
   overlay.innerHTML = `
     <style>
-      @keyframes martialArtistPulse {
-        0%, 100% { transform: translateY(0) scale(1); }
-        50% { transform: translateY(-8px) scale(1.03); }
+      /* MARTIAL ARTIST TORSO & WAIST ANIMATIONS */
+      @keyframes unwrapOldBelt {
+        0% { transform: scaleX(1) translateX(0); opacity: 1; }
+        50% { transform: scaleX(1.2) translateX(-40px) rotate(-10deg); opacity: 0.6; }
+        100% { transform: scaleX(0) translateX(-120px) rotate(-25deg); opacity: 0; }
       }
 
-      @keyframes beltFlashBurst {
-        0% { transform: scale(0.2) rotate(-180deg); opacity: 0; filter: brightness(2); }
-        60% { transform: scale(1.3) rotate(15deg); opacity: 1; filter: brightness(1.5); }
-        100% { transform: scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
+      @keyframes wrapNewBelt {
+        0% { transform: scale(0.3) translateY(-40px); opacity: 0; filter: brightness(2); }
+        60% { transform: scale(1.15) translateY(4px); opacity: 1; filter: brightness(1.4); }
+        100% { transform: scale(1) translateY(0); opacity: 1; filter: brightness(1); }
       }
 
-      @keyframes auraGlow {
-        0%, 100% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.3), inset 0 0 20px rgba(245, 158, 11, 0.2); }
-        50% { box-shadow: 0 0 60px rgba(245, 158, 11, 0.8), inset 0 0 40px rgba(245, 158, 11, 0.5); }
+      @keyframes waistAuraPulse {
+        0%, 100% { filter: drop-shadow(0 0 15px ${newBelt.color}); }
+        50% { filter: drop-shadow(0 0 35px ${newBelt.color}); }
       }
 
-      @keyframes particleFloat {
-        0% { transform: translateY(0) scale(0.8); opacity: 1; }
-        100% { transform: translateY(-120px) scale(1.2); opacity: 0; }
-      }
-
-      .ceremony-card {
+      .ceremony-container {
         background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
         border: 3px solid ${isPositive ? '#f59e0b' : '#64748b'};
         border-radius: 24px;
         padding: 36px 28px;
-        max-width: 480px;
+        max-width: 500px;
         width: 90%;
         text-align: center;
         position: relative;
-        overflow: hidden;
-        animation: auraGlow 2.5s infinite ease-in-out;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.6);
       }
 
-      .fighter-avatar-box {
+      .torso-visual-box {
         position: relative;
-        width: 160px;
-        height: 160px;
+        width: 220px;
+        height: 220px;
         margin: 0 auto 20px auto;
         display: flex;
         justify-content: center;
         align-items: center;
-        background: rgba(255, 255, 255, 0.04);
-        border-radius: 50%;
-        border: 2px dashed rgba(255, 255, 255, 0.2);
-        animation: martialArtistPulse 3s infinite ease-in-out;
       }
 
-      .belt-badge-display {
-        font-size: 5rem;
-        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      .belt-on-waist {
+        position: absolute;
+        bottom: 38px;
+        width: 140px;
+        height: 22px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        transition: all 0.4s ease;
       }
 
-      .belt-award-animate {
-        animation: beltFlashBurst 0.8s ease-out forwards;
+      .belt-knot {
+        position: absolute;
+        width: 20px;
+        height: 28px;
+        border-radius: 4px;
+        top: -3px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      }
+
+      .belt-tail-left {
+        position: absolute;
+        width: 12px;
+        height: 36px;
+        top: 14px;
+        left: 56px;
+        border-radius: 3px;
+        transform: rotate(8deg);
+      }
+
+      .belt-tail-right {
+        position: absolute;
+        width: 12px;
+        height: 42px;
+        top: 14px;
+        right: 56px;
+        border-radius: 3px;
+        transform: rotate(-12deg);
+      }
+
+      .animate-unwrap {
+        animation: unwrapOldBelt 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards !important;
+      }
+
+      .animate-wrap {
+        animation: wrapNewBelt 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
       }
     </style>
 
-    <div class="ceremony-card">
-      <div style="font-size: 0.9rem; font-weight: 900; letter-spacing: 2px; color: ${isPositive ? '#fbbf24' : '#94a3b8'}; margin-bottom: 8px; text-transform: uppercase;">
+    <div class="ceremony-container">
+      <div style="font-size: 0.85rem; font-weight: 900; letter-spacing: 2px; color: ${isPositive ? '#fbbf24' : '#94a3b8'}; margin-bottom: 8px; text-transform: uppercase;">
         ${transitionType === 'PROMOTION' ? '🏆 DOJO PROMOTION CEREMONY' : (transitionType === 'RECOVERY' ? '⚡ FAST RECOVERY RESTORATION' : '🥋 RANK RE-ALIGNMENT')}
       </div>
 
-      <h1 style="font-size: 2.2rem; margin: 0 0 16px 0; color: #ffffff; font-weight: 900;">
-        ${isPositive ? 'NEW BELT UNLOCKED!' : 'BELT STEP-DOWN'}
+      <h1 id="ceremonyHeader" style="font-size: 2rem; margin: 0 0 16px 0; color: #ffffff; font-weight: 900;">
+        ${isPositive ? 'PROMOTED TO NEXT RANK!' : 'BELT STEP-DOWN'}
       </h1>
 
-      <!-- MARTIAL ARTIST AVATAR & DYNAMIC BELT ANIMATION -->
-      <div class="fighter-avatar-box">
-        <div style="position: absolute; font-size: 6rem; opacity: 0.85;">🥋</div>
-        <div id="ceremonyBeltBadge" class="belt-badge-display">${oldBelt.badge}</div>
+      <!-- MARTIAL ARTIST TORSO SILHOUETTE & WAIST BELT ANIMATION -->
+      <div class="torso-visual-box">
+        <!-- SVG MARTIAL ARTIST TORSO AT WAIST -->
+        <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Gi Shoulders & Chest -->
+          <path d="M40 180 L60 50 L100 90 L140 50 L160 180 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="4"/>
+          <!-- Lapels V-Neck -->
+          <path d="M60 50 L100 120 L140 50" fill="none" stroke="#94a3b8" stroke-width="6"/>
+          <!-- Torso Body Shadow -->
+          <path d="M65 130 L100 165 L135 130" fill="none" stroke="#cbd5e1" stroke-width="3"/>
+        </svg>
+
+        <!-- DYNAMIC WAIST BELT LAYER -->
+        <div id="waistBeltWrapper" style="position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+          <!-- OLD BELT AT WAIST -->
+          <div id="activeWaistBelt" class="belt-on-waist" style="background: ${oldBelt.color}; border: 1.5 solid rgba(255,255,255,0.3);">
+            <div class="belt-knot" style="background: ${oldBelt.color};"></div>
+            <div class="belt-tail-left" style="background: ${oldBelt.color};"></div>
+            <div class="belt-tail-right" style="background: ${oldBelt.color};"></div>
+          </div>
+        </div>
       </div>
 
       <div id="ceremonyTitle" style="font-size: 1.4rem; font-weight: 800; color: #e2e8f0; margin-bottom: 6px;">
-        ${oldBelt.name} (Tier ${oldBelt.tier})
+        ${oldBelt.badge} ${oldBelt.name} (Tier ${oldBelt.tier})
       </div>
 
-      <p id="ceremonySubtext" style="font-size: 0.95rem; color: #94a3b8; margin: 0 0 24px 0; min-height: 48px;">
-        ${isPositive ? 'The Sensei is presenting your new rank...' : 'Returning to previous rank for form refinement.'}
+      <p id="ceremonySubtext" style="font-size: 0.95rem; color: #94a3b8; margin: 0 0 24px 0; min-height: 44px;">
+        ${isPositive ? 'The Sensei unties your belt to present your new rank...' : 'Untying belt to return to previous rank for refinement.'}
       </p>
 
       <button id="btnDismissCeremony" class="btn" style="
         background: ${isPositive ? '#f59e0b' : '#475569'};
-        color: white;
-        font-weight: 900;
-        font-size: 1.1rem;
-        padding: 14px 32px;
-        border-radius: 12px;
-        width: 100%;
-        cursor: pointer;
-        opacity: 0.5;
-        pointer-events: none;
-        transition: all 0.3s ease;
+        color: white; font-weight: 900; font-size: 1.1rem;
+        padding: 14px 32px; border-radius: 12px; width: 100%;
+        cursor: pointer; opacity: 0.4; pointer-events: none; transition: all 0.3s ease;
       ">
         OSS! CONTINUE ↵
       </button>
@@ -134,33 +169,43 @@ export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, 
   `;
 
   document.body.appendChild(overlay);
-
-  // Fade in overlay
   setTimeout(() => { overlay.style.opacity = '1'; }, 20);
 
-  // Step 1: Trigger Belt Swap Animation after 0.8s
+  // SEQUENCE STEP 1: UNTIE & REMOVE OLD BELT (0.9s)
   setTimeout(() => {
-    const badgeEl = overlay.querySelector('#ceremonyBeltBadge');
+    const activeBelt = overlay.querySelector('#activeWaistBelt');
+    if (activeBelt) {
+      activeBelt.classList.add('animate-unwrap');
+    }
+  }, 900);
+
+  // SEQUENCE STEP 2: REPLACE WITH NEW BELT & BURST AURA (1.8s)
+  setTimeout(() => {
+    const wrapper = overlay.querySelector('#waistBeltWrapper');
     const titleEl = overlay.querySelector('#ceremonyTitle');
     const subtextEl = overlay.querySelector('#ceremonySubtext');
     const btn = overlay.querySelector('#btnDismissCeremony');
 
-    if (badgeEl) {
-      badgeEl.innerText = newBelt.badge;
-      badgeEl.classList.add('belt-award-animate');
+    if (wrapper) {
+      wrapper.innerHTML = `
+        <div id="newWaistBelt" class="belt-on-waist animate-wrap" style="background: ${newBelt.color}; border: 2px solid #ffffff; filter: drop-shadow(0 0 20px ${newBelt.color});">
+          <div class="belt-knot" style="background: ${newBelt.color};"></div>
+          <div class="belt-tail-left" style="background: ${newBelt.color};"></div>
+          <div class="belt-tail-right" style="background: ${newBelt.color};"></div>
+        </div>
+      `;
     }
 
     if (titleEl) {
-      titleEl.innerHTML = `<span style="color: ${isPositive ? '#10b981' : '#f59e0b'}">${newBelt.name} (Tier ${newBelt.tier})</span>`;
+      titleEl.innerHTML = `<span style="color: ${isPositive ? '#10b981' : '#f59e0b'}; text-shadow: 0 0 12px rgba(16,185,129,0.4);">${newBelt.badge} ${newBelt.name} (Tier ${newBelt.tier})</span>`;
     }
 
     if (subtextEl) {
       subtextEl.innerText = isPositive
-        ? `Congratulations! You have demonstrated true mastery and earned your ${newBelt.name}!`
-        : `Keep practicing! Refine your speed and accuracy at the ${newBelt.name} level.`;
+        ? `The Sensei ties the ${newBelt.name} around your waist! Outstanding mastery!`
+        : `Bound with the ${newBelt.name}. Practice your speed and form to reclaim your rank!`;
     }
 
-    // Enable Continue Button
     if (btn) {
       btn.style.opacity = '1';
       btn.style.pointerEvents = 'auto';
@@ -172,5 +217,5 @@ export function showBeltTransitionAnimation(oldLevel, newLevel, transitionType, 
         }, 300);
       };
     }
-  }, 1200);
+  }, 1800);
 }
