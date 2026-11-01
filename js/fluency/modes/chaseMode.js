@@ -168,9 +168,17 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
         100% { transform: translateY(220px) translateX(-60px) rotate(420deg) scale(0.5); opacity: 0; }
       }
 
+      /* VICTORY: BACKFLIP LANDING AT TORII SHRINE */
+      @keyframes ninjaVictoryLand {
+        0% { transform: translateY(0) translateX(0) rotate(0deg); }
+        50% { transform: translateY(-110px) translateX(90px) rotate(360deg) scale(1.2); }
+        100% { transform: translateY(-5px) translateX(130px) rotate(0deg) scale(1.1); }
+      }
+
       .animate-vault-jump { animation: ninjaVaultJump 0.55s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; }
       .animate-trip-stumble { animation: ninjaTripStumble 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards !important; }
       .animate-fall-off { animation: ninjaFallOffRoof 0.85s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards !important; }
+      .animate-victory-land { animation: ninjaVictoryLand 0.85s cubic-bezier(0.17, 0.89, 0.32, 1.28) forwards !important; }
 
       .flash-correct {
         animation: pulseGreen 0.3s ease-in-out;
@@ -236,7 +244,7 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
             </button>
 
             <div style="background: rgba(15, 23, 42, 0.85); border: 2px solid #38bdf8; padding: 6px 14px; border-radius: 10px; color: #38bdf8; font-weight: 900; font-size: 1.1rem;">
-              🏃 <span id="chaseDistanceCount">0</span>m
+              🏃 <span id="chaseDistanceCount">0</span> / 2500m
             </div>
           </div>
 
@@ -259,6 +267,13 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
                 <path d="M0,70 L100,50 L200,80 L300,45 L400,65 L400,120 L0,120 Z" fill="#0f172a" />
               </svg>
             </div>
+
+            <!-- TORII GATE FINISH LINE PLATFORM (SLIDES IN ON VICTORY) -->
+            <div id="chaseToriiFinish" style="
+              position: absolute; bottom: 35px; right: -200px;
+              font-size: 5.5rem; z-index: 9; transition: right 0.8s cubic-bezier(0.17, 0.89, 0.32, 1.28);
+              filter: drop-shadow(0 0 20px #fef08a); pointer-events: none;
+            ">⛩️</div>
 
             <!-- ANIMATED RUNNING NINJA IMAGE AVATAR -->
             <div id="chaseNinjaAvatar" class="ninja-running" style="
@@ -474,7 +489,6 @@ function updateHUD(res) {
 
   if (distanceEl) distanceEl.innerText = res.distance;
 
-  // DYNAMIC BACKGROUND SCROLL SPEED & BGM ACCELERATION
   if (paceText && res.tier) {
     paceText.innerText = `${res.tier.name} (${res.timeLimit}s)`;
     paceText.style.color = res.tier.color;
@@ -490,25 +504,30 @@ function updateHUD(res) {
   }
 }
 
+// INSTANT TIMEOUT ADVANCE: LOCKS INPUT & DISPATCHES NEXT QUESTION IN 500MS
 function handleQuestionTimeout(onFinishCallback) {
+  document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
   chaseAudio.playScrollShatter();
+
   const res = engine.handleTimeout();
   updateHUD(res);
 
-  // Reset audio BGM tempo to 110 BPM on failure
+  // Speed resets back to 8.0s (110 BPM)
   chaseAudio.startBGM(res.tier.bpm);
 
-  triggerLeapAnimation(false, true, res.gameOver);
+  triggerLeapAnimation(false, true, res.gameOver, res.victory);
 
   if (res.gameOver) {
     chaseAudio.stopBGM();
-    document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
     setTimeout(() => {
       const finalResults = engine.finishSession();
       onFinishCallback(finalResults);
     }, 900);
   } else {
-    setTimeout(() => nextQuestion(currentUser, onFinishCallback), 550);
+    setTimeout(() => {
+      document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = false);
+      nextQuestion(currentUser, onFinishCallback);
+    }, 500);
   }
 }
 
@@ -528,23 +547,28 @@ function submitAnswer(currentUser, onFinishCallback) {
     chaseAudio.startBGM(res.tier.bpm);
   }
 
-  triggerLeapAnimation(res.isCorrect, false, res.gameOver);
+  triggerLeapAnimation(res.isCorrect, false, res.gameOver, res.victory);
 
   if (res.gameOver) {
     chaseAudio.stopBGM();
     document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
+    if (res.victory) {
+      audioCore.playVictoryFanfare();
+    }
     setTimeout(() => {
       const finalResults = engine.finishSession();
       onFinishCallback(finalResults);
-    }, 900);
+    }, res.victory ? 1300 : 900);
   } else {
     setTimeout(() => nextQuestion(currentUser, onFinishCallback), res.isCorrect ? 400 : 550);
   }
 }
 
-function triggerLeapAnimation(isCorrect, isTimeout, isGameOver) {
+function triggerLeapAnimation(isCorrect, isTimeout, isGameOver, isVictory) {
   const ninja = document.getElementById('chaseNinjaAvatar');
   const vaultEffect = document.getElementById('chaseVaultEffect');
+  const toriiGate = document.getElementById('chaseToriiFinish');
+  const roofTrack = document.getElementById('roofTrack');
   const box = document.getElementById('fluencyAnswerBox');
   const badge = document.getElementById('fluencyFeedbackBadge');
 
@@ -558,22 +582,36 @@ function triggerLeapAnimation(isCorrect, isTimeout, isGameOver) {
     badge.style.visibility = 'visible';
     badge.style.background = isCorrect ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
     badge.style.color = isCorrect ? '#10b981' : '#ef4444';
-    badge.innerText = isCorrect 
-      ? '⚡ VAULT LEAP! (+100m)' 
-      : (isTimeout ? '⏰ SLIPPED OFF ROOF! Speed Reset (8.0s)' : '💥 STUMBLED ON TILES! Speed Reset (8.0s)');
-    setTimeout(() => { badge.style.visibility = 'hidden'; }, 550);
+    badge.innerText = isVictory 
+      ? '🏆 FINISH LINE REACHED! (2,500m)'
+      : (isCorrect 
+        ? '⚡ VAULT LEAP! (+100m)' 
+        : (isTimeout ? '⏰ TIME OUT! Speed Reset (8.0s)' : '💥 STUMBLED ON TILES! Speed Reset (8.0s)'));
+    setTimeout(() => { badge.style.visibility = 'hidden'; }, 600);
   }
 
   if (ninja) {
-    ninja.classList.remove('animate-vault-jump', 'animate-trip-stumble', 'animate-fall-off');
+    ninja.classList.remove('animate-vault-jump', 'animate-trip-stumble', 'animate-fall-off', 'animate-victory-land');
     void ninja.offsetWidth;
 
-    if (isGameOver) {
-      // 0 SCROLLS LEFT: FALL SPINNING OFF THE ROOF
+    if (isVictory) {
+      // VICTORY: SLIDE IN TORII GATE & BACKFLIP LANDING
+      if (roofTrack) roofTrack.style.animationPlayState = 'paused';
+      if (toriiGate) toriiGate.style.right = '40px';
+
+      ninja.classList.remove('ninja-running');
+      ninja.classList.add('animate-victory-land');
+
+      if (vaultEffect) {
+        vaultEffect.innerText = '🌸✨';
+        vaultEffect.style.opacity = '1';
+      }
+    } else if (isGameOver) {
+      // GAME OVER (0 SCROLLS): FALL SPINNING OFF THE ROOF
       ninja.classList.remove('ninja-running');
       ninja.classList.add('animate-fall-off');
     } else if (isCorrect) {
-      // CORRECT ANSWER: ARC VAULT JUMP OVER GAP
+      // CORRECT ANSWER: ARC VAULT JUMP
       ninja.classList.add('animate-vault-jump');
 
       if (vaultEffect) {
@@ -582,7 +620,7 @@ function triggerLeapAnimation(isCorrect, isTimeout, isGameOver) {
         setTimeout(() => { vaultEffect.style.opacity = '0'; }, 350);
       }
     } else {
-      // WRONG ANSWER: STUMBLE & CRACK SPARK
+      // WRONG ANSWER / TIMEOUT: STUMBLE & TILE CRACK
       ninja.classList.add('animate-trip-stumble');
 
       if (vaultEffect) {
