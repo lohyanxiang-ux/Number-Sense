@@ -253,7 +253,7 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
                 <path d="M0,45 L80,25 L160,55 L240,20 L320,50 L400,30 L400,120 L0,120 Z" fill="#1e293b" stroke="#334155" stroke-width="2"/>
                 <path d="M0,70 L100,50 L200,80 L300,45 L400,65 L400,120 L0,120 Z" fill="#0f172a" />
               </svg>
-              <!-- STRIP 2 (DUPLICATE FOR SEAMLESS LOOPING) -->
+              <!-- STRIP 2 -->
               <svg width="50%" height="120" viewBox="0 0 400 120" preserveAspectRatio="none">
                 <path d="M0,45 L80,25 L160,55 L240,20 L320,50 L400,30 L400,120 L0,120 Z" fill="#1e293b" stroke="#334155" stroke-width="2"/>
                 <path d="M0,70 L100,50 L200,80 L300,45 L400,65 L400,120 L0,120 Z" fill="#0f172a" />
@@ -466,15 +466,15 @@ function updateHUD(res) {
 
   if (distanceEl) distanceEl.innerText = res.distance;
 
-  // DYNAMIC BACKGROUND SCROLL SPEED SYNC WITH SPEED TIER
+  // DYNAMIC BACKGROUND SCROLL SPEED & BGM ACCELERATION
   if (paceText && res.tier) {
     paceText.innerText = `${res.tier.name} (${res.timeLimit}s)`;
     paceText.style.color = res.tier.color;
 
     let scrollSpeedSeconds = '3.5s';
-    if (res.tier.level === 2) scrollSpeedSeconds = '2.2s';
-    if (res.tier.level === 3) scrollSpeedSeconds = '1.4s';
-    if (res.tier.level === 4) scrollSpeedSeconds = '0.8s';
+    if (res.tier.level === 2) scrollSpeedSeconds = '2.5s';
+    if (res.tier.level === 3) scrollSpeedSeconds = '1.6s';
+    if (res.tier.level === 4) scrollSpeedSeconds = '1.0s';
 
     if (roofTrack) {
       roofTrack.style.animationDuration = scrollSpeedSeconds;
@@ -487,6 +487,9 @@ function handleQuestionTimeout(onFinishCallback) {
   const res = engine.handleTimeout();
   updateHUD(res);
 
+  // Reset audio BGM to 110 BPM on failure
+  chaseAudio.startBGM(res.tier.bpm);
+
   triggerLeapAnimation(false, true, res.gameOver);
 
   if (res.gameOver) {
@@ -497,7 +500,8 @@ function handleQuestionTimeout(onFinishCallback) {
       onFinishCallback(finalResults);
     }, 900);
   } else {
-    setTimeout(() => nextQuestion(currentUser, onFinishCallback), 500);
+    // Load a new question with timer reset to 8.0s
+    setTimeout(() => nextQuestion(currentUser, onFinishCallback), 550);
   }
 }
 
@@ -514,6 +518,7 @@ function submitAnswer(currentUser, onFinishCallback) {
   } else {
     chaseAudio.playTileCrack();
     chaseAudio.playScrollShatter();
+    chaseAudio.startBGM(res.tier.bpm); // Resets audio tempo back to 110 BPM
   }
 
   triggerLeapAnimation(res.isCorrect, false, res.gameOver);
@@ -526,7 +531,8 @@ function submitAnswer(currentUser, onFinishCallback) {
       onFinishCallback(finalResults);
     }, 900);
   } else {
-    setTimeout(() => nextQuestion(currentUser, onFinishCallback), 450);
+    // Load a new question after vault or stumble animation
+    setTimeout(() => nextQuestion(currentUser, onFinishCallback), res.isCorrect ? 400 : 550);
   }
 }
 
@@ -546,8 +552,10 @@ function triggerLeapAnimation(isCorrect, isTimeout, isGameOver) {
     badge.style.visibility = 'visible';
     badge.style.background = isCorrect ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
     badge.style.color = isCorrect ? '#10b981' : '#ef4444';
-    badge.innerText = isCorrect ? '⚡ VAULT LEAP! (+100m)' : (isTimeout ? '⏰ SLIPPED OFF ROOF! (-1 Scroll)' : '💥 STUMBLED ON TILES! (-1 Scroll)');
-    setTimeout(() => { badge.style.visibility = 'hidden'; }, 450);
+    badge.innerText = isCorrect 
+      ? '⚡ VAULT LEAP! (+100m)' 
+      : (isTimeout ? '⏰ SLIPPED OFF ROOF! Speed Reset (8.0s)' : '💥 STUMBLED ON TILES! Speed Reset (8.0s)');
+    setTimeout(() => { badge.style.visibility = 'hidden'; }, 550);
   }
 
   if (ninja) {
@@ -555,7 +563,7 @@ function triggerLeapAnimation(isCorrect, isTimeout, isGameOver) {
     void ninja.offsetWidth;
 
     if (isGameOver) {
-      // 0 SCROLLS LEFT: FALL OFF THE ROOF
+      // 0 SCROLLS LEFT: FALL SPINNING OFF THE ROOF
       ninja.classList.remove('ninja-running');
       ninja.classList.add('animate-fall-off');
     } else if (isCorrect) {
@@ -568,13 +576,13 @@ function triggerLeapAnimation(isCorrect, isTimeout, isGameOver) {
         setTimeout(() => { vaultEffect.style.opacity = '0'; }, 350);
       }
     } else {
-      // WRONG ANSWER: STUMBLE & TILE CRACK
+      // WRONG ANSWER: STUMBLE & CRACK SPARK
       ninja.classList.add('animate-trip-stumble');
 
       if (vaultEffect) {
         vaultEffect.innerText = '💥';
         vaultEffect.style.opacity = '1';
-        setTimeout(() => { vaultEffect.style.opacity = '0'; }, 300);
+        setTimeout(() => { vaultEffect.style.opacity = '0'; }, 350);
       }
     }
   }
