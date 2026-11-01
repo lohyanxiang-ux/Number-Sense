@@ -112,21 +112,65 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
         filter: brightness(1.1);
       }
 
-      /* ANIMATIONS */
-      @keyframes roofLeap {
-        0% { transform: translateY(0) rotate(0deg); }
-        40% { transform: translateY(-40px) rotate(-15deg); }
-        100% { transform: translateY(0) rotate(0deg); }
+      /* INFINITE SCROLLING ROOFTOP BACKDROP */
+      :root {
+        --chase-speed: 3.5s;
       }
 
-      @keyframes roofStumble {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-14px) rotate(-10deg); }
-        75% { transform: translateX(14px) rotate(10deg); }
+      .scrolling-roof-track {
+        display: flex;
+        width: 200%;
+        height: 120px;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        animation: scrollRoof var(--chase-speed, 3.5s) linear infinite;
+        pointer-events: none;
       }
 
-      .animate-roof-leap { animation: roofLeap 0.35s ease-out; }
-      .animate-roof-stumble { animation: roofStumble 0.35s ease-in-out; }
+      @keyframes scrollRoof {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+
+      /* NINJA RUNNING STRIDE ANIMATION */
+      .ninja-running {
+        animation: ninjaRunStride 0.3s ease-in-out infinite alternate;
+        display: flex;
+        align-items: center;
+      }
+
+      @keyframes ninjaRunStride {
+        0% { transform: translateY(0) rotate(6deg); }
+        100% { transform: translateY(-8px) rotate(14deg); }
+      }
+
+      /* CORRECT ANSWER: ARC VAULT JUMP ANIMATION */
+      @keyframes ninjaVaultJump {
+        0% { transform: translateY(0) translateX(0) rotate(6deg); }
+        40% { transform: translateY(-85px) translateX(40px) rotate(-22deg) scale(1.1); }
+        70% { transform: translateY(-30px) translateX(60px) rotate(-10deg); }
+        100% { transform: translateY(0) translateX(0) rotate(6deg); }
+      }
+
+      /* WRONG ANSWER: TILE TRIP STUMBLE ANIMATION */
+      @keyframes ninjaTripStumble {
+        0% { transform: translateX(0) rotate(0deg); }
+        25% { transform: translateX(-35px) translateY(-10px) rotate(-25deg); }
+        60% { transform: translateX(15px) rotate(15deg); }
+        100% { transform: translateX(0) rotate(6deg); }
+      }
+
+      /* GAME OVER: FALL OFF THE ROOF ANIMATION */
+      @keyframes ninjaFallOffRoof {
+        0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+        30% { transform: translateY(-20px) rotate(-30deg); opacity: 1; }
+        100% { transform: translateY(220px) translateX(-60px) rotate(420deg) scale(0.5); opacity: 0; }
+      }
+
+      .animate-vault-jump { animation: ninjaVaultJump 0.55s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; }
+      .animate-trip-stumble { animation: ninjaTripStumble 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards !important; }
+      .animate-fall-off { animation: ninjaFallOffRoof 0.85s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards !important; }
 
       .flash-correct {
         animation: pulseGreen 0.3s ease-in-out;
@@ -156,8 +200,19 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
     <div class="card" style="width: 100%; max-width: 1100px; margin: 0 auto; padding: 20px;">
       <div class="chase-arena-grid">
         
-        <!-- LEFT COLUMN: MOONLIT ROOFTOP CHASE ARENA -->
-        <div style="background: linear-gradient(180deg, #090d16 0%, #1e1b4b 100%); border-radius: 16px; padding: 20px; position: relative; min-height: 480px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; border: 2px solid #6366f1;">
+        <!-- LEFT COLUMN: DYNAMIC MOONLIT ROOFTOP CHASE ARENA -->
+        <div id="chaseArenaLeftCol" style="
+          background: linear-gradient(180deg, #090d16 0%, #1e1b4b 100%); 
+          border-radius: 16px; 
+          padding: 20px; 
+          position: relative; 
+          min-height: 480px; 
+          display: flex; 
+          flex-direction: column; 
+          justify-content: space-between; 
+          overflow: hidden; 
+          border: 2px solid #6366f1;
+        ">
           
           <!-- HEADER: STAMINA SCROLLS, AUDIO TOGGLE & DISTANCE -->
           <div style="display: flex; justify-content: space-between; align-items: center; z-index: 5;">
@@ -185,32 +240,40 @@ export function mountChaseMode(container, currentUser, onFinishCallback) {
             </div>
           </div>
 
-          <!-- CENTER ARENA: PAGODA ROOFTOP & RUNNING NINJA -->
-          <div style="position: relative; height: 300px; display: flex; justify-content: center; align-items: flex-end; z-index: 3; width: 100%;">
+          <!-- CENTER ARENA: MOVING PAGODA ROOFTOP & RUNNING NINJA -->
+          <div style="position: relative; height: 310px; display: flex; justify-content: center; align-items: flex-end; z-index: 3; width: 100%;">
             
             <!-- MOON & SILHOUETTE BACKDROP -->
-            <div style="position: absolute; top: 15px; right: 25px; width: 70px; height: 70px; background: #fef08a; border-radius: 50%; box-shadow: 0 0 25px #fef08a; opacity: 0.85;"></div>
+            <div style="position: absolute; top: 15px; right: 25px; width: 75px; height: 75px; background: #fef08a; border-radius: 50%; box-shadow: 0 0 30px #fef08a; opacity: 0.85; pointer-events: none;"></div>
             
-            <!-- ROOFTOP TILE SVG -->
-            <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 110px; pointer-events: none;">
-              <svg width="100%" height="110" viewBox="0 0 400 110" preserveAspectRatio="none">
-                <path d="M0,40 L90,20 L180,50 L270,15 L360,45 L400,30 L400,110 L0,110 Z" fill="#1e293b" stroke="#334155" stroke-width="2"/>
-                <path d="M0,65 L100,45 L200,75 L300,40 L400,60 L400,110 L0,110 Z" fill="#0f172a" />
+            <!-- CONTINUOUS SCROLLING ROOFTOP TRACK -->
+            <div id="roofTrack" class="scrolling-roof-track">
+              <!-- STRIP 1 -->
+              <svg width="50%" height="120" viewBox="0 0 400 120" preserveAspectRatio="none">
+                <path d="M0,45 L80,25 L160,55 L240,20 L320,50 L400,30 L400,120 L0,120 Z" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+                <path d="M0,70 L100,50 L200,80 L300,45 L400,65 L400,120 L0,120 Z" fill="#0f172a" />
+              </svg>
+              <!-- STRIP 2 (DUPLICATE FOR SEAMLESS LOOPING) -->
+              <svg width="50%" height="120" viewBox="0 0 400 120" preserveAspectRatio="none">
+                <path d="M0,45 L80,25 L160,55 L240,20 L320,50 L400,30 L400,120 L0,120 Z" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+                <path d="M0,70 L100,50 L200,80 L300,45 L400,65 L400,120 L0,120 Z" fill="#0f172a" />
               </svg>
             </div>
 
-            <!-- ANIMATED RUNNING NINJA AVATAR -->
-            <div id="chaseNinjaAvatar" style="
-              position: absolute; bottom: 50px; left: 45%;
-              font-size: 4rem; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.8));
-              transition: bottom 0.3s ease;
-            ">🥷</div>
+            <!-- ANIMATED RUNNING NINJA EMOJI AVATAR -->
+            <div id="chaseNinjaAvatar" class="ninja-running" style="
+              position: absolute; bottom: 55px; left: 40%;
+              font-size: 3.8rem; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.85));
+              z-index: 10;
+            ">
+              🥷<span style="font-size: 2rem; margin-left: -10px; opacity: 0.75;">💨</span>
+            </div>
 
-            <!-- DUST / VAULT EFFECT -->
+            <!-- VAULT / LANDING PARTICLES EFFECT -->
             <div id="chaseVaultEffect" style="
-              position: absolute; bottom: 60px; left: 55%;
+              position: absolute; bottom: 65px; left: 50%;
               font-size: 3.5rem; opacity: 0; pointer-events: none;
-              transition: opacity 0.2s ease; z-index: 6;
+              transition: opacity 0.2s ease; z-index: 12;
             ">✨</div>
           </div>
 
@@ -391,6 +454,7 @@ function updateHUD(res) {
   const scrollEl = document.getElementById('chaseScrollsDisplay');
   const distanceEl = document.getElementById('chaseDistanceCount');
   const paceText = document.getElementById('chasePaceText');
+  const roofTrack = document.getElementById('roofTrack');
 
   if (scrollEl) {
     let scrollsHTML = '';
@@ -402,9 +466,19 @@ function updateHUD(res) {
 
   if (distanceEl) distanceEl.innerText = res.distance;
 
+  // DYNAMIC BACKGROUND SCROLL SPEED SYNC WITH SPEED TIER
   if (paceText && res.tier) {
     paceText.innerText = `${res.tier.name} (${res.timeLimit}s)`;
     paceText.style.color = res.tier.color;
+
+    let scrollSpeedSeconds = '3.5s';
+    if (res.tier.level === 2) scrollSpeedSeconds = '2.2s';
+    if (res.tier.level === 3) scrollSpeedSeconds = '1.4s';
+    if (res.tier.level === 4) scrollSpeedSeconds = '0.8s';
+
+    if (roofTrack) {
+      roofTrack.style.animationDuration = scrollSpeedSeconds;
+    }
   }
 }
 
@@ -412,7 +486,8 @@ function handleQuestionTimeout(onFinishCallback) {
   chaseAudio.playScrollShatter();
   const res = engine.handleTimeout();
   updateHUD(res);
-  triggerLeapAnimation(false, true);
+
+  triggerLeapAnimation(false, true, res.gameOver);
 
   if (res.gameOver) {
     chaseAudio.stopBGM();
@@ -420,9 +495,9 @@ function handleQuestionTimeout(onFinishCallback) {
     setTimeout(() => {
       const finalResults = engine.finishSession();
       onFinishCallback(finalResults);
-    }, 700);
+    }, 900);
   } else {
-    setTimeout(() => nextQuestion(currentUser, onFinishCallback), 450);
+    setTimeout(() => nextQuestion(currentUser, onFinishCallback), 500);
   }
 }
 
@@ -435,14 +510,13 @@ function submitAnswer(currentUser, onFinishCallback) {
 
   if (res.isCorrect) {
     chaseAudio.playVaultSwoosh();
-    // Dynamically adjust audio tempo based on speed tier
     chaseAudio.startBGM(res.tier.bpm);
   } else {
     chaseAudio.playTileCrack();
     chaseAudio.playScrollShatter();
   }
 
-  triggerLeapAnimation(res.isCorrect, false);
+  triggerLeapAnimation(res.isCorrect, false, res.gameOver);
 
   if (res.gameOver) {
     chaseAudio.stopBGM();
@@ -450,13 +524,13 @@ function submitAnswer(currentUser, onFinishCallback) {
     setTimeout(() => {
       const finalResults = engine.finishSession();
       onFinishCallback(finalResults);
-    }, 700);
+    }, 900);
   } else {
-    setTimeout(() => nextQuestion(currentUser, onFinishCallback), 400);
+    setTimeout(() => nextQuestion(currentUser, onFinishCallback), 450);
   }
 }
 
-function triggerLeapAnimation(isCorrect, isTimeout) {
+function triggerLeapAnimation(isCorrect, isTimeout, isGameOver) {
   const ninja = document.getElementById('chaseNinjaAvatar');
   const vaultEffect = document.getElementById('chaseVaultEffect');
   const box = document.getElementById('fluencyAnswerBox');
@@ -476,22 +550,32 @@ function triggerLeapAnimation(isCorrect, isTimeout) {
     setTimeout(() => { badge.style.visibility = 'hidden'; }, 450);
   }
 
-  if (isCorrect) {
-    if (ninja) {
-      ninja.classList.remove('animate-roof-leap', 'animate-roof-stumble');
-      void ninja.offsetWidth;
-      ninja.classList.add('animate-roof-leap');
-    }
-    if (vaultEffect) {
-      vaultEffect.innerText = '✨';
-      vaultEffect.style.opacity = '1';
-      setTimeout(() => { vaultEffect.style.opacity = '0'; }, 300);
-    }
-  } else {
-    if (ninja) {
-      ninja.classList.remove('animate-roof-leap', 'animate-roof-stumble');
-      void ninja.offsetWidth;
-      ninja.classList.add('animate-roof-stumble');
+  if (ninja) {
+    ninja.classList.remove('animate-vault-jump', 'animate-trip-stumble', 'animate-fall-off');
+    void ninja.offsetWidth;
+
+    if (isGameOver) {
+      // 0 SCROLLS LEFT: FALL OFF THE ROOF
+      ninja.classList.remove('ninja-running');
+      ninja.classList.add('animate-fall-off');
+    } else if (isCorrect) {
+      // CORRECT ANSWER: ARC VAULT JUMP OVER GAP
+      ninja.classList.add('animate-vault-jump');
+
+      if (vaultEffect) {
+        vaultEffect.innerText = '✨';
+        vaultEffect.style.opacity = '1';
+        setTimeout(() => { vaultEffect.style.opacity = '0'; }, 350);
+      }
+    } else {
+      // WRONG ANSWER: STUMBLE & TILE CRACK
+      ninja.classList.add('animate-trip-stumble');
+
+      if (vaultEffect) {
+        vaultEffect.innerText = '💥';
+        vaultEffect.style.opacity = '1';
+        setTimeout(() => { vaultEffect.style.opacity = '0'; }, 300);
+      }
     }
   }
 }
