@@ -3,6 +3,7 @@ import { showBeltTransitionAnimation } from './beltAnimation.js';
 import { mountSummitMode } from './modes/summitMode.js';
 import { mountBlitzMode } from './modes/blitzMode.js';
 import { mountBoardMode } from './modes/boardMode.js';
+import { mountChaseMode } from './modes/chaseMode.js';
 
 let currentUserRef = null;
 let syncCallbackRef = null;
@@ -25,7 +26,22 @@ export function renderFluencyMenu() {
   const speedColor = (fluencyData.lastSpeed <= 5.0 && fluencyData.lastSpeed > 0) ? '#10b981' : '#ef4444';
 
   container.innerHTML = `
-    <div id="fluencySetupCard" class="card" style="max-width: 980px; margin: 0 auto; padding: 20px;">
+    <style>
+      /* 2 x 2 MODE SELECTION GRID */
+      .fluency-mode-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+
+      @media (max-width: 600px) {
+        .fluency-mode-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+
+    <div id="fluencySetupCard" class="card" style="max-width: 880px; margin: 0 auto; padding: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <div>
           <h2 style="margin: 0;">⚡ Speed Fluency Arena</h2>
@@ -64,54 +80,70 @@ export function renderFluencyMenu() {
         </div>
       </div>
 
-      <!-- MODE SELECTION GRID -->
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <!-- 2 x 2 MODE SELECTION GRID -->
+      <div class="fluency-mode-grid">
         
         <!-- SUMMIT QUEST CARD -->
-        <div style="border: 2px solid var(--accent); border-radius: 12px; padding: 16px; background: rgba(79, 70, 229, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="border: 2px solid var(--accent); border-radius: 12px; padding: 18px; background: rgba(79, 70, 229, 0.04); display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">🏔️ Summit</h3>
-              <span style="font-size: 0.7rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 2px 6px; border-radius: 4px;">10 LEDGES</span>
+              <h3 style="margin: 0; font-size: 1.15rem; color: var(--text-main);">🏔️ Summit</h3>
+              <span style="font-size: 0.75rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 3px 8px; border-radius: 4px;">10 LEDGES</span>
             </div>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px 0;">
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 14px 0; line-height: 1.4;">
               Scale 10 ledges. +1 step on correct, -1 on wrong. 10s idle timer!
             </p>
           </div>
-          <button class="btn" id="startSummitBtn" style="background: var(--accent); font-weight: 800; width: 100%; padding: 10px;">
+          <button class="btn" id="startSummitBtn" style="background: var(--accent); font-weight: 800; width: 100%; padding: 11px;">
             🚀 Summit Quest
           </button>
         </div>
 
         <!-- LIGHTNING SHURIKEN BLITZ CARD -->
-        <div style="border: 2px solid #6366f1; border-radius: 12px; padding: 16px; background: rgba(99, 102, 241, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="border: 2px solid #6366f1; border-radius: 12px; padding: 18px; background: rgba(99, 102, 241, 0.04); display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">⚡ Blitz</h3>
-              <span style="font-size: 0.7rem; font-weight: 800; color: #6366f1; background: rgba(99, 102, 241, 0.15); padding: 2px 6px; border-radius: 4px;">30s ATTACK</span>
+              <h3 style="margin: 0; font-size: 1.15rem; color: var(--text-main);">⚡ Blitz</h3>
+              <span style="font-size: 0.75rem; font-weight: 800; color: #6366f1; background: rgba(99, 102, 241, 0.15); padding: 3px 8px; border-radius: 4px;">30s ATTACK</span>
             </div>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px 0;">
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 14px 0; line-height: 1.4;">
               Rapid fire! Throw shurikens at dummy targets for 30 seconds.
             </p>
           </div>
-          <button class="btn" id="startBlitzBtn" style="background: #6366f1; color: white; font-weight: 800; width: 100%; padding: 10px;">
+          <button class="btn" id="startBlitzBtn" style="background: #6366f1; color: white; font-weight: 800; width: 100%; padding: 11px;">
             ⚡ Shuriken Blitz
           </button>
         </div>
 
         <!-- DOJO BOARD BREAK CARD -->
-        <div style="border: 2px solid #d97706; border-radius: 12px; padding: 16px; background: rgba(217, 119, 6, 0.04); display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="border: 2px solid #d97706; border-radius: 12px; padding: 18px; background: rgba(217, 119, 6, 0.04); display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">🪵 Board Break</h3>
-              <span style="font-size: 0.7rem; font-weight: 800; color: #d97706; background: rgba(217, 119, 6, 0.15); padding: 2px 6px; border-radius: 4px;">20 BOARDS</span>
+              <h3 style="margin: 0; font-size: 1.15rem; color: var(--text-main);">🪵 Board Break</h3>
+              <span style="font-size: 0.75rem; font-weight: 800; color: #d97706; background: rgba(217, 119, 6, 0.15); padding: 3px 8px; border-radius: 4px;">20 BOARDS</span>
             </div>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 12px 0;">
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 14px 0; line-height: 1.4;">
               Smash 20 boards! Build streaks to unlock 2x and 3x board Power Smashes.
             </p>
           </div>
-          <button class="btn" id="startBoardBtn" style="background: #d97706; color: white; font-weight: 800; width: 100%; padding: 10px;">
+          <button class="btn" id="startBoardBtn" style="background: #d97706; color: white; font-weight: 800; width: 100%; padding: 11px;">
             🪵 Break Boards
+          </button>
+        </div>
+
+        <!-- ROOFTOP SHADOW CHASE CARD -->
+        <div style="border: 2px solid #8b5cf6; border-radius: 12px; padding: 18px; background: rgba(139, 92, 246, 0.04); display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h3 style="margin: 0; font-size: 1.15rem; color: var(--text-main);">🏯 Roof Chase</h3>
+              <span style="font-size: 0.75rem; font-weight: 800; color: #8b5cf6; background: rgba(139, 92, 246, 0.15); padding: 3px 8px; border-radius: 4px;">3 SCROLLS</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 14px 0; line-height: 1.4;">
+              Speed ramp! Vault across rooftops as timer shortens with every correct answer.
+            </p>
+          </div>
+          <button class="btn" id="startChaseBtn" style="background: #8b5cf6; color: white; font-weight: 800; width: 100%; padding: 11px;">
+            🏯 Rooftop Chase
           </button>
         </div>
 
@@ -156,6 +188,12 @@ export function renderFluencyMenu() {
     mountBoardMode(activeBox, currentUserRef, handleSessionComplete);
   };
 
+  document.getElementById('startChaseBtn').onclick = () => {
+    document.getElementById('fluencySetupCard').classList.add('hidden');
+    const activeBox = document.getElementById('fluencyActiveContainer');
+    mountChaseMode(activeBox, currentUserRef, handleSessionComplete);
+  };
+
   document.getElementById('btnRestartFluency').onclick = renderFluencyMenu;
 }
 
@@ -172,7 +210,7 @@ function handleSessionComplete(results) {
       headerEl.innerText = '🏆 SESSION COMPLETE!';
       headerEl.style.color = '#10b981';
     } else {
-      headerEl.innerText = '💥 STANCE BROKEN!';
+      headerEl.innerText = '💥 STAMINA EXHAUSTED!';
       headerEl.style.color = '#ef4444';
     }
 
