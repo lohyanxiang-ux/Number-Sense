@@ -35,7 +35,7 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         .blitz-arena-grid { grid-template-columns: 1fr; }
       }
 
-      /* DISTINCT 4-COLUMN KEYPAD */
+      /* 4-COLUMN KEYPAD GRID WITH 4TH COLUMN ACTION BAR */
       .blitz-keypad-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -63,34 +63,38 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         border: 1.5px solid #334155 !important;
       }
 
+      .f-key-zero {
+        grid-column: span 3;
+      }
+
       .f-key-minus {
         background: rgba(245, 158, 11, 0.2) !important;
         color: #fbbf24 !important;
         border: 2px solid #f59e0b !important;
+        font-size: 1.5rem !important;
       }
 
       .f-key-dot {
         background: rgba(6, 182, 212, 0.2) !important;
         color: #38bdf8 !important;
         border: 2px solid #06b6d4 !important;
+        font-size: 2.4rem !important;
+        line-height: 0.8 !important;
+        font-weight: 900 !important;
       }
 
       .f-key-slash {
         background: rgba(139, 92, 246, 0.2) !important;
         color: #c084fc !important;
         border: 2px solid #8b5cf6 !important;
-      }
-
-      .f-key-del {
-        background: rgba(244, 63, 94, 0.2) !important;
-        color: #fb7185 !important;
-        border: 2px solid #f43f5e !important;
+        font-size: 1.4rem !important;
       }
 
       .f-key-clear {
         background: rgba(239, 68, 68, 0.2) !important;
         color: #ef4444 !important;
         border: 2px solid #ef4444 !important;
+        font-size: 1.3rem !important;
       }
 
       .f-btn-submit {
@@ -256,7 +260,7 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: QUESTION & ENHANCED 4-COLUMN KEYPAD -->
+        <!-- RIGHT COLUMN: QUESTION & ENHANCED KEYPAD (NON-NUMERICAL IN COL 4) -->
         <div style="display: flex; flex-direction: column; justify-content: space-between;">
           <div id="fluencyFeedbackBadge" style="height: 32px; line-height: 32px; text-align: center; font-weight: 800; font-size: 0.95rem; border-radius: 8px; margin-bottom: 8px; visibility: hidden;">--</div>
 
@@ -264,27 +268,25 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
 
           <div id="fluencyAnswerBox" style="font-size: 2.2rem; font-weight: 800; height: 54px; line-height: 54px; text-align: center; background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: 12px; margin-bottom: 16px; color: #38bdf8;">?</div>
 
-          <!-- 4-COLUMN SYMBOL-COMPLETE KEYPAD GRID -->
+          <!-- KEYPAD GRID WITH ALL ACTION KEYS ON 4TH COLUMN -->
           <div class="blitz-keypad-grid">
             <button class="btn f-key f-key-num" data-k="1">1</button>
             <button class="btn f-key f-key-num" data-k="2">2</button>
             <button class="btn f-key f-key-num" data-k="3">3</button>
-            <button class="btn f-key-del" id="fKeyDel">⌫</button>
+            <button class="btn f-key f-key-minus" data-k="-">−</button>
 
             <button class="btn f-key f-key-num" data-k="4">4</button>
             <button class="btn f-key f-key-num" data-k="5">5</button>
             <button class="btn f-key f-key-num" data-k="6">6</button>
-            <button class="btn f-key-clear" id="fKeyClear">C</button>
+            <button class="btn f-key f-key-dot" data-k=".">.</button>
 
             <button class="btn f-key f-key-num" data-k="7">7</button>
             <button class="btn f-key f-key-num" data-k="8">8</button>
             <button class="btn f-key f-key-num" data-k="9">9</button>
-            <button class="btn f-key f-key-minus" data-k="-">−</button>
-
-            <button class="btn f-key f-key-dot" data-k=".">.</button>
-            <button class="btn f-key f-key-num" data-k="0">0</button>
             <button class="btn f-key f-key-slash" data-k="/">/</button>
-            <button class="btn f-key f-key-num" data-k="00">00</button>
+
+            <button class="btn f-key f-key-num f-key-zero" data-k="0">0</button>
+            <button class="btn f-key-clear" id="fKeyClear">C</button>
           </div>
 
           <!-- GREEN SUBMIT BUTTON -->
@@ -339,19 +341,16 @@ function setupKeypad(currentUser, onFinishCallback) {
       const val = btn.getAttribute('data-k');
 
       if (val === '-') {
-        // Toggle negative sign
         if (userAnswerStr.startsWith('-')) {
           userAnswerStr = userAnswerStr.slice(1);
         } else {
           userAnswerStr = '-' + userAnswerStr;
         }
       } else if (val === '.') {
-        // Prevent multiple decimal points
         if (!userAnswerStr.includes('.')) {
           userAnswerStr += '.';
         }
       } else if (val === '/') {
-        // Prevent multiple fraction slashes
         if (!userAnswerStr.includes('/')) {
           userAnswerStr += '/';
         }
@@ -362,16 +361,6 @@ function setupKeypad(currentUser, onFinishCallback) {
     };
   });
 
-  // Single-character Backspace handler
-  const delBtn = document.getElementById('fKeyDel');
-  if (delBtn) {
-    delBtn.onclick = () => {
-      userAnswerStr = userAnswerStr.slice(0, -1);
-      updateBox();
-    };
-  }
-
-  // Clear-all handler
   const clearBtn = document.getElementById('fKeyClear');
   if (clearBtn) {
     clearBtn.onclick = () => {
@@ -558,7 +547,7 @@ function triggerShurikenFlight(isCorrect, streak) {
 }
 
 function finishBlitz(onFinishCallback) {
-  document.querySelectorAll('.f-key, #fKeyClear, #fKeyDel, #fKeyEnter').forEach(b => b.disabled = true);
+  document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
   
   blitzAudio.stopBGM();
   audioCore.playVictoryFanfare();
