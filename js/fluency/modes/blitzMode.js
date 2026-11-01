@@ -35,18 +35,18 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         .blitz-arena-grid { grid-template-columns: 1fr; }
       }
 
-      /* KEYPAD STYLING */
+      /* DISTINCT 4-COLUMN KEYPAD */
       .blitz-keypad-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
         width: 100%;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
       }
 
       .blitz-keypad-grid .btn {
-        padding: 14px 0;
-        font-size: 1.4rem;
+        padding: 12px 0;
+        font-size: 1.3rem;
         font-weight: 800;
         border-radius: 10px;
         transition: transform 0.1s ease, filter 0.15s ease;
@@ -54,7 +54,7 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
       }
 
       .blitz-keypad-grid .btn:active {
-        transform: scale(0.95);
+        transform: scale(0.94);
       }
 
       .f-key-num {
@@ -67,6 +67,24 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
         background: rgba(245, 158, 11, 0.2) !important;
         color: #fbbf24 !important;
         border: 2px solid #f59e0b !important;
+      }
+
+      .f-key-dot {
+        background: rgba(6, 182, 212, 0.2) !important;
+        color: #38bdf8 !important;
+        border: 2px solid #06b6d4 !important;
+      }
+
+      .f-key-slash {
+        background: rgba(139, 92, 246, 0.2) !important;
+        color: #c084fc !important;
+        border: 2px solid #8b5cf6 !important;
+      }
+
+      .f-key-del {
+        background: rgba(244, 63, 94, 0.2) !important;
+        color: #fb7185 !important;
+        border: 2px solid #f43f5e !important;
       }
 
       .f-key-clear {
@@ -190,7 +208,6 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
 
           <!-- CENTER ARENA: MARTIAL ARTS WOODEN DUMMY & SHURIKEN LAYER -->
           <div style="position: relative; height: 280px; display: flex; justify-content: center; align-items: center; z-index: 3; width: 100%;">
-            
             <div id="trainingDummy" style="position: relative; width: 140px; height: 220px; display: flex; flex-direction: column; align-items: center; transition: transform 0.15s ease;">
               <div style="width: 56px; height: 56px; background: #854d0e; border-radius: 50%; border: 3px solid #713f12; position: relative; display: flex; justify-content: center; align-items: center;">
                 <div style="position: absolute; top: 12px; width: 100%; height: 10px; background: #ef4444;"></div>
@@ -201,7 +218,6 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
                 <div style="position: absolute; top: 20px; left: -30px; width: 34px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px; transform: rotate(-15deg);"></div>
                 <div style="position: absolute; top: 35px; right: -30px; width: 34px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px; transform: rotate(15deg);"></div>
                 <div style="position: absolute; top: 60px; left: -22px; width: 26px; height: 10px; background: #854d0e; border: 2px solid #713f12; border-radius: 4px;"></div>
-                
                 <div id="stuckShurikens" style="position: absolute; inset: 0; pointer-events: none;"></div>
               </div>
 
@@ -209,25 +225,14 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
             </div>
 
             <div id="handSprite" style="
-              position: absolute;
-              bottom: 10px;
-              left: 50%;
-              font-size: 3.5rem;
-              opacity: 0;
-              pointer-events: none;
-              z-index: 11;
+              position: absolute; bottom: 10px; left: 50%; font-size: 3.5rem;
+              opacity: 0; pointer-events: none; z-index: 11;
               filter: drop-shadow(0 6px 10px rgba(0,0,0,0.6));
             ">🤚</div>
 
             <div id="shurikenSprite" style="
-              position: absolute;
-              bottom: 30px;
-              left: 50%;
-              width: 42px;
-              height: 42px;
-              opacity: 0;
-              pointer-events: none;
-              z-index: 10;
+              position: absolute; bottom: 30px; left: 50%; width: 42px; height: 42px;
+              opacity: 0; pointer-events: none; z-index: 10;
               filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.8));
             ">
               <svg width="42" height="42" viewBox="0 0 24 24" fill="#cbd5e1" stroke="#334155" stroke-width="1.5">
@@ -237,11 +242,7 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
             </div>
 
             <div id="blitzImpactEffect" style="
-              position: absolute;
-              font-size: 3.5rem;
-              opacity: 0;
-              pointer-events: none;
-              z-index: 12;
+              position: absolute; font-size: 3.5rem; opacity: 0; pointer-events: none; z-index: 12;
               transition: opacity 0.2s ease;
             ">💥</div>
           </div>
@@ -255,7 +256,7 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: QUESTION & ENHANCED DISTINCT KEYPAD -->
+        <!-- RIGHT COLUMN: QUESTION & ENHANCED 4-COLUMN KEYPAD -->
         <div style="display: flex; flex-direction: column; justify-content: space-between;">
           <div id="fluencyFeedbackBadge" style="height: 32px; line-height: 32px; text-align: center; font-weight: 800; font-size: 0.95rem; border-radius: 8px; margin-bottom: 8px; visibility: hidden;">--</div>
 
@@ -263,23 +264,30 @@ export function mountBlitzMode(container, currentUser, onFinishCallback) {
 
           <div id="fluencyAnswerBox" style="font-size: 2.2rem; font-weight: 800; height: 54px; line-height: 54px; text-align: center; background: var(--bg-card); border: 2px dashed var(--border-color); border-radius: 12px; margin-bottom: 16px; color: #38bdf8;">?</div>
 
-          <!-- DISTINCT COLORED KEYPAD GRID -->
+          <!-- 4-COLUMN SYMBOL-COMPLETE KEYPAD GRID -->
           <div class="blitz-keypad-grid">
             <button class="btn f-key f-key-num" data-k="1">1</button>
             <button class="btn f-key f-key-num" data-k="2">2</button>
             <button class="btn f-key f-key-num" data-k="3">3</button>
+            <button class="btn f-key-del" id="fKeyDel">⌫</button>
+
             <button class="btn f-key f-key-num" data-k="4">4</button>
             <button class="btn f-key f-key-num" data-k="5">5</button>
             <button class="btn f-key f-key-num" data-k="6">6</button>
+            <button class="btn f-key-clear" id="fKeyClear">C</button>
+
             <button class="btn f-key f-key-num" data-k="7">7</button>
             <button class="btn f-key f-key-num" data-k="8">8</button>
             <button class="btn f-key f-key-num" data-k="9">9</button>
             <button class="btn f-key f-key-minus" data-k="-">−</button>
+
+            <button class="btn f-key f-key-dot" data-k=".">.</button>
             <button class="btn f-key f-key-num" data-k="0">0</button>
-            <button class="btn f-key-clear" id="fKeyClear">C</button>
+            <button class="btn f-key f-key-slash" data-k="/">/</button>
+            <button class="btn f-key f-key-num" data-k="00">00</button>
           </div>
 
-          <!-- GREEN SUBMIT BUTTON (NO ENTER SYMBOL) -->
+          <!-- GREEN SUBMIT BUTTON -->
           <button class="btn f-btn-submit" id="fKeyEnter">SUBMIT</button>
         </div>
 
@@ -330,12 +338,22 @@ function setupKeypad(currentUser, onFinishCallback) {
     btn.onclick = () => {
       const val = btn.getAttribute('data-k');
 
-      // Smart Negative Sign Toggling
       if (val === '-') {
+        // Toggle negative sign
         if (userAnswerStr.startsWith('-')) {
           userAnswerStr = userAnswerStr.slice(1);
         } else {
           userAnswerStr = '-' + userAnswerStr;
+        }
+      } else if (val === '.') {
+        // Prevent multiple decimal points
+        if (!userAnswerStr.includes('.')) {
+          userAnswerStr += '.';
+        }
+      } else if (val === '/') {
+        // Prevent multiple fraction slashes
+        if (!userAnswerStr.includes('/')) {
+          userAnswerStr += '/';
         }
       } else {
         userAnswerStr += val;
@@ -344,6 +362,16 @@ function setupKeypad(currentUser, onFinishCallback) {
     };
   });
 
+  // Single-character Backspace handler
+  const delBtn = document.getElementById('fKeyDel');
+  if (delBtn) {
+    delBtn.onclick = () => {
+      userAnswerStr = userAnswerStr.slice(0, -1);
+      updateBox();
+    };
+  }
+
+  // Clear-all handler
   const clearBtn = document.getElementById('fKeyClear');
   if (clearBtn) {
     clearBtn.onclick = () => {
@@ -530,7 +558,7 @@ function triggerShurikenFlight(isCorrect, streak) {
 }
 
 function finishBlitz(onFinishCallback) {
-  document.querySelectorAll('.f-key, #fKeyClear, #fKeyEnter').forEach(b => b.disabled = true);
+  document.querySelectorAll('.f-key, #fKeyClear, #fKeyDel, #fKeyEnter').forEach(b => b.disabled = true);
   
   blitzAudio.stopBGM();
   audioCore.playVictoryFanfare();
